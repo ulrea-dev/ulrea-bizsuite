@@ -48,14 +48,21 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
 
   // Calculate member allocations across projects
   const getMemberAllocations = (memberId: string) => {
-    const allocations = data.projects
+    const phaseAllocations = data.projects
+      .filter(project => project.businessId === currentBusiness?.id)
+      .flatMap(project => 
+        project.allocationTeamAllocations?.filter(alloc => alloc.memberId === memberId) || []
+      );
+    
+    const legacyAllocations = data.projects
       .filter(project => project.businessId === currentBusiness?.id)
       .flatMap(project => 
         project.teamAllocations.filter(alloc => alloc.memberId === memberId)
       );
     
-    const totalAllocated = allocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
-    const totalPaid = allocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
+    const allAllocations = [...phaseAllocations, ...legacyAllocations];
+    const totalAllocated = allAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+    const totalPaid = allAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
     const outstanding = totalAllocated - totalPaid;
     
     return { totalAllocated, totalPaid, outstanding };
@@ -143,7 +150,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                     const allocations = getMemberAllocations(member.id);
                     const memberProjects = data.projects
                       .filter(project => project.businessId === currentBusiness?.id)
-                      .filter(project => project.teamAllocations.some(alloc => alloc.memberId === member.id));
+                      .filter(project => 
+                        project.teamAllocations.some(alloc => alloc.memberId === member.id) ||
+                        project.allocationTeamAllocations?.some(alloc => alloc.memberId === member.id)
+                      );
                     
                     return (
                       <TableRow key={member.id}>

@@ -29,21 +29,24 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
 
   const getPartnerProjects = (partnerId: string) => {
     return projects.filter(project => 
+      project.allocationPartnerAllocations?.some(allocation => allocation.partnerId === partnerId) ||
       project.partnerAllocations?.some(allocation => allocation.partnerId === partnerId)
     );
   };
 
   const getPartnerTotalEarnings = (partnerId: string) => {
     return projects.reduce((total, project) => {
-      const allocation = project.partnerAllocations?.find(a => a.partnerId === partnerId);
-      return total + (allocation?.paidAmount || 0);
+      const phaseAllocation = project.allocationPartnerAllocations?.find(a => a.partnerId === partnerId);
+      const legacyAllocation = project.partnerAllocations?.find(a => a.partnerId === partnerId);
+      return total + (phaseAllocation?.paidAmount || legacyAllocation?.paidAmount || 0);
     }, 0);
   };
 
   const getPartnerOutstanding = (partnerId: string) => {
     return projects.reduce((total, project) => {
-      const allocation = project.partnerAllocations?.find(a => a.partnerId === partnerId);
-      return total + (allocation?.outstanding || 0);
+      const phaseAllocation = project.allocationPartnerAllocations?.find(a => a.partnerId === partnerId);
+      const legacyAllocation = project.partnerAllocations?.find(a => a.partnerId === partnerId);
+      return total + (phaseAllocation?.outstanding || legacyAllocation?.outstanding || 0);
     }, 0);
   };
 

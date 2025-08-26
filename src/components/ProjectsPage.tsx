@@ -9,13 +9,14 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { EnhancedProjectModal } from './EnhancedProjectModal';
 import { ProjectCard } from './ProjectCard';
 import { Project } from '@/types/business';
+import { toast } from '@/hooks/use-toast';
 
 interface ProjectsPageProps {
   onNavigateToPage?: (page: string, itemId?: string) => void;
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) => {
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -49,6 +50,31 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
     setSelectedProject(project);
     setModalMode('edit');
     setShowProjectModal(true);
+  };
+
+  const handleDeleteProject = (project: Project) => {
+    const firstConfirmation = confirm(
+      `Are you sure you want to delete the project "${project.name}"?`
+    );
+    
+    if (!firstConfirmation) return;
+    
+    const secondConfirmation = confirm(
+      `This action cannot be undone. All project data, payments, and allocations will be permanently deleted.\n\nType "DELETE" to confirm you want to proceed.`
+    );
+    
+    if (!secondConfirmation) return;
+    
+    dispatch({
+      type: 'DELETE_PROJECT',
+      payload: project.id
+    });
+    
+    toast({
+      title: "Project Deleted",
+      description: `Project "${project.name}" has been permanently deleted.`,
+      variant: "destructive"
+    });
   };
 
   if (!currentBusiness) {
@@ -129,10 +155,16 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
                 project={project} 
                 currency={currentBusiness.currency}
                 clientName={project.clientId ? data.clients.find(c => c.id === project.clientId)?.name : undefined}
-                teamMembers={project.teamAllocations.map(alloc => ({
-                  id: alloc.memberId,
-                  name: alloc.memberName
-                }))}
+                teamMembers={[
+                  ...project.teamAllocations.map(alloc => ({
+                    id: alloc.memberId,
+                    name: alloc.memberName
+                  })),
+                  ...(project.allocationTeamAllocations?.map(alloc => ({
+                    id: alloc.memberId,
+                    name: alloc.memberName
+                  })) || [])
+                ]}
                 onNavigateToClient={() => {
                   onNavigateToPage?.('clients');
                 }}
@@ -147,7 +179,10 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleViewProject(project)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewProject(project);
+                  }}
                   className="h-8 w-8 p-0"
                 >
                   <Eye className="h-3 w-3" />
@@ -155,10 +190,24 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleEditProject(project)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditProject(project);
+                  }}
                   className="h-8 w-8 p-0"
                 >
                   <Edit className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteProject(project);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>
