@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette, Expense } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
 import { useTheme } from '@/hooks/useTheme';
@@ -35,7 +35,9 @@ type BusinessAction =
   | { type: 'REMOVE_PARTNER_ALLOCATION'; payload: { projectId: string; partnerId: string } }
   | { type: 'SET_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } }
   | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; amount: number } }
-  
+  | { type: 'ADD_EXPENSE'; payload: Expense }
+  | { type: 'UPDATE_EXPENSE'; payload: { id: string; updates: Partial<Expense> } }
+  | { type: 'DELETE_EXPENSE'; payload: string }
   | { type: 'UPDATE_BUSINESS'; payload: { id: string; updates: Partial<Business> } }
   | { type: 'DELETE_BUSINESS'; payload: string }
   | { type: 'SET_USERNAME'; payload: string }
@@ -404,6 +406,50 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
               }
             : project
         ),
+      };
+
+    case 'ADD_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? {
+                ...project,
+                expenses: [...(project.expenses || []), action.payload],
+                updatedAt: new Date().toISOString()
+              }
+            : project
+        ),
+      };
+
+    case 'UPDATE_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(project => {
+          const expense = project.expenses?.find(e => e.id === action.payload.id);
+          if (expense) {
+            return {
+              ...project,
+              expenses: project.expenses?.map(e =>
+                e.id === action.payload.id
+                  ? { ...e, ...action.payload.updates }
+                  : e
+              ) || [],
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
+      };
+
+    case 'DELETE_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(project => ({
+          ...project,
+          expenses: project.expenses?.filter(e => e.id !== action.payload) || [],
+          updatedAt: new Date().toISOString()
+        })),
       };
 
     case 'UPDATE_BUSINESS':

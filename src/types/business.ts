@@ -1,4 +1,3 @@
-
 export interface Currency {
   code: string;
   symbol: string;
@@ -90,6 +89,31 @@ export interface TeamAllocation {
   outstanding: number;
 }
 
+export type ExpenseCategory = 
+  | 'software'
+  | 'equipment'
+  | 'marketing'
+  | 'travel'
+  | 'contractor'
+  | 'supplies'
+  | 'hosting'
+  | 'services'
+  | 'other';
+
+export interface Expense {
+  id: string;
+  projectId: string;
+  name: string;
+  category: ExpenseCategory;
+  amount: number;
+  date: string;
+  description?: string;
+  status: 'pending' | 'paid';
+  receipt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: string;
   businessId: string;
@@ -104,6 +128,7 @@ export interface Project {
   partnerAllocations: PartnerAllocation[];
   companyAllocation?: CompanyAllocation;
   clientPayments: number;
+  expenses: Expense[];
   createdAt: string;
   updatedAt: string;
 }
@@ -168,4 +193,16 @@ export const SUPPORTED_CURRENCIES: Currency[] = [
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+];
+
+export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+  { value: 'software', label: 'Software & Tools' },
+  { value: 'equipment', label: 'Equipment' },
+  { value: 'marketing', label: 'Marketing & Advertising' },
+  { value: 'travel', label: 'Travel & Transportation' },
+  { value: 'contractor', label: 'Contractor Fees' },
+  { value: 'supplies', label: 'Office Supplies' },
+  { value: 'hosting', label: 'Hosting & Infrastructure' },
+  { value: 'services', label: 'Professional Services' },
+  { value: 'other', label: 'Other' },
 ];

@@ -4,14 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2, Trash2, Receipt, TrendingDown } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation, Payment } from '@/types/business';
+import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation, Payment, Expense, EXPENSE_CATEGORIES } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
 import { ProjectModal } from './ProjectModal';
 import { PaymentModal } from './PaymentModal';
 import { AllocationModal } from './AllocationModal';
 import { ClientPaymentModal } from './ClientPaymentModal';
+import { ExpenseModal } from './ExpenseModal';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -32,12 +33,16 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [clientPaymentModalOpen, setClientPaymentModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentMode, setPaymentMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [expenseMode, setExpenseMode] = useState<'create' | 'edit' | 'view'>('create');
 
   const project = data.projects.find(p => p.id === projectId);
   const client = project?.clientId ? data.clients.find(c => c.id === project.clientId) : null;
   const teamMembers = data.teamMembers || [];
   const partners = data.partners || [];
   const payments = data.payments.filter(p => p.projectId === projectId);
+  const expenses = project?.expenses || [];
 
   if (!project || !currentBusiness) {
     return (
@@ -52,9 +57,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const companyAllocated = project.companyAllocation?.totalAllocated || 0;
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const clientPaymentsReceived = project.clientPayments || 0;
-  const netProfit = clientPaymentsReceived - totalAllocated;
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const netProfit = clientPaymentsReceived - totalAllocated - totalExpenses;
   const totalPaid = payments.reduce((sum, payment) => payment.status === 'completed' ? sum + payment.amount : sum, 0);
-  const remainingBudget = project.totalValue - totalAllocated;
+  const remainingBudget = project.totalValue - totalAllocated - totalExpenses;
   const outstandingPayments = totalAllocated - totalPaid;
 
   const openPaymentModal = (type: 'team' | 'partner', id: string, name: string) => {
@@ -136,6 +142,17 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     }
   };
 
+  const openExpenseModal = (mode: 'create' | 'edit' | 'view', expense?: Expense) => {
+    setSelectedExpense(expense || null);
+    setExpenseMode(mode);
+    setExpenseModalOpen(true);
+  };
+
+  const expensesByCategory = expenses.reduce((acc, expense) => {
+    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -153,8 +170,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         </Button>
       </div>
 
-      {/* Project Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      {/* Project Overview - Updated to include expenses */}
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm dashboard-text-secondary">Total Value</CardTitle>
@@ -175,6 +192,18 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               {formatCurrency(totalAllocated, currentBusiness.currency)}
             </div>
             <Progress value={(totalAllocated / project.totalValue) * 100} className="mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm dashboard-text-secondary">Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(totalExpenses, currentBusiness.currency)}
+            </div>
+            <Progress value={(totalExpenses / project.totalValue) * 100} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -214,7 +243,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         </Card>
       </div>
 
-      {/* Project Details & Client */}
+      {/* Project Details & Client - Updated budget breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
@@ -272,6 +301,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               <span className="dashboard-text-secondary">Company:</span>
               <span className="dashboard-text-primary">{formatCurrency(companyAllocated, currentBusiness.currency)}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="dashboard-text-secondary">Expenses:</span>
+              <span className="text-red-600">{formatCurrency(totalExpenses, currentBusiness.currency)}</span>
+            </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="dashboard-text-secondary">Remaining:</span>
               <span className="font-semibold dashboard-text-primary">{formatCurrency(remainingBudget, currentBusiness.currency)}</span>
@@ -280,12 +313,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         </Card>
       </div>
 
-      {/* Team & Partner Management */}
+      {/* Team & Partner Management - Updated to include expenses tab */}
       <Tabs defaultValue="team" className="space-y-6">
         <TabsList>
           <TabsTrigger value="team">Team Allocations</TabsTrigger>
           <TabsTrigger value="partners">Partner Allocations</TabsTrigger>
           <TabsTrigger value="company">Company Allocation</TabsTrigger>
+          <TabsTrigger value="expenses">Expense Allocation</TabsTrigger>
           <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
         </TabsList>
@@ -511,6 +545,129 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="expenses" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold dashboard-text-primary">Project Expenses</h3>
+            <Button onClick={() => openExpenseModal('create')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Expense
+            </Button>
+          </div>
+
+          {/* Expense Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Total Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-red-600">
+                  {formatCurrency(totalExpenses, currentBusiness.currency)}
+                </div>
+                <Progress value={(totalExpenses / project.totalValue) * 100} className="mt-2" />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Paid Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold dashboard-text-primary">
+                  {formatCurrency(expenses.filter(e => e.status === 'paid').reduce((sum, e) => sum + e.amount, 0), currentBusiness.currency)}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Pending Expenses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-orange-600">
+                  {formatCurrency(expenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0), currentBusiness.currency)}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold dashboard-text-primary">
+                  {Object.keys(expensesByCategory).length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {expenses.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Receipt className="h-12 w-12 dashboard-text-secondary mb-4" />
+                <p className="dashboard-text-secondary">No expenses recorded yet</p>
+                <Button className="mt-4" onClick={() => openExpenseModal('create')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Expense
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {expenses.map((expense) => {
+                const category = EXPENSE_CATEGORIES.find(c => c.value === expense.category);
+                return (
+                  <Card key={expense.id}>
+                    <CardContent className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-red-100 rounded-lg">
+                          <Receipt className="h-4 w-4 text-red-600" />
+                        </div>
+                        <div>
+                          <div className="font-semibold dashboard-text-primary">{expense.name}</div>
+                          <div className="text-sm dashboard-text-secondary">
+                            {category?.label} • {new Date(expense.date).toLocaleDateString()}
+                          </div>
+                          {expense.description && (
+                            <div className="text-sm dashboard-text-secondary">{expense.description}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="font-semibold text-red-600">
+                            {formatCurrency(expense.amount, currentBusiness.currency)}
+                          </div>
+                          <Badge variant={expense.status === 'paid' ? 'default' : 'secondary'}>
+                            {expense.status}
+                          </Badge>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openExpenseModal('view', expense)}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => openExpenseModal('edit', expense)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           )}
         </TabsContent>
 
@@ -770,6 +927,17 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         clientName={client?.name || 'Client'}
         payment={selectedClientPayment}
         mode={clientPaymentMode}
+      />
+
+      <ExpenseModal
+        isOpen={expenseModalOpen}
+        onClose={() => {
+          setExpenseModalOpen(false);
+          setSelectedExpense(null);
+        }}
+        projectId={projectId}
+        expense={selectedExpense}
+        mode={expenseMode}
       />
     </div>
   );
