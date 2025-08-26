@@ -145,7 +145,31 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
 };
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [data, dispatch] = useReducer(businessReducer, loadData());
+  let initialData;
+  try {
+    initialData = loadData();
+    console.log('BusinessProvider: Data loaded successfully', initialData);
+  } catch (error) {
+    console.error('BusinessProvider: Error loading data', error);
+    // Fallback to basic initial data
+    initialData = {
+      businesses: [],
+      projects: [],
+      teamMembers: [],
+      clients: [],
+      payments: [],
+      currentBusinessId: null,
+      userSettings: {
+        username: '',
+        theme: 'light' as const,
+        defaultCurrency: { code: 'USD', name: 'US Dollar', symbol: '$' },
+        fontFamily: undefined,
+        colorPalette: undefined,
+      },
+    };
+  }
+  
+  const [data, dispatch] = useReducer(businessReducer, initialData);
 
   const currentBusiness = data.currentBusinessId
     ? data.businesses.find(b => b.id === data.currentBusinessId) || null
