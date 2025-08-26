@@ -1,26 +1,13 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-// Removed TooltipProvider to resolve invalid hook call from Radix provider.
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
-// Removed react-query provider to isolate the runtime error.
-
+// Temporarily render only Index to isolate invalid hook calls coming from providers/router.
 const App = () => (
   <>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    {/* Removed shadcn Toaster and Sonner Toaster during isolation */}
+    {/* Removed BrowserRouter/Routes/Route during isolation */}
+    <Index />
   </>
 );
 
 export default App;
-
