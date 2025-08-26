@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2, Trash2, Receipt, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2, Trash2, Receipt, TrendingDown, Layers } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation, Payment, Expense, EXPENSE_CATEGORIES } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
@@ -13,6 +13,8 @@ import { PaymentModal } from './PaymentModal';
 import { AllocationModal } from './AllocationModal';
 import { ClientPaymentModal } from './ClientPaymentModal';
 import { ExpenseModal } from './ExpenseModal';
+import { PhaseModal } from './PhaseModal';
+import { PhaseCard } from './PhaseCard';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -319,6 +321,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           <TabsTrigger value="team">Team Allocations</TabsTrigger>
           <TabsTrigger value="partners">Partner Allocations</TabsTrigger>
           <TabsTrigger value="company">Company Allocation</TabsTrigger>
+          <TabsTrigger value="phases">Project Phases</TabsTrigger>
           <TabsTrigger value="expenses">Expense Allocation</TabsTrigger>
           <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
@@ -545,6 +548,92 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="phases" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold dashboard-text-primary">Project Phases</h3>
+            <PhaseModal projectId={projectId}>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Phase
+              </Button>
+            </PhaseModal>
+          </div>
+
+          {/* Phase Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Total Phases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold dashboard-text-primary">
+                  {project.phases?.length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Total Phase Budget</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold dashboard-text-primary">
+                  {formatCurrency(project.phases?.reduce((sum, phase) => sum + phase.budget, 0) || 0, currentBusiness.currency)}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Active Phases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-green-600">
+                  {project.phases?.filter(phase => phase.status === 'active').length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm dashboard-text-secondary">Completed Phases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold text-blue-600">
+                  {project.phases?.filter(phase => phase.status === 'completed').length || 0}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {!project.phases || project.phases.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Layers className="h-12 w-12 dashboard-text-secondary mb-4" />
+                <p className="dashboard-text-secondary">No phases created yet</p>
+                <p className="text-sm dashboard-text-secondary mb-4">Break down your project into manageable phases with dedicated budgets</p>
+                <PhaseModal projectId={projectId}>
+                  <Button className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Phase
+                  </Button>
+                </PhaseModal>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {project.phases.map((phase) => (
+                <PhaseCard 
+                  key={phase.id} 
+                  phase={phase} 
+                  project={project} 
+                  currentBusiness={currentBusiness} 
+                />
+              ))}
+            </div>
           )}
         </TabsContent>
 

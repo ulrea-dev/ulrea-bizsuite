@@ -47,8 +47,13 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
       startDate: formData.startDate,
       endDate: formData.endDate || undefined,
       clientId: formData.clientId || undefined,
+      usePhases: project?.usePhases || false,
+      phases: project?.phases || [],
       teamAllocations: project?.teamAllocations || [],
       partnerAllocations: project?.partnerAllocations || [],
+      phaseTeamAllocations: project?.phaseTeamAllocations || [],
+      phasePartnerAllocations: project?.phasePartnerAllocations || [],
+      phaseCompanyAllocations: project?.phaseCompanyAllocations || [],
       clientPayments: project?.clientPayments || 0,
       expenses: project?.expenses || []
     };

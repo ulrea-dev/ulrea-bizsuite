@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette, Expense } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette, Expense, ProjectPhase, PhaseTeamAllocation, PhasePartnerAllocation, PhaseCompanyAllocation } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
 import { useTheme } from '@/hooks/useTheme';
@@ -42,7 +42,15 @@ type BusinessAction =
   | { type: 'DELETE_BUSINESS'; payload: string }
   | { type: 'SET_USERNAME'; payload: string }
   | { type: 'SET_FONT'; payload: FontOption }
-  | { type: 'SET_COLOR_PALETTE'; payload: ColorPalette };
+  | { type: 'SET_COLOR_PALETTE'; payload: ColorPalette }
+  | { type: 'ADD_PHASE'; payload: { projectId: string; phase: ProjectPhase } }
+  | { type: 'UPDATE_PHASE'; payload: { projectId: string; phaseId: string; updates: Partial<ProjectPhase> } }
+  | { type: 'DELETE_PHASE'; payload: { projectId: string; phaseId: string } }
+  | { type: 'ADD_PHASE_TEAM_ALLOCATION'; payload: { projectId: string; allocation: PhaseTeamAllocation } }
+  | { type: 'REMOVE_PHASE_TEAM_ALLOCATION'; payload: { projectId: string; phaseId: string; memberId: string } }
+  | { type: 'ADD_PHASE_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PhasePartnerAllocation } }
+  | { type: 'REMOVE_PHASE_PARTNER_ALLOCATION'; payload: { projectId: string; phaseId: string; partnerId: string } }
+  | { type: 'SET_PHASE_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: PhaseCompanyAllocation } };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
@@ -495,6 +503,143 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           ...state.userSettings,
           colorPalette: action.payload,
         },
+      };
+
+    case 'ADD_PHASE':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phases: [...(project.phases || []), action.payload.phase],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+      };
+
+    case 'UPDATE_PHASE':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? {
+                ...project,
+                phases: project.phases?.map(phase =>
+                  phase.id === action.payload.phaseId
+                    ? { ...phase, ...action.payload.updates, updatedAt: new Date().toISOString() }
+                    : phase
+                ) || [],
+                updatedAt: new Date().toISOString()
+              }
+            : project
+        ),
+      };
+
+    case 'DELETE_PHASE':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? {
+                ...project,
+                phases: project.phases?.filter(phase => phase.id !== action.payload.phaseId) || [],
+                phaseTeamAllocations: project.phaseTeamAllocations?.filter(allocation => allocation.phaseId !== action.payload.phaseId) || [],
+                phasePartnerAllocations: project.phasePartnerAllocations?.filter(allocation => allocation.phaseId !== action.payload.phaseId) || [],
+                phaseCompanyAllocations: project.phaseCompanyAllocations?.filter(allocation => allocation.phaseId !== action.payload.phaseId) || [],
+                updatedAt: new Date().toISOString()
+              }
+            : project
+        ),
+        payments: state.payments.filter(payment => payment.phaseId !== action.payload.phaseId),
+      };
+
+    case 'ADD_PHASE_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phaseTeamAllocations: [...(project.phaseTeamAllocations || []), action.payload.allocation],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+      };
+
+    case 'REMOVE_PHASE_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phaseTeamAllocations: project.phaseTeamAllocations?.filter(allocation => 
+                  !(allocation.phaseId === action.payload.phaseId && allocation.memberId === action.payload.memberId)
+                ) || [],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+        payments: state.payments.filter(payment => 
+          !(payment.projectId === action.payload.projectId && 
+            payment.phaseId === action.payload.phaseId &&
+            payment.memberId === action.payload.memberId)
+        ),
+      };
+
+    case 'ADD_PHASE_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phasePartnerAllocations: [...(project.phasePartnerAllocations || []), action.payload.allocation],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+      };
+
+    case 'REMOVE_PHASE_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phasePartnerAllocations: project.phasePartnerAllocations?.filter(allocation => 
+                  !(allocation.phaseId === action.payload.phaseId && allocation.partnerId === action.payload.partnerId)
+                ) || [],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+        payments: state.payments.filter(payment => 
+          !(payment.projectId === action.payload.projectId && 
+            payment.phaseId === action.payload.phaseId &&
+            payment.partnerId === action.payload.partnerId)
+        ),
+      };
+
+    case 'SET_PHASE_COMPANY_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                phaseCompanyAllocations: [
+                  ...project.phaseCompanyAllocations?.filter(allocation => allocation.phaseId !== action.payload.allocation.phaseId) || [],
+                  action.payload.allocation
+                ],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
       };
     
     default:

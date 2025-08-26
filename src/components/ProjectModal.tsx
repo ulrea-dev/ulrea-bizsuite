@@ -41,8 +41,13 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
       status: formData.status,
       startDate: formData.startDate,
       endDate: formData.endDate || undefined,
+      usePhases: project?.usePhases || false,
+      phases: project?.phases || [],
       teamAllocations: project?.teamAllocations || [],
       partnerAllocations: project?.partnerAllocations || [],
+      phaseTeamAllocations: project?.phaseTeamAllocations || [],
+      phasePartnerAllocations: project?.phasePartnerAllocations || [],
+      phaseCompanyAllocations: project?.phaseCompanyAllocations || [],
       clientPayments: project?.clientPayments || 0,
       expenses: project?.expenses || []
     };

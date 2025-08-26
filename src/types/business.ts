@@ -69,6 +69,7 @@ export interface Payment {
   amount: number;
   date: string;
   projectId: string;
+  phaseId?: string;
   memberId?: string;
   partnerId?: string;
   clientId?: string;
@@ -79,6 +80,18 @@ export interface Payment {
   description?: string;
 }
 
+export interface ProjectPhase {
+  id: string;
+  title: string;
+  budget: number;
+  startDate: string;
+  endDate?: string;
+  status: 'planning' | 'active' | 'completed' | 'on-hold';
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TeamAllocation {
   memberId: string;
   memberName: string;
@@ -87,6 +100,21 @@ export interface TeamAllocation {
   totalAllocated: number;
   paidAmount: number;
   outstanding: number;
+}
+
+export interface PhaseTeamAllocation extends TeamAllocation {
+  phaseId: string;
+  phaseName: string;
+}
+
+export interface PhasePartnerAllocation extends PartnerAllocation {
+  phaseId: string;
+  phaseName: string;
+}
+
+export interface PhaseCompanyAllocation extends CompanyAllocation {
+  phaseId: string;
+  phaseName: string;
 }
 
 export type ExpenseCategory = 
@@ -103,6 +131,7 @@ export type ExpenseCategory =
 export interface Expense {
   id: string;
   projectId: string;
+  phaseId?: string;
   name: string;
   category: ExpenseCategory;
   amount: number;
@@ -124,9 +153,14 @@ export interface Project {
   startDate: string;
   endDate?: string;
   clientId?: string;
+  usePhases?: boolean;
+  phases: ProjectPhase[];
   teamAllocations: TeamAllocation[];
   partnerAllocations: PartnerAllocation[];
   companyAllocation?: CompanyAllocation;
+  phaseTeamAllocations: PhaseTeamAllocation[];
+  phasePartnerAllocations: PhasePartnerAllocation[];
+  phaseCompanyAllocations: PhaseCompanyAllocation[];
   clientPayments: number;
   expenses: Expense[];
   createdAt: string;
