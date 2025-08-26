@@ -8,16 +8,35 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, Upload, Trash2, Moon, Sun, Database, User, Building } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTheme } from '@/hooks/useTheme';
 import { exportData, importData, clearAllData } from '@/utils/storage';
 import { SUPPORTED_CURRENCIES } from '@/types/business';
+import { BusinessManagement } from './BusinessManagement';
+import { BusinessSetup } from './BusinessSetup';
 
 export const SettingsPage: React.FC = () => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const { theme, toggleTheme } = useTheme();
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+
+  if (showBusinessSetup) {
+    return (
+      <div className="p-6">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowBusinessSetup(false)}
+          className="mb-4"
+        >
+          ← Back to Settings
+        </Button>
+        <BusinessSetup onComplete={() => setShowBusinessSetup(false)} />
+      </div>
+    );
+  }
 
   const handleExportData = () => {
     const dataStr = exportData();
@@ -64,6 +83,15 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-3xl font-bold dashboard-text-primary">Settings</h1>
         <p className="dashboard-text-secondary">Manage your preferences and data</p>
       </div>
+
+      <Tabs defaultValue="user" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="user">User Settings</TabsTrigger>
+          <TabsTrigger value="businesses">Businesses</TabsTrigger>
+          <TabsTrigger value="data">Data Management</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="user" className="space-y-6 mt-6">
 
       {/* User Settings */}
       <Card>
@@ -131,6 +159,13 @@ export const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
+        </TabsContent>
+
+        <TabsContent value="businesses" className="space-y-6 mt-6">
+          <BusinessManagement onCreateBusiness={() => setShowBusinessSetup(true)} />
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-6 mt-6">
       {/* Business Overview */}
       {currentBusiness && (
         <Card>
@@ -260,6 +295,8 @@ export const SettingsPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

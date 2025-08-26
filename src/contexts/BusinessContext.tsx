@@ -22,6 +22,8 @@ type BusinessAction =
   | { type: 'UPDATE_TEAM_MEMBER'; payload: { id: string; updates: Partial<TeamMember> } }
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: { id: string; updates: Partial<Client> } }
+  | { type: 'UPDATE_BUSINESS'; payload: { id: string; updates: Partial<Business> } }
+  | { type: 'DELETE_BUSINESS'; payload: string }
   | { type: 'SET_USERNAME'; payload: string };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -87,6 +89,24 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
             ? { ...client, ...action.payload.updates }
             : client
         ),
+      };
+    
+    case 'UPDATE_BUSINESS':
+      return {
+        ...state,
+        businesses: state.businesses.map(business =>
+          business.id === action.payload.id
+            ? { ...business, ...action.payload.updates }
+            : business
+        ),
+      };
+
+    case 'DELETE_BUSINESS':
+      return {
+        ...state,
+        businesses: state.businesses.filter(business => business.id !== action.payload),
+        projects: state.projects.filter(project => project.businessId !== action.payload),
+        currentBusinessId: state.currentBusinessId === action.payload ? null : state.currentBusinessId,
       };
     
     case 'SET_USERNAME':

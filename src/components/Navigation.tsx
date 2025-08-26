@@ -3,11 +3,13 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
+import { BusinessSwitcher } from './BusinessSwitcher';
 
 interface NavigationProps {
   currentPage: string;
   onPageChange: (page: string) => void;
   onLogout: () => void;
+  onCreateBusiness: () => void;
 }
 
 const navigationItems = [
@@ -19,12 +21,12 @@ const navigationItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export const Navigation: React.FC<NavigationProps> = ({ currentPage, onPageChange, onLogout }) => {
+export const Navigation: React.FC<NavigationProps> = ({ currentPage, onPageChange, onLogout, onCreateBusiness }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="w-64 dashboard-surface border-r dashboard-border p-4 flex flex-col">
-      <div className="mb-8">
+      <div className="mb-8 space-y-4">
         <div className="flex items-center gap-3">
           <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
             <Building2 className="h-6 w-6 dashboard-text-primary" />
@@ -34,6 +36,11 @@ export const Navigation: React.FC<NavigationProps> = ({ currentPage, onPageChang
             <p className="text-sm dashboard-text-secondary">Management Tool</p>
           </div>
         </div>
+        
+        <BusinessSwitcher 
+          onCreateBusiness={onCreateBusiness}
+          onManageBusinesses={() => onPageChange('settings')}
+        />
       </div>
 
       <div className="flex-1 space-y-2">

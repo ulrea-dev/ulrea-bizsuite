@@ -7,6 +7,7 @@ import { TeamPage } from './TeamPage';
 import { ClientsPage } from './ClientsPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
+import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/storage';
@@ -17,7 +18,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, switchBusiness } = useBusiness();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 
@@ -34,7 +35,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardHome onShowBusinessSetup={() => setShowBusinessSetup(true)} />;
+        return (
+          <DashboardHome 
+            onShowBusinessSetup={() => setShowBusinessSetup(true)}
+            onSelectBusiness={(businessId) => switchBusiness(businessId)}
+            onCreateBusiness={() => setShowBusinessSetup(true)}
+          />
+        );
     }
   };
 
@@ -52,6 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         currentPage={currentPage} 
         onPageChange={setCurrentPage}
         onLogout={onLogout}
+        onCreateBusiness={() => setShowBusinessSetup(true)}
       />
       <main className="flex-1">
         {renderPage()}
@@ -62,10 +70,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
+  onSelectBusiness: (businessId: string) => void;
+  onCreateBusiness: () => void;
 }
 
-const DashboardHome: React.FC<DashboardHomeProps> = ({ onShowBusinessSetup }) => {
+const DashboardHome: React.FC<DashboardHomeProps> = ({ 
+  onShowBusinessSetup, 
+  onSelectBusiness, 
+  onCreateBusiness 
+}) => {
   const { data, currentBusiness } = useBusiness();
+
+  // Show multi-business overview if multiple businesses exist but none is selected
+  // or if user wants to see overview of all businesses
+  if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
+    return (
+      <div className="p-6">
+        <MultiBusinessOverview 
+          onSelectBusiness={onSelectBusiness}
+          onCreateBusiness={onCreateBusiness}
+        />
+      </div>
+    );
+  }
 
   if (!currentBusiness) {
     return (
