@@ -25,11 +25,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const renderPage = () => {
     switch (currentPage) {
       case 'projects':
-        return <ProjectsPage />;
+        return <ProjectsPage onNavigateToPage={setCurrentPage} />;
       case 'team':
-        return <TeamPage />;
+        return <TeamPage onNavigateToPage={setCurrentPage} />;
       case 'clients':
-        return <ClientsPage />;
+        return <ClientsPage onNavigateToPage={setCurrentPage} />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'settings':

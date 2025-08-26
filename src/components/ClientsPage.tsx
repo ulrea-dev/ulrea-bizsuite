@@ -11,7 +11,11 @@ import { ClientModal } from './ClientModal';
 import { formatCurrency } from '@/utils/storage';
 import { Client } from '@/types/business';
 
-export const ClientsPage: React.FC = () => {
+interface ClientsPageProps {
+  onNavigateToPage?: (page: string) => void;
+}
+
+export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) => {
   const { data, currentBusiness } = useBusiness();
   const [showClientModal, setShowClientModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -125,7 +129,8 @@ export const ClientsPage: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {filteredClients.map(client => {
-                  const clientProjects = getClientProjects(client.id);
+                  const clientProjects = getClientProjects(client.id)
+                    .filter(project => project.businessId === currentBusiness?.id);
                   const totalValue = clientProjects.reduce((sum, project) => sum + project.totalValue, 0);
                   
                   return (
@@ -146,7 +151,29 @@ export const ClientsPage: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{clientProjects.length} projects</Badge>
+                        <div className="space-y-1">
+                          <Badge variant="outline">{clientProjects.length} projects</Badge>
+                          {clientProjects.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {clientProjects.slice(0, 2).map(project => (
+                                <Button
+                                  key={project.id}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-1 text-xs hover:text-primary"
+                                  onClick={() => onNavigateToPage?.('projects')}
+                                >
+                                  {project.name}
+                                </Button>
+                              ))}
+                              {clientProjects.length > 2 && (
+                                <span className="text-xs dashboard-text-secondary">
+                                  +{clientProjects.length - 2} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {formatCurrency(totalValue, currentBusiness.currency)}

@@ -11,7 +11,11 @@ import { TeamMemberModal } from './TeamMemberModal';
 import { formatCurrency } from '@/utils/storage';
 import { TeamMember } from '@/types/business';
 
-export const TeamPage: React.FC = () => {
+interface TeamPageProps {
+  onNavigateToPage?: (page: string) => void;
+}
+
+export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
   const { data, currentBusiness } = useBusiness();
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -129,64 +133,89 @@ export const TeamPage: React.FC = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Default Rate</TableHead>
-                  <TableHead>Total Allocated</TableHead>
+                  <TableHead>Projects & Allocations</TableHead>
                   <TableHead>Outstanding</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers.map(member => {
-                  const allocations = getMemberAllocations(member.id);
-                  
-                  return (
-                    <TableRow key={member.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{member.name}</div>
-                          <div className="flex items-center gap-1 text-sm dashboard-text-secondary">
-                            <Mail className="h-3 w-3" />
-                            {member.email}
+                  {filteredMembers.map(member => {
+                    const allocations = getMemberAllocations(member.id);
+                    const memberProjects = data.projects
+                      .filter(project => project.businessId === currentBusiness?.id)
+                      .filter(project => project.teamAllocations.some(alloc => alloc.memberId === member.id));
+                    
+                    return (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{member.name}</div>
+                            <div className="flex items-center gap-1 text-sm dashboard-text-secondary">
+                              <Mail className="h-3 w-3" />
+                              {member.email}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{member.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          {formatCurrency(member.defaultRate, currentBusiness.currency)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(allocations.totalAllocated, currentBusiness.currency)}
-                      </TableCell>
-                      <TableCell>
-                        <span className={allocations.outstanding > 0 ? 'text-orange-600' : 'dashboard-text-secondary'}>
-                          {formatCurrency(allocations.outstanding, currentBusiness.currency)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewMember(member)}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditMember(member)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{member.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            {formatCurrency(member.defaultRate, currentBusiness.currency)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div>{formatCurrency(allocations.totalAllocated, currentBusiness.currency)}</div>
+                            {memberProjects.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {memberProjects.slice(0, 2).map(project => (
+                                  <Button
+                                    key={project.id}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-auto p-1 text-xs hover:text-primary"
+                                    onClick={() => onNavigateToPage?.('projects')}
+                                  >
+                                    {project.name}
+                                  </Button>
+                                ))}
+                                {memberProjects.length > 2 && (
+                                  <span className="text-xs dashboard-text-secondary">
+                                    +{memberProjects.length - 2} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={allocations.outstanding > 0 ? 'text-orange-600' : 'dashboard-text-secondary'}>
+                            {formatCurrency(allocations.outstanding, currentBusiness.currency)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewMember(member)}
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditMember(member)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </CardContent>

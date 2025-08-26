@@ -3,16 +3,28 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, DollarSign, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, DollarSign, Users, User, Building2 } from 'lucide-react';
 import { Project, Currency } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
 
 interface ProjectCardProps {
   project: Project;
   currency: Currency;
+  onNavigateToClient?: (clientId: string) => void;
+  onNavigateToTeam?: () => void;
+  clientName?: string;
+  teamMembers?: Array<{ id: string; name: string }>;
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project, currency }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ 
+  project, 
+  currency, 
+  onNavigateToClient, 
+  onNavigateToTeam,
+  clientName,
+  teamMembers 
+}) => {
   const totalAllocated = project.teamAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
   const totalPaid = project.teamAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
   const paymentProgress = totalAllocated > 0 ? (totalPaid / totalAllocated) * 100 : 0;
@@ -65,15 +77,57 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, currency }) =
           </span>
         </div>
         
-        {/* Team Information */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 dashboard-text-secondary" />
-            <span className="text-sm dashboard-text-secondary">Team Members</span>
+        {/* Client Information */}
+        {clientName && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 dashboard-text-secondary" />
+              <span className="text-sm dashboard-text-secondary">Client</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 font-medium dashboard-text-primary hover:text-primary"
+              onClick={() => onNavigateToClient?.(project.clientId!)}
+            >
+              {clientName}
+            </Button>
           </div>
-          <span className="font-medium dashboard-text-primary">
-            {project.teamAllocations.length}
-          </span>
+        )}
+        
+        {/* Team Information */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 dashboard-text-secondary" />
+              <span className="text-sm dashboard-text-secondary">Team Members</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 font-medium dashboard-text-primary hover:text-primary"
+              onClick={() => onNavigateToTeam?.()}
+            >
+              {project.teamAllocations.length} members
+            </Button>
+          </div>
+          
+          {/* Team Member Names */}
+          {teamMembers && teamMembers.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {teamMembers.slice(0, 3).map((member) => (
+                <Badge key={member.id} variant="secondary" className="text-xs">
+                  <User className="h-3 w-3 mr-1" />
+                  {member.name}
+                </Badge>
+              ))}
+              {teamMembers.length > 3 && (
+                <Badge variant="outline" className="text-xs">
+                  +{teamMembers.length - 3} more
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Payment Progress */}

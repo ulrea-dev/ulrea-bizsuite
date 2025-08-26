@@ -10,7 +10,11 @@ import { ProjectModal } from './ProjectModal';
 import { ProjectCard } from './ProjectCard';
 import { Project } from '@/types/business';
 
-export const ProjectsPage: React.FC = () => {
+interface ProjectsPageProps {
+  onNavigateToPage?: (page: string) => void;
+}
+
+export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) => {
   const { data, currentBusiness } = useBusiness();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -124,6 +128,17 @@ export const ProjectsPage: React.FC = () => {
               <ProjectCard 
                 project={project} 
                 currency={currentBusiness.currency}
+                clientName={project.clientId ? data.clients.find(c => c.id === project.clientId)?.name : undefined}
+                teamMembers={project.teamAllocations.map(alloc => ({
+                  id: alloc.memberId,
+                  name: alloc.memberName
+                }))}
+                onNavigateToClient={() => {
+                  onNavigateToPage?.('clients');
+                }}
+                onNavigateToTeam={() => {
+                  onNavigateToPage?.('team');
+                }}
               />
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                 <Button
