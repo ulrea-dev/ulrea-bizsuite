@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TeamAllocation, PartnerAllocation, CompanyAllocation } from '@/types/business';
+import { TeamAllocation, PartnerAllocation } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 
 interface AllocationModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  allocationType: 'team' | 'partner' | 'company';
-  allocation?: TeamAllocation | PartnerAllocation | CompanyAllocation | null;
+  allocationType: 'team' | 'partner';
+  allocation?: TeamAllocation | PartnerAllocation | null;
   mode: 'create' | 'edit' | 'view';
 }
 
@@ -38,12 +38,8 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
     ? data.teamMembers.filter(member => 
         !project?.teamAllocations?.some(allocation => allocation.memberId === member.id)
       )
-    : allocationType === 'partner'
-    ? data.partners.filter(partner => 
-        !project?.partnerAllocations?.some(allocation => allocation.partnerId === partner.id)
-      )
     : data.partners.filter(partner => 
-        !project?.companyAllocations?.some(allocation => allocation.partnerId === partner.id)
+        !project?.partnerAllocations?.some(allocation => allocation.partnerId === partner.id)
       );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,25 +69,9 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
           },
         },
       });
-    } else if (allocationType === 'partner') {
-      dispatch({
-        type: 'ADD_PARTNER_ALLOCATION',
-        payload: {
-          projectId,
-          allocation: {
-            partnerId: formData.memberId,
-            partnerName: member.name,
-            allocationType: formData.allocationType as 'percentage' | 'fixed',
-            allocationValue: parseFloat(formData.allocationValue),
-            totalAllocated: allocatedAmount,
-            paidAmount: 0,
-            outstanding: allocatedAmount,
-          },
-        },
-      });
     } else {
       dispatch({
-        type: 'ADD_COMPANY_ALLOCATION',
+        type: 'ADD_PARTNER_ALLOCATION',
         payload: {
           projectId,
           allocation: {
@@ -117,26 +97,26 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Add' : mode === 'edit' ? 'Edit' : 'View'} {allocationType === 'team' ? 'Team Member' : allocationType === 'partner' ? 'Partner' : 'Company'} Allocation
+            {mode === 'create' ? 'Add' : mode === 'edit' ? 'Edit' : 'View'} {allocationType === 'team' ? 'Team Member' : 'Partner'} Allocation
           </DialogTitle>
           <DialogDescription>
             {mode === 'view' 
-              ? `View ${allocationType === 'team' ? 'team member' : allocationType === 'partner' ? 'partner' : 'company'} allocation details.`
-              : `${mode === 'create' ? 'Add a new' : 'Edit'} ${allocationType === 'team' ? 'team member' : allocationType === 'partner' ? 'partner' : 'company'} allocation to this project.`
+              ? `View ${allocationType === 'team' ? 'team member' : 'partner'} allocation details.`
+              : `${mode === 'create' ? 'Add a new' : 'Edit'} ${allocationType === 'team' ? 'team member' : 'partner'} allocation to this project.`
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="member">{allocationType === 'team' ? 'Team Member' : allocationType === 'partner' ? 'Partner' : 'Company Partner'}</Label>
+            <Label htmlFor="member">{allocationType === 'team' ? 'Team Member' : 'Partner'}</Label>
             <Select
               value={formData.memberId}
               onValueChange={(value) => setFormData(prev => ({ ...prev, memberId: value }))}
               disabled={isReadOnly}
             >
               <SelectTrigger>
-                <SelectValue placeholder={`Select a ${allocationType === 'team' ? 'team member' : allocationType === 'partner' ? 'partner' : 'company partner'}`} />
+                <SelectValue placeholder={`Select a ${allocationType === 'team' ? 'team member' : 'partner'}`} />
               </SelectTrigger>
               <SelectContent>
                 {availableMembers.map((member) => (

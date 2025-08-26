@@ -12,7 +12,7 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  recipientType: 'team' | 'partner' | 'company';
+  recipientType: 'team' | 'partner';
   recipientId: string;
   recipientName: string;
   payment?: Payment | null;

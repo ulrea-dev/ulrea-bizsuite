@@ -44,15 +44,6 @@ export interface PartnerAllocation {
   outstanding: number;
 }
 
-export interface CompanyAllocation {
-  partnerId: string;
-  partnerName: string;
-  allocationType: 'percentage' | 'fixed';
-  allocationValue: number;
-  totalAllocated: number;
-  paidAmount: number;
-  outstanding: number;
-}
 
 export interface Client {
   id: string;
@@ -73,7 +64,7 @@ export interface Payment {
   partnerId?: string;
   clientId?: string;
   type: 'incoming' | 'outgoing';
-  recipientType?: 'team' | 'partner' | 'company';
+  recipientType?: 'team' | 'partner';
   status: 'pending' | 'completed';
   method?: string;
   description?: string;
@@ -101,7 +92,6 @@ export interface Project {
   clientId?: string;
   teamAllocations: TeamAllocation[];
   partnerAllocations: PartnerAllocation[];
-  companyAllocations: CompanyAllocation[];
   createdAt: string;
   updatedAt: string;
 }
