@@ -606,17 +606,40 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
     case 'REMOVE_PHASE_TEAM_ALLOCATION':
       return {
         ...state,
-        projects: state.projects.map(project =>
-          project.id === action.payload.projectId
-            ? { 
-                ...project, 
-                phaseTeamAllocations: project.phaseTeamAllocations?.filter(allocation => 
-                  !(allocation.phaseId === action.payload.phaseId && allocation.memberId === action.payload.memberId)
-                ) || [],
-                updatedAt: new Date().toISOString() 
-              }
-            : project
-        ),
+        projects: state.projects.map(project => {
+          if (project.id === action.payload.projectId) {
+            const updatedPhaseAllocations = project.phaseTeamAllocations?.filter(allocation => 
+              !(allocation.phaseId === action.payload.phaseId && allocation.memberId === action.payload.memberId)
+            ) || [];
+            
+            // Recalculate total allocations for this member across remaining phases
+            const memberTotalAllocated = updatedPhaseAllocations
+              .filter(alloc => alloc.memberId === action.payload.memberId)
+              .reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+            
+            // Update regular team allocation or remove if no allocations left
+            let updatedTeamAllocations = project.teamAllocations || [];
+            if (memberTotalAllocated === 0) {
+              updatedTeamAllocations = updatedTeamAllocations.filter(alloc => 
+                alloc.memberId !== action.payload.memberId
+              );
+            } else {
+              updatedTeamAllocations = updatedTeamAllocations.map(alloc =>
+                alloc.memberId === action.payload.memberId
+                  ? { ...alloc, totalAllocated: memberTotalAllocated, outstanding: memberTotalAllocated - alloc.paidAmount }
+                  : alloc
+              );
+            }
+            
+            return {
+              ...project,
+              phaseTeamAllocations: updatedPhaseAllocations,
+              teamAllocations: updatedTeamAllocations,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
         payments: state.payments.filter(payment => 
           !(payment.projectId === action.payload.projectId && 
             payment.phaseId === action.payload.phaseId &&
@@ -675,17 +698,40 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
     case 'REMOVE_PHASE_PARTNER_ALLOCATION':
       return {
         ...state,
-        projects: state.projects.map(project =>
-          project.id === action.payload.projectId
-            ? { 
-                ...project, 
-                phasePartnerAllocations: project.phasePartnerAllocations?.filter(allocation => 
-                  !(allocation.phaseId === action.payload.phaseId && allocation.partnerId === action.payload.partnerId)
-                ) || [],
-                updatedAt: new Date().toISOString() 
-              }
-            : project
-        ),
+        projects: state.projects.map(project => {
+          if (project.id === action.payload.projectId) {
+            const updatedPhaseAllocations = project.phasePartnerAllocations?.filter(allocation => 
+              !(allocation.phaseId === action.payload.phaseId && allocation.partnerId === action.payload.partnerId)
+            ) || [];
+            
+            // Recalculate total allocations for this partner across remaining phases
+            const partnerTotalAllocated = updatedPhaseAllocations
+              .filter(alloc => alloc.partnerId === action.payload.partnerId)
+              .reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+            
+            // Update regular partner allocation or remove if no allocations left
+            let updatedPartnerAllocations = project.partnerAllocations || [];
+            if (partnerTotalAllocated === 0) {
+              updatedPartnerAllocations = updatedPartnerAllocations.filter(alloc => 
+                alloc.partnerId !== action.payload.partnerId
+              );
+            } else {
+              updatedPartnerAllocations = updatedPartnerAllocations.map(alloc =>
+                alloc.partnerId === action.payload.partnerId
+                  ? { ...alloc, totalAllocated: partnerTotalAllocated, outstanding: partnerTotalAllocated - alloc.paidAmount }
+                  : alloc
+              );
+            }
+            
+            return {
+              ...project,
+              phasePartnerAllocations: updatedPhaseAllocations,
+              partnerAllocations: updatedPartnerAllocations,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
         payments: state.payments.filter(payment => 
           !(payment.projectId === action.payload.projectId && 
             payment.phaseId === action.payload.phaseId &&

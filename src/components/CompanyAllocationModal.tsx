@@ -34,8 +34,11 @@ export const CompanyAllocationModal: React.FC<CompanyAllocationModalProps> = ({
     e.preventDefault();
     if (!project || !currentBusiness) return;
 
+    const projectValue = project.usePhases && project.phases?.length 
+      ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+      : project.totalValue;
     const allocatedAmount = formData.allocationType === 'percentage'
-      ? (project.totalValue * parseFloat(formData.allocationValue)) / 100
+      ? (projectValue * parseFloat(formData.allocationValue)) / 100
       : parseFloat(formData.allocationValue);
 
     const newAllocation: CompanyAllocation = {
@@ -134,14 +137,18 @@ export const CompanyAllocationModal: React.FC<CompanyAllocationModalProps> = ({
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Project Value:</span>
-                  <span>{currentBusiness.currency.symbol}{project.totalValue.toLocaleString()}</span>
+                  <span>{currentBusiness.currency.symbol}{(project.usePhases && project.phases?.length 
+                    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                    : project.totalValue).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Business Profit:</span>
                   <span className="font-semibold text-green-600">
                     {currentBusiness.currency.symbol}
                     {formData.allocationType === 'percentage' 
-                      ? ((project.totalValue * parseFloat(formData.allocationValue)) / 100).toLocaleString()
+                      ? (((project.usePhases && project.phases?.length 
+                          ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                          : project.totalValue) * parseFloat(formData.allocationValue)) / 100).toLocaleString()
                       : parseFloat(formData.allocationValue).toLocaleString()
                     }
                   </span>

@@ -121,7 +121,12 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                   </div>
                   <div className="text-right">
                     <div className="font-semibold">
-                      {formatCurrency(project.totalValue, currentBusiness.currency)}
+                      {formatCurrency(
+                        project.usePhases && project.phases?.length 
+                          ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                          : project.totalValue,
+                        currentBusiness.currency
+                      )}
                     </div>
                     <div className="text-sm dashboard-text-secondary">
                       {project.teamAllocations?.length || 0} team members

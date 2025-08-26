@@ -48,8 +48,11 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
     e.preventDefault();
     if (!project || !currentBusiness) return;
 
+    const projectValue = project.usePhases && project.phases?.length 
+      ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+      : project.totalValue;
     const allocatedAmount = formData.allocationType === 'percentage'
-      ? (project.totalValue * parseFloat(formData.allocationValue)) / 100
+      ? (projectValue * parseFloat(formData.allocationValue)) / 100
       : parseFloat(formData.allocationValue);
 
     if (allocationType === 'company') {
@@ -213,14 +216,18 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Project Value:</span>
-                  <span>{currentBusiness.currency.symbol}{project.totalValue.toLocaleString()}</span>
+                  <span>{currentBusiness.currency.symbol}{(project.usePhases && project.phases?.length 
+                    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                    : project.totalValue).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Allocated Amount:</span>
                   <span className="font-semibold">
                     {currentBusiness.currency.symbol}
                     {formData.allocationType === 'percentage' 
-                      ? ((project.totalValue * parseFloat(formData.allocationValue)) / 100).toLocaleString()
+                      ? (((project.usePhases && project.phases?.length 
+                          ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                          : project.totalValue) * parseFloat(formData.allocationValue)) / 100).toLocaleString()
                       : parseFloat(formData.allocationValue).toLocaleString()
                     }
                   </span>

@@ -27,7 +27,23 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   clientName,
   teamMembers 
 }) => {
-  const totalAllocated = project.teamAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+  // Calculate total project value from phases if using phases, otherwise use totalValue
+  const totalProjectValue = project.usePhases && project.phases?.length 
+    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+    : project.totalValue;
+
+  // Use phase allocations if project uses phases, otherwise use regular allocations
+  const totalTeamAllocated = project.usePhases 
+    ? (project.phaseTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+    : project.teamAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+  const totalPartnerAllocated = project.usePhases 
+    ? (project.phasePartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+    : (project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
+  const companyAllocated = project.usePhases 
+    ? (project.phaseCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+    : (project.companyAllocation?.totalAllocated || 0);
+  
+  const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const totalPaid = project.teamAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
   const paymentProgress = totalAllocated > 0 ? (totalPaid / totalAllocated) * 100 : 0;
   
@@ -78,7 +94,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <span className="text-sm dashboard-text-secondary">Total Value</span>
           </div>
           <span className="font-semibold dashboard-text-primary">
-            {formatCurrency(project.totalValue, currency)}
+            {formatCurrency(totalProjectValue, currency)}
           </span>
         </div>
         

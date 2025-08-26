@@ -26,7 +26,12 @@ export const AnalyticsPage: React.FC = () => {
   const currentProjects = data.projects.filter(project => project.businessId === currentBusiness.id);
   
   // Calculate metrics
-  const totalProjectValue = currentProjects.reduce((sum, project) => sum + project.totalValue, 0);
+  const totalProjectValue = currentProjects.reduce((sum, project) => {
+    const projectValue = project.usePhases && project.phases?.length 
+      ? project.phases.reduce((phaseSum, phase) => phaseSum + phase.budget, 0)
+      : project.totalValue;
+    return sum + projectValue;
+  }, 0);
   const activeProjects = currentProjects.filter(project => project.status === 'active').length;
   const completedProjects = currentProjects.filter(project => project.status === 'completed').length;
   const totalTeamAllocated = currentProjects.reduce((sum, project) => 
@@ -56,11 +61,17 @@ export const AnalyticsPage: React.FC = () => {
 
   // Top projects by value
   const topProjects = currentProjects
-    .sort((a, b) => b.totalValue - a.totalValue)
+    .map(project => {
+      const projectValue = project.usePhases && project.phases?.length 
+        ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+        : project.totalValue;
+      return { ...project, calculatedValue: projectValue };
+    })
+    .sort((a, b) => b.calculatedValue - a.calculatedValue)
     .slice(0, 5)
     .map(project => ({
       name: project.name,
-      value: project.totalValue
+      value: project.calculatedValue
     }));
 
   const chartConfig = {
