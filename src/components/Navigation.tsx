@@ -51,10 +51,8 @@ export const Navigation: React.FC<NavigationProps> = ({ currentPage, onPageChang
           return (
             <Button
               key={item.id}
-              variant={isActive ? "default" : "ghost"}
-              className={`w-full justify-start ${
-                isActive ? 'dashboard-text-primary' : 'dashboard-text-secondary hover:dashboard-text-primary'
-              }`}
+              variant={isActive ? "nav-active" : "nav-inactive"}
+              className="w-full justify-start"
               onClick={() => onPageChange(item.id)}
             >
               <Icon className="h-4 w-4 mr-3" />
