@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2 } from 'lucide-react';
+import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2, Trash2 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation, Payment } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
@@ -19,7 +19,7 @@ interface ProjectDetailPageProps {
 }
 
 export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId, onBack }) => {
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [allocationModalOpen, setAllocationModalOpen] = useState(false);
@@ -118,6 +118,24 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     setClientPaymentModalOpen(true);
   };
 
+  const removeTeamAllocation = (memberId: string, memberName: string) => {
+    if (confirm(`Are you sure you want to remove ${memberName} from this project? This will also delete all associated payments.`)) {
+      dispatch({
+        type: 'REMOVE_TEAM_ALLOCATION',
+        payload: { projectId, memberId }
+      });
+    }
+  };
+
+  const removePartnerAllocation = (partnerId: string, partnerName: string) => {
+    if (confirm(`Are you sure you want to remove ${partnerName} from this project? This will also delete all associated payments.`)) {
+      dispatch({
+        type: 'REMOVE_PARTNER_ALLOCATION',
+        payload: { projectId, partnerId }
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -159,7 +177,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <Progress value={(totalAllocated / project.totalValue) * 100} className="mt-2" />
           </CardContent>
         </Card>
-
 
         <Card>
           <CardHeader className="pb-3">
@@ -312,26 +329,38 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                         </div>
                       </div>
                     </div>
-                    <div className="text-right space-y-1">
-                      <div className="font-semibold dashboard-text-primary">
-                        {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
-                      </div>
-                      <div className="text-sm dashboard-text-secondary">
-                        Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
-                      </div>
-                      {allocation.outstanding > 0 && (
-                        <div className="text-sm text-orange-600">
-                          Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right space-y-1">
+                        <div className="font-semibold dashboard-text-primary">
+                          {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
                         </div>
-                      )}
-                      <Button 
-                        size="sm" 
-                        onClick={() => openPaymentModal('team', allocation.memberId, allocation.memberName)}
-                        disabled={allocation.outstanding === 0}
-                      >
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        Pay
-                      </Button>
+                        <div className="text-sm dashboard-text-secondary">
+                          Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
+                        </div>
+                        {allocation.outstanding > 0 && (
+                          <div className="text-sm text-orange-600">
+                            Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Button 
+                          size="sm" 
+                          onClick={() => openPaymentModal('team', allocation.memberId, allocation.memberName)}
+                          disabled={allocation.outstanding === 0}
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          Pay
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => removeTeamAllocation(allocation.memberId, allocation.memberName)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -379,26 +408,38 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                         </div>
                       </div>
                     </div>
-                    <div className="text-right space-y-1">
-                      <div className="font-semibold dashboard-text-primary">
-                        {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
-                      </div>
-                      <div className="text-sm dashboard-text-secondary">
-                        Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
-                      </div>
-                      {allocation.outstanding > 0 && (
-                        <div className="text-sm text-orange-600">
-                          Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right space-y-1">
+                        <div className="font-semibold dashboard-text-primary">
+                          {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
                         </div>
-                      )}
-                      <Button 
-                        size="sm" 
-                        onClick={() => openPaymentModal('partner', allocation.partnerId, allocation.partnerName)}
-                        disabled={allocation.outstanding === 0}
-                      >
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        Pay
-                      </Button>
+                        <div className="text-sm dashboard-text-secondary">
+                          Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
+                        </div>
+                        {allocation.outstanding > 0 && (
+                          <div className="text-sm text-orange-600">
+                            Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Button 
+                          size="sm" 
+                          onClick={() => openPaymentModal('partner', allocation.partnerId, allocation.partnerName)}
+                          disabled={allocation.outstanding === 0}
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          Pay
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => removePartnerAllocation(allocation.partnerId, allocation.partnerName)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

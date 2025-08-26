@@ -30,7 +30,9 @@ type BusinessAction =
   | { type: 'UPDATE_PAYMENT'; payload: { id: string; updates: Partial<Payment> } }
   | { type: 'DELETE_PAYMENT'; payload: string }
   | { type: 'ADD_TEAM_ALLOCATION'; payload: { projectId: string; allocation: TeamAllocation } }
+  | { type: 'REMOVE_TEAM_ALLOCATION'; payload: { projectId: string; memberId: string } }
   | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } }
+  | { type: 'REMOVE_PARTNER_ALLOCATION'; payload: { projectId: string; partnerId: string } }
   | { type: 'SET_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } }
   | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; amount: number } }
   
@@ -318,6 +320,28 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
         ),
       };
 
+    case 'REMOVE_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                teamAllocations: project.teamAllocations?.filter(allocation => 
+                  allocation.memberId !== action.payload.memberId
+                ) || [],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+        // Also remove any payments associated with this team member and project
+        payments: state.payments.filter(payment => 
+          !(payment.projectId === action.payload.projectId && 
+            payment.memberId === action.payload.memberId && 
+            payment.recipientType === 'team')
+        ),
+      };
+
     case 'ADD_PARTNER_ALLOCATION':
       return {
         ...state,
@@ -329,6 +353,28 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                 updatedAt: new Date().toISOString() 
               }
             : project
+        ),
+      };
+
+    case 'REMOVE_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                partnerAllocations: project.partnerAllocations?.filter(allocation => 
+                  allocation.partnerId !== action.payload.partnerId
+                ) || [],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+        // Also remove any payments associated with this partner and project
+        payments: state.payments.filter(payment => 
+          !(payment.projectId === action.payload.projectId && 
+            payment.partnerId === action.payload.partnerId && 
+            payment.recipientType === 'partner')
         ),
       };
 
