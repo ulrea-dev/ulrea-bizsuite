@@ -1,18 +1,18 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Eye, Edit, Mail, Building } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Mail, Building, TrendingUp } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ClientModal } from './ClientModal';
 import { formatCurrency } from '@/utils/storage';
 import { Client } from '@/types/business';
+import { calculateClientMetrics } from '@/utils/clientUtils';
 
 interface ClientsPageProps {
-  onNavigateToPage?: (page: string) => void;
+  onNavigateToPage?: (page: string, itemId?: string) => void;
 }
 
 export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) => {
@@ -46,9 +46,8 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
     setShowClientModal(true);
   };
 
-  // Get client projects and calculate total value
-  const getClientProjects = (clientId: string) => {
-    return data.projects.filter(project => project.clientId === clientId);
+  const handleViewClientDetails = (client: Client) => {
+    onNavigateToPage?.('client-detail', client.id);
   };
 
   if (!currentBusiness) {
@@ -124,14 +123,13 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                   <TableHead>Company</TableHead>
                   <TableHead>Projects</TableHead>
                   <TableHead>Total Value</TableHead>
+                  <TableHead>Net Profit</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredClients.map(client => {
-                  const clientProjects = getClientProjects(client.id)
-                    .filter(project => project.businessId === currentBusiness?.id);
-                  const totalValue = clientProjects.reduce((sum, project) => sum + project.totalValue, 0);
+                  const metrics = calculateClientMetrics(client, data.projects, data.payments);
                   
                   return (
                     <TableRow key={client.id}>
@@ -152,34 +150,40 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <Badge variant="outline">{clientProjects.length} projects</Badge>
-                          {clientProjects.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {clientProjects.slice(0, 2).map(project => (
-                                <Button
-                                  key={project.id}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto p-1 text-xs hover:text-primary"
-                                  onClick={() => onNavigateToPage?.('projects')}
-                                >
-                                  {project.name}
-                                </Button>
-                              ))}
-                              {clientProjects.length > 2 && (
-                                <span className="text-xs dashboard-text-secondary">
-                                  +{clientProjects.length - 2} more
-                                </span>
-                              )}
-                            </div>
-                          )}
+                          <Badge variant="outline">{metrics.totalProjects} projects</Badge>
+                          <div className="text-xs dashboard-text-secondary">
+                            {metrics.activeProjects} active
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {formatCurrency(totalValue, currentBusiness.currency)}
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            {formatCurrency(metrics.totalValue, currentBusiness.currency)}
+                          </div>
+                          <div className="text-xs dashboard-text-secondary">
+                            {metrics.paymentProgress.toFixed(1)}% paid
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className={`h-3 w-3 ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                          <span className={`font-medium ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(metrics.netProfit, currentBusiness.currency)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleViewClientDetails(client)}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Details
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"

@@ -5,6 +5,7 @@ import { ProjectsPage } from './ProjectsPage';
 import { TeamPage } from './TeamPage';
 import { PartnersPage } from './PartnersPage';
 import { ClientsPage } from './ClientsPage';
+import { ClientDetailPage } from './ClientDetailPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
@@ -23,13 +24,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const handleNavigateToPage = (page: string, itemId?: string) => {
     if (page === 'projects' && itemId) {
       setSelectedProjectId(itemId);
       setCurrentPage('project-detail');
+    } else if (page === 'client-detail' && itemId) {
+      setSelectedClientId(itemId);
+      setCurrentPage('client-detail');
     } else {
       setCurrentPage(page);
+      setSelectedProjectId(null);
+      setSelectedClientId(null);
     }
   };
 
@@ -39,6 +46,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         <ProjectDetailPage 
           projectId={selectedProjectId} 
           onBack={() => setCurrentPage('projects')}
+        />
+      );
+    }
+
+    if (currentPage === 'client-detail' && selectedClientId) {
+      return (
+        <ClientDetailPage 
+          clientId={selectedClientId} 
+          onBack={() => setCurrentPage('clients')}
+          onNavigateToProject={(projectId) => handleNavigateToPage('projects', projectId)}
         />
       );
     }
