@@ -1,7 +1,7 @@
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+// Removed TooltipProvider to resolve invalid hook call from Radix provider.
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -9,7 +9,7 @@ import NotFound from "./pages/NotFound";
 // Removed react-query provider to isolate the runtime error.
 
 const App = () => (
-  <TooltipProvider>
+  <>
     <Toaster />
     <Sonner />
     <BrowserRouter>
@@ -19,7 +19,8 @@ const App = () => (
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
-  </TooltipProvider>
+  </>
 );
 
 export default App;
+
