@@ -25,27 +25,32 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, clien
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const clientData: Omit<Client, 'id' | 'createdAt' | 'projects' | 'totalValue'> = {
-      name: formData.name,
-      email: formData.email,
-      company: formData.company,
-      projects: client?.projects || [],
-      totalValue: client?.totalValue || 0
-    };
-
     if (mode === 'create') {
+      const newClient: Client = {
+        id: `client_${Date.now()}`,
+        name: formData.name,
+        email: formData.email,
+        company: formData.company,
+        projects: [],
+        totalValue: 0,
+        createdAt: new Date().toISOString()
+      };
+
       dispatch({
         type: 'ADD_CLIENT',
-        payload: {
-          ...clientData,
-          id: `client_${Date.now()}`,
-          createdAt: new Date().toISOString()
-        }
+        payload: newClient
       });
     } else if (mode === 'edit' && client) {
       dispatch({
         type: 'UPDATE_CLIENT',
-        payload: { id: client.id, updates: clientData }
+        payload: { 
+          id: client.id, 
+          updates: {
+            name: formData.name,
+            email: formData.email,
+            company: formData.company
+          }
+        }
       });
     }
 

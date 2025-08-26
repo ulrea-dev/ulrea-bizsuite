@@ -24,7 +24,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
     name: project?.name || '',
     description: project?.description || '',
     totalValue: project?.totalValue?.toString() || '',
-    status: project?.status || 'active',
+    status: project?.status || 'active' as Project['status'],
     startDate: project?.startDate || new Date().toISOString().split('T')[0],
     endDate: project?.endDate || ''
   });
@@ -38,7 +38,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
       name: formData.name,
       description: formData.description,
       totalValue: parseFloat(formData.totalValue),
-      status: formData.status as Project['status'],
+      status: formData.status,
       startDate: formData.startDate,
       endDate: formData.endDate || undefined,
       teamAllocations: project?.teamAllocations || []
@@ -116,7 +116,7 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                onValueChange={(value: Project['status']) => setFormData(prev => ({ ...prev, status: value }))}
                 disabled={isReadOnly}
               >
                 <SelectTrigger>

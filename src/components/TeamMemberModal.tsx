@@ -26,27 +26,33 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const memberData: Omit<TeamMember, 'id' | 'createdAt' | 'paymentHistory'> = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-      defaultRate: parseFloat(formData.defaultRate),
-      paymentHistory: member?.paymentHistory || []
-    };
-
     if (mode === 'create') {
+      const newMember: TeamMember = {
+        id: `member_${Date.now()}`,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        defaultRate: parseFloat(formData.defaultRate),
+        paymentHistory: [],
+        createdAt: new Date().toISOString()
+      };
+
       dispatch({
         type: 'ADD_TEAM_MEMBER',
-        payload: {
-          ...memberData,
-          id: `member_${Date.now()}`,
-          createdAt: new Date().toISOString()
-        }
+        payload: newMember
       });
     } else if (mode === 'edit' && member) {
       dispatch({
         type: 'UPDATE_TEAM_MEMBER',
-        payload: { id: member.id, updates: memberData }
+        payload: { 
+          id: member.id, 
+          updates: {
+            name: formData.name,
+            email: formData.email,
+            role: formData.role,
+            defaultRate: parseFloat(formData.defaultRate)
+          }
+        }
       });
     }
 
@@ -65,23 +71,37 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             {mode === 'view' && 'Team Member Details'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create' && 'Add a new team member to your organization'}
+            {mode === 'create' && 'Add a new team member'}
             {mode === 'edit' && 'Update team member information'}
             {mode === 'view' && 'View team member information'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter full name"
-              disabled={isReadOnly}
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter name"
+                disabled={isReadOnly}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Input
+                id="role"
+                value={formData.role}
+                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                placeholder="Enter role"
+                disabled={isReadOnly}
+                required
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -97,31 +117,17 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                placeholder="e.g., Developer, Designer"
-                disabled={isReadOnly}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="defaultRate">Default Rate</Label>
-              <Input
-                id="defaultRate"
-                type="number"
-                value={formData.defaultRate}
-                onChange={(e) => setFormData(prev => ({ ...prev, defaultRate: e.target.value }))}
-                placeholder="0.00"
-                disabled={isReadOnly}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="defaultRate">Default Rate</Label>
+            <Input
+              id="defaultRate"
+              type="number"
+              value={formData.defaultRate}
+              onChange={(e) => setFormData(prev => ({ ...prev, defaultRate: e.target.value }))}
+              placeholder="0.00"
+              disabled={isReadOnly}
+              required
+            />
           </div>
 
           <DialogFooter>
