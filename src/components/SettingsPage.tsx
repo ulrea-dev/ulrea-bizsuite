@@ -14,6 +14,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useTheme } from '@/hooks/useTheme';
 import { exportData, importData, clearAllData } from '@/utils/storage';
 import { SUPPORTED_CURRENCIES } from '@/types/business';
+import { FONT_OPTIONS, COLOR_PALETTES } from '@/utils/appearance';
 import { BusinessManagement } from './BusinessManagement';
 import { BusinessSetup } from './BusinessSetup';
 import { FontSelector } from './FontSelector';
@@ -176,7 +177,7 @@ export const SettingsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <FontSelector
-                selectedFont={data.userSettings.fontFamily}
+                selectedFont={data.userSettings.fontFamily || FONT_OPTIONS[0]}
                 onFontChange={(font) => dispatch({ type: 'SET_FONT', payload: font })}
               />
             </CardContent>
@@ -193,7 +194,7 @@ export const SettingsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ColorPaletteSelector
-                selectedPalette={data.userSettings.colorPalette}
+                selectedPalette={data.userSettings.colorPalette || COLOR_PALETTES[0]}
                 onPaletteChange={(palette) => dispatch({ type: 'SET_COLOR_PALETTE', payload: palette })}
               />
             </CardContent>

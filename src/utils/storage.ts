@@ -26,9 +26,15 @@ export const loadData = (): AppData => {
     if (!stored) return getInitialData();
     
     const data = JSON.parse(stored) as AppData;
+    const initialData = getInitialData();
+    
     return {
-      ...getInitialData(),
+      ...initialData,
       ...data,
+      userSettings: {
+        ...initialData.userSettings,
+        ...data.userSettings,
+      },
     };
   } catch (error) {
     console.error('Error loading data:', error);
