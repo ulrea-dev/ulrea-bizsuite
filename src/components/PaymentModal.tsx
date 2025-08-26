@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Payment } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Trash2 } from 'lucide-react';
@@ -18,6 +19,7 @@ interface PaymentModalProps {
   recipientName: string;
   payment?: Payment | null;
   mode: 'create' | 'edit' | 'view';
+  allocationId?: string;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({ 
@@ -28,14 +30,29 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   recipientId, 
   recipientName,
   payment, 
-  mode 
+  mode,
+  allocationId: presetAllocationId
 }) => {
-  const { dispatch } = useBusiness();
+  const { data, dispatch } = useBusiness();
   const [formData, setFormData] = useState({
     amount: payment?.amount?.toString() || '',
     date: payment?.date || new Date().toISOString().split('T')[0],
-    description: payment?.description || ''
+    description: payment?.description || '',
+    allocationId: payment?.allocationId || presetAllocationId || ''
   });
+
+  const project = data.projects.find(p => p.id === projectId);
+  const availableAllocations = project?.allocations?.filter(allocation => {
+    if (recipientType === 'team') {
+      return project.allocationTeamAllocations?.some(teamAlloc => 
+        teamAlloc.allocationId === allocation.id && teamAlloc.memberId === recipientId
+      );
+    } else {
+      return project.allocationPartnerAllocations?.some(partnerAlloc => 
+        partnerAlloc.allocationId === allocation.id && partnerAlloc.partnerId === recipientId
+      );
+    }
+  }) || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +67,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         type: 'outgoing',
         status: 'completed',
         description: formData.description,
+        allocationId: formData.allocationId || undefined,
         ...(recipientType === 'team' ? { memberId: recipientId } : { partnerId: recipientId })
       };
 
@@ -65,7 +83,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           updates: {
             amount: parseFloat(formData.amount),
             date: formData.date,
-            description: formData.description
+            description: formData.description,
+            allocationId: formData.allocationId || undefined
           }
         }
       });
@@ -130,6 +149,29 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               />
             </div>
           </div>
+
+          {availableAllocations.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="allocation">Allocation (Optional)</Label>
+              <Select 
+                value={formData.allocationId} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, allocationId: value }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select allocation/phase" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No specific allocation</SelectItem>
+                  {availableAllocations.map((allocation) => (
+                    <SelectItem key={allocation.id} value={allocation.id}>
+                      {allocation.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>

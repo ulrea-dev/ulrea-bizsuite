@@ -304,6 +304,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       <Tabs defaultValue="allocations" className="space-y-6">
         <TabsList>
           <TabsTrigger value="allocations">Project Allocations</TabsTrigger>
+          <TabsTrigger value="team-payments">Team Payments</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
@@ -346,6 +347,155 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                 />
               ))}
             </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="team-payments" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold dashboard-text-primary">Team Payments</h3>
+          </div>
+
+          {/* Team Payment Summary by Allocation */}
+          {project.allocations && project.allocations.length > 0 ? (
+            <div className="space-y-6">
+              {project.allocations.map((allocation) => {
+                const allocationTeamMembers = project.allocationTeamAllocations?.filter(
+                  teamAlloc => teamAlloc.allocationId === allocation.id
+                ) || [];
+                
+                const allocationPayments = payments.filter(p => 
+                  p.recipientType === 'team' && 
+                  p.type === 'outgoing' && 
+                  p.allocationId === allocation.id
+                );
+                
+                const totalAllocationPaid = allocationPayments
+                  .filter(p => p.status === 'completed')
+                  .reduce((sum, p) => sum + p.amount, 0);
+                
+                const totalAllocationAllocated = allocationTeamMembers
+                  .reduce((sum, member) => sum + member.totalAllocated, 0);
+
+                if (allocationTeamMembers.length === 0) return null;
+
+                return (
+                  <Card key={allocation.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{allocation.title}</CardTitle>
+                          <CardDescription>
+                            Team allocation: {formatCurrency(totalAllocationAllocated, currentBusiness.currency)} • 
+                            Paid: {formatCurrency(totalAllocationPaid, currentBusiness.currency)} • 
+                            Outstanding: {formatCurrency(totalAllocationAllocated - totalAllocationPaid, currentBusiness.currency)}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {allocationTeamMembers.map((teamAlloc) => {
+                          const member = teamMembers.find(m => m.id === teamAlloc.memberId);
+                          const memberPayments = allocationPayments.filter(p => p.memberId === teamAlloc.memberId);
+                          const memberPaid = memberPayments
+                            .filter(p => p.status === 'completed')
+                            .reduce((sum, p) => sum + p.amount, 0);
+                          const memberOutstanding = teamAlloc.totalAllocated - memberPaid;
+
+                          if (!member) return null;
+
+                          return (
+                            <div key={teamAlloc.memberId} className="flex items-center justify-between p-4 border rounded-lg dashboard-surface">
+                              <div className="flex items-center gap-4">
+                                <div className="p-2 dashboard-surface rounded-lg">
+                                  <Users className="h-4 w-4 dashboard-text-primary" />
+                                </div>
+                                <div>
+                                  <div className="font-semibold dashboard-text-primary">{member.name}</div>
+                                  <div className="text-sm dashboard-text-secondary">
+                                    Allocated: {formatCurrency(teamAlloc.totalAllocated, currentBusiness.currency)} • 
+                                    Paid: {formatCurrency(memberPaid, currentBusiness.currency)} • 
+                                    Outstanding: {formatCurrency(memberOutstanding, currentBusiness.currency)}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {memberOutstanding > 0 && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedRecipient({ type: 'team', id: member.id, name: member.name });
+                                      setSelectedPayment(null);
+                                      setPaymentMode('create');
+                                      setPaymentModalOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Pay
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Recent Payments for this Allocation */}
+                        {allocationPayments.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="font-medium dashboard-text-primary mb-3">Recent Payments</h4>
+                            <div className="space-y-2">
+                              {allocationPayments.slice(0, 3).map((payment) => {
+                                const member = teamMembers.find(m => m.id === payment.memberId);
+                                return (
+                                  <div key={payment.id} className="flex items-center justify-between text-sm p-2 dashboard-surface rounded">
+                                    <div>
+                                      <span className="dashboard-text-primary">{member?.name}</span>
+                                      <span className="dashboard-text-secondary ml-2">{new Date(payment.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium dashboard-text-primary">
+                                        {formatCurrency(payment.amount, currentBusiness.currency)}
+                                      </span>
+                                      <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                                        {payment.status}
+                                      </Badge>
+                                      <div className="flex gap-1">
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline"
+                                          onClick={() => openPaymentViewModal(payment)}
+                                        >
+                                          <Eye className="h-3 w-3" />
+                                        </Button>
+                                        <Button 
+                                          size="sm" 
+                                          variant="outline"
+                                          onClick={() => openPaymentEditModal(payment)}
+                                        >
+                                          <Edit className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 dashboard-text-secondary mb-4" />
+                <p className="dashboard-text-secondary">No team allocations created yet</p>
+                <p className="text-sm dashboard-text-secondary mb-4">Create project allocations with team members to start recording payments</p>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -706,6 +856,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           recipientName={selectedRecipient.name}
           payment={selectedPayment}
           mode={paymentMode}
+          allocationId={selectedPayment?.allocationId}
         />
       )}
 
