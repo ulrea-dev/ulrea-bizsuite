@@ -558,15 +558,49 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
     case 'ADD_PHASE_TEAM_ALLOCATION':
       return {
         ...state,
-        projects: state.projects.map(project =>
-          project.id === action.payload.projectId
-            ? { 
-                ...project, 
-                phaseTeamAllocations: [...(project.phaseTeamAllocations || []), action.payload.allocation],
-                updatedAt: new Date().toISOString() 
-              }
-            : project
-        ),
+        projects: state.projects.map(project => {
+          if (project.id === action.payload.projectId) {
+            const newPhaseAllocation = action.payload.allocation;
+            const updatedPhaseAllocations = [...(project.phaseTeamAllocations || []), newPhaseAllocation];
+            
+            // Calculate total allocations across all phases for this member
+            const memberTotalAllocated = updatedPhaseAllocations
+              .filter(alloc => alloc.memberId === newPhaseAllocation.memberId)
+              .reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+            
+            // Update or create regular team allocation to sync with phase allocations
+            const existingTeamAllocation = project.teamAllocations?.find(
+              alloc => alloc.memberId === newPhaseAllocation.memberId
+            );
+            
+            let updatedTeamAllocations = project.teamAllocations || [];
+            if (existingTeamAllocation) {
+              updatedTeamAllocations = updatedTeamAllocations.map(alloc =>
+                alloc.memberId === newPhaseAllocation.memberId
+                  ? { ...alloc, totalAllocated: memberTotalAllocated, outstanding: memberTotalAllocated - alloc.paidAmount }
+                  : alloc
+              );
+            } else {
+              updatedTeamAllocations = [...updatedTeamAllocations, {
+                memberId: newPhaseAllocation.memberId,
+                memberName: newPhaseAllocation.memberName,
+                allocationType: 'fixed' as const,
+                allocationValue: memberTotalAllocated,
+                totalAllocated: memberTotalAllocated,
+                paidAmount: 0,
+                outstanding: memberTotalAllocated
+              }];
+            }
+            
+            return {
+              ...project,
+              phaseTeamAllocations: updatedPhaseAllocations,
+              teamAllocations: updatedTeamAllocations,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
       };
 
     case 'REMOVE_PHASE_TEAM_ALLOCATION':
@@ -593,15 +627,49 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
     case 'ADD_PHASE_PARTNER_ALLOCATION':
       return {
         ...state,
-        projects: state.projects.map(project =>
-          project.id === action.payload.projectId
-            ? { 
-                ...project, 
-                phasePartnerAllocations: [...(project.phasePartnerAllocations || []), action.payload.allocation],
-                updatedAt: new Date().toISOString() 
-              }
-            : project
-        ),
+        projects: state.projects.map(project => {
+          if (project.id === action.payload.projectId) {
+            const newPhaseAllocation = action.payload.allocation;
+            const updatedPhaseAllocations = [...(project.phasePartnerAllocations || []), newPhaseAllocation];
+            
+            // Calculate total allocations across all phases for this partner
+            const partnerTotalAllocated = updatedPhaseAllocations
+              .filter(alloc => alloc.partnerId === newPhaseAllocation.partnerId)
+              .reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+            
+            // Update or create regular partner allocation to sync with phase allocations
+            const existingPartnerAllocation = project.partnerAllocations?.find(
+              alloc => alloc.partnerId === newPhaseAllocation.partnerId
+            );
+            
+            let updatedPartnerAllocations = project.partnerAllocations || [];
+            if (existingPartnerAllocation) {
+              updatedPartnerAllocations = updatedPartnerAllocations.map(alloc =>
+                alloc.partnerId === newPhaseAllocation.partnerId
+                  ? { ...alloc, totalAllocated: partnerTotalAllocated, outstanding: partnerTotalAllocated - alloc.paidAmount }
+                  : alloc
+              );
+            } else {
+              updatedPartnerAllocations = [...updatedPartnerAllocations, {
+                partnerId: newPhaseAllocation.partnerId,
+                partnerName: newPhaseAllocation.partnerName,
+                allocationType: 'fixed' as const,
+                allocationValue: partnerTotalAllocated,
+                totalAllocated: partnerTotalAllocated,
+                paidAmount: 0,
+                outstanding: partnerTotalAllocated
+              }];
+            }
+            
+            return {
+              ...project,
+              phasePartnerAllocations: updatedPhaseAllocations,
+              partnerAllocations: updatedPartnerAllocations,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
       };
 
     case 'REMOVE_PHASE_PARTNER_ALLOCATION':
@@ -628,18 +696,38 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
     case 'SET_PHASE_COMPANY_ALLOCATION':
       return {
         ...state,
-        projects: state.projects.map(project =>
-          project.id === action.payload.projectId
-            ? { 
-                ...project, 
-                phaseCompanyAllocations: [
-                  ...project.phaseCompanyAllocations?.filter(allocation => allocation.phaseId !== action.payload.allocation.phaseId) || [],
-                  action.payload.allocation
-                ],
-                updatedAt: new Date().toISOString() 
-              }
-            : project
-        ),
+        projects: state.projects.map(project => {
+          if (project.id === action.payload.projectId) {
+            const newPhaseAllocation = action.payload.allocation;
+            const updatedPhaseAllocations = [
+              ...project.phaseCompanyAllocations?.filter(allocation => allocation.phaseId !== newPhaseAllocation.phaseId) || [],
+              newPhaseAllocation
+            ];
+            
+            // Calculate total company allocations across all phases
+            const companyTotalAllocated = updatedPhaseAllocations
+              .reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+            
+            // Update company allocation to sync with phase allocations
+            const updatedCompanyAllocation = {
+              businessId: newPhaseAllocation.businessId,
+              businessName: newPhaseAllocation.businessName,
+              allocationType: 'fixed' as const,
+              allocationValue: companyTotalAllocated,
+              totalAllocated: companyTotalAllocated,
+              paidAmount: project.companyAllocation?.paidAmount || 0,
+              outstanding: companyTotalAllocated - (project.companyAllocation?.paidAmount || 0)
+            };
+            
+            return {
+              ...project,
+              phaseCompanyAllocations: updatedPhaseAllocations,
+              companyAllocation: updatedCompanyAllocation,
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return project;
+        }),
       };
     
     default:

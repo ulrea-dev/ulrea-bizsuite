@@ -54,15 +54,33 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     );
   }
 
-  const totalTeamAllocated = project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const totalPartnerAllocated = project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const companyAllocated = project.companyAllocation?.totalAllocated || 0;
+  // Calculate total project value from phases if using phases, otherwise use totalValue
+  const totalProjectValue = project.usePhases && project.phases?.length 
+    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+    : project.totalValue;
+
+  // Calculate allocations from phases if using phases
+  const phaseTeamAllocated = project.phaseTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const phasePartnerAllocated = project.phasePartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const phaseCompanyAllocated = project.phaseCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  
+  // Use phase allocations if project uses phases, otherwise use regular allocations
+  const totalTeamAllocated = project.usePhases 
+    ? phaseTeamAllocated
+    : (project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
+  const totalPartnerAllocated = project.usePhases 
+    ? phasePartnerAllocated 
+    : (project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
+  const companyAllocated = project.usePhases 
+    ? phaseCompanyAllocated 
+    : (project.companyAllocation?.totalAllocated || 0);
+  
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const clientPaymentsReceived = project.clientPayments || 0;
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const netProfit = clientPaymentsReceived - totalAllocated - totalExpenses;
   const totalPaid = payments.reduce((sum, payment) => payment.status === 'completed' ? sum + payment.amount : sum, 0);
-  const remainingBudget = project.totalValue - totalAllocated - totalExpenses;
+  const remainingBudget = totalProjectValue - totalAllocated - totalExpenses;
   const outstandingPayments = totalAllocated - totalPaid;
 
   const openPaymentModal = (type: 'team' | 'partner', id: string, name: string) => {
@@ -180,7 +198,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold dashboard-text-primary">
-              {formatCurrency(project.totalValue, currentBusiness.currency)}
+              {formatCurrency(totalProjectValue, currentBusiness.currency)}
             </div>
           </CardContent>
         </Card>
@@ -193,7 +211,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <div className="text-2xl font-bold dashboard-text-primary">
               {formatCurrency(totalAllocated, currentBusiness.currency)}
             </div>
-            <Progress value={(totalAllocated / project.totalValue) * 100} className="mt-2" />
+            <Progress value={(totalAllocated / totalProjectValue) * 100} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -205,7 +223,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <div className="text-2xl font-bold text-red-600">
               {formatCurrency(totalExpenses, currentBusiness.currency)}
             </div>
-            <Progress value={(totalExpenses / project.totalValue) * 100} className="mt-2" />
+            <Progress value={(totalExpenses / totalProjectValue) * 100} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -229,7 +247,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <div className="text-2xl font-bold text-blue-600">
               {formatCurrency(clientPaymentsReceived, currentBusiness.currency)}
             </div>
-            <Progress value={(clientPaymentsReceived / project.totalValue) * 100} className="mt-2" />
+            <Progress value={(clientPaymentsReceived / totalProjectValue) * 100} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -656,7 +674,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                 <div className="text-xl font-bold text-red-600">
                   {formatCurrency(totalExpenses, currentBusiness.currency)}
                 </div>
-                <Progress value={(totalExpenses / project.totalValue) * 100} className="mt-2" />
+                <Progress value={(totalExpenses / totalProjectValue) * 100} className="mt-2" />
               </CardContent>
             </Card>
             
@@ -780,7 +798,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold dashboard-text-primary">
-                  {formatCurrency(project.totalValue, currentBusiness.currency)}
+                  {formatCurrency(totalProjectValue, currentBusiness.currency)}
                 </div>
               </CardContent>
             </Card>
@@ -793,7 +811,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                 <div className="text-xl font-bold text-blue-600">
                   {formatCurrency(clientPaymentsReceived, currentBusiness.currency)}
                 </div>
-                <Progress value={(clientPaymentsReceived / project.totalValue) * 100} className="mt-2" />
+                <Progress value={(clientPaymentsReceived / totalProjectValue) * 100} className="mt-2" />
               </CardContent>
             </Card>
             
@@ -803,7 +821,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold text-orange-600">
-                  {formatCurrency(Math.max(0, project.totalValue - clientPaymentsReceived), currentBusiness.currency)}
+                  {formatCurrency(Math.max(0, totalProjectValue - clientPaymentsReceived), currentBusiness.currency)}
                 </div>
               </CardContent>
             </Card>
