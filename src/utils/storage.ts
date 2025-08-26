@@ -83,8 +83,21 @@ export const generateId = (): string => {
 };
 
 export const formatCurrency = (amount: number, currency: { symbol: string; code: string }): string => {
-  return `${currency.symbol}${amount.toLocaleString('en-US', { 
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2 
-  })}`;
+  let formattedAmount: string;
+  
+  if (Math.abs(amount) >= 1000000) {
+    // Format millions
+    formattedAmount = (amount / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  } else if (Math.abs(amount) >= 1000) {
+    // Format thousands
+    formattedAmount = (amount / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  } else {
+    // Format regular numbers
+    formattedAmount = amount.toLocaleString('en-US', { 
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2 
+    });
+  }
+  
+  return `${currency.symbol}${formattedAmount}`;
 };
