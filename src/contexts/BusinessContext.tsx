@@ -648,15 +648,6 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
 };
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Safely get theme, fallback to light if not available during initialization
-  let theme: 'light' | 'dark' = 'light';
-  try {
-    const themeContext = useTheme();
-    theme = themeContext.theme;
-  } catch (error) {
-    // ThemeProvider not ready yet, use default
-    console.log('BusinessProvider: ThemeProvider not ready, using default theme');
-  }
   
   let initialData;
   try {
@@ -700,10 +691,12 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       applyFont(data.userSettings.fontFamily);
     }
     if (data.userSettings.colorPalette) {
-      const isDark = theme === 'dark';
+      // We'll handle theme detection via document class or localStorage
+      const isDark = document.documentElement.classList.contains('dark') || 
+                    localStorage.getItem('theme') === 'dark';
       applyColorPalette(data.userSettings.colorPalette, isDark);
     }
-  }, [data.userSettings.fontFamily, data.userSettings.colorPalette, theme]);
+  }, [data.userSettings.fontFamily, data.userSettings.colorPalette]);
 
   const addBusiness = (businessData: Omit<Business, 'id' | 'createdAt' | 'updatedAt'>) => {
     const business: Business = {
