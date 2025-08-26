@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Plus } from 'lucide-react';
 import { Project } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -103,12 +104,10 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
               
               <div className="space-y-2">
                 <Label htmlFor="totalValue">Total Value</Label>
-                <Input
+                <CurrencyInput
                   id="totalValue"
-                  type="number"
-                  step="0.01"
                   value={formData.totalValue}
-                  onChange={(e) => setFormData(prev => ({ ...prev, totalValue: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, totalValue: value }))}
                   placeholder="0.00"
                   disabled={isReadOnly}
                   required

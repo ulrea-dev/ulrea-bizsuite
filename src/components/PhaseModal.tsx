@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { CalendarIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -107,13 +108,10 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, childr
 
           <div className="space-y-2">
             <Label htmlFor="budget">Budget</Label>
-            <Input
+            <CurrencyInput
               id="budget"
-              type="number"
-              step="0.01"
-              min="0"
               value={budget}
-              onChange={(e) => setBudget(e.target.value)}
+              onChange={(value) => setBudget(value)}
               placeholder="0.00"
               required
             />
