@@ -38,7 +38,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     amount: payment?.amount?.toString() || '',
     date: payment?.date || new Date().toISOString().split('T')[0],
     description: payment?.description || '',
-    allocationId: payment?.allocationId || presetAllocationId || ''
+    allocationId: payment?.allocationId ? payment.allocationId : (presetAllocationId || 'none')
   });
 
   const project = data.projects.find(p => p.id === projectId);
@@ -67,7 +67,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         type: 'outgoing',
         status: 'completed',
         description: formData.description,
-        allocationId: formData.allocationId || undefined,
+        allocationId: formData.allocationId !== 'none' ? formData.allocationId : undefined,
         ...(recipientType === 'team' ? { memberId: recipientId } : { partnerId: recipientId })
       };
 
@@ -84,7 +84,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             amount: parseFloat(formData.amount),
             date: formData.date,
             description: formData.description,
-            allocationId: formData.allocationId || undefined
+            allocationId: formData.allocationId !== 'none' ? formData.allocationId : undefined
           }
         }
       });
@@ -162,7 +162,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   <SelectValue placeholder="Select allocation/phase" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No specific allocation</SelectItem>
+                  <SelectItem value="none">No specific allocation</SelectItem>
                   {availableAllocations.map((allocation) => (
                     <SelectItem key={allocation.id} value={allocation.id}>
                       {allocation.title}
