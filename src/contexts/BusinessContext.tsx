@@ -213,7 +213,15 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
 };
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { theme } = useTheme();
+  // Safely get theme, fallback to light if not available during initialization
+  let theme: 'light' | 'dark' = 'light';
+  try {
+    const themeContext = useTheme();
+    theme = themeContext.theme;
+  } catch (error) {
+    // ThemeProvider not ready yet, use default
+    console.log('BusinessProvider: ThemeProvider not ready, using default theme');
+  }
   
   let initialData;
   try {
