@@ -43,7 +43,8 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
       endDate: formData.endDate || undefined,
       teamAllocations: project?.teamAllocations || [],
       partnerAllocations: project?.partnerAllocations || [],
-      clientPayments: project?.clientPayments || 0
+      clientPayments: project?.clientPayments || 0,
+      expenses: project?.expenses || []
     };
 
     if (mode === 'create') {

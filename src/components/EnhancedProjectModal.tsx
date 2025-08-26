@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -48,7 +49,8 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
       clientId: formData.clientId || undefined,
       teamAllocations: project?.teamAllocations || [],
       partnerAllocations: project?.partnerAllocations || [],
-      clientPayments: project?.clientPayments || 0
+      clientPayments: project?.clientPayments || 0,
+      expenses: project?.expenses || []
     };
 
     if (mode === 'create') {
