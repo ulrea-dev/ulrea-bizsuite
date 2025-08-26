@@ -32,6 +32,8 @@ export const loadData = (): AppData => {
     return {
       ...initialData,
       ...data,
+      // Ensure partners array exists (for backward compatibility)
+      partners: data.partners || [],
       userSettings: {
         ...initialData.userSettings,
         ...data.userSettings,
