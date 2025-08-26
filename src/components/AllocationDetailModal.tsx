@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Trash2, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
 import { ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation } from '@/types/business';
@@ -41,21 +43,137 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
     !allocationPartnerAllocations.some(allocation => allocation.partnerId === partner.id)
   );
 
+  // Budget calculation helpers
+  const budgetTotals = useMemo(() => {
+    const teamTotal = allocationTeamAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+    const partnerTotal = allocationPartnerAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+    const companyTotal = allocationCompanyAllocation?.totalAllocated || 0;
+    const totalAllocated = teamTotal + partnerTotal + companyTotal;
+    const remaining = allocation.budget - totalAllocated;
+    const percentage = (totalAllocated / allocation.budget) * 100;
+    
+    return {
+      totalBudget: allocation.budget,
+      teamTotal,
+      partnerTotal,
+      companyTotal,
+      totalAllocated,
+      remaining,
+      percentage: Math.min(percentage, 100),
+      isOverAllocated: totalAllocated > allocation.budget,
+    };
+  }, [allocation.budget, allocationTeamAllocations, allocationPartnerAllocations, allocationCompanyAllocation]);
+
+  const validateAllocation = (allocationType: 'percentage' | 'fixed', value: string): { isValid: boolean; amount: number; message?: string } => {
+    if (!value || isNaN(parseFloat(value))) {
+      return { isValid: false, amount: 0, message: 'Please enter a valid amount' };
+    }
+
+    const numValue = parseFloat(value);
+    const amount = allocationType === 'percentage' ? (numValue / 100) * allocation.budget : numValue;
+    
+    if (amount > budgetTotals.remaining) {
+      return { 
+        isValid: false, 
+        amount, 
+        message: `This would exceed the remaining budget of ${currentBusiness.currency.symbol}${budgetTotals.remaining.toLocaleString()}`
+      };
+    }
+
+    return { isValid: true, amount };
+  };
+
+  const BudgetSummary = () => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Budget Allocation Summary
+          {budgetTotals.isOverAllocated ? (
+            <AlertTriangle className="w-5 h-5 text-destructive" />
+          ) : budgetTotals.remaining === 0 ? (
+            <CheckCircle className="w-5 h-5 text-green-600" />
+          ) : null}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-sm text-muted-foreground">Total Budget</div>
+            <div className="font-semibold text-lg">{currentBusiness.currency.symbol}{budgetTotals.totalBudget.toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Remaining</div>
+            <div className={`font-semibold text-lg ${budgetTotals.remaining < 0 ? 'text-destructive' : 'text-green-600'}`}>
+              {currentBusiness.currency.symbol}{budgetTotals.remaining.toLocaleString()}
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Allocation Progress</span>
+            <span className={budgetTotals.isOverAllocated ? 'text-destructive' : ''}>{budgetTotals.percentage.toFixed(1)}%</span>
+          </div>
+          <Progress 
+            value={budgetTotals.percentage} 
+            className={`h-3 ${budgetTotals.isOverAllocated ? 'progress-destructive' : ''}`}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="text-center">
+            <div className="text-muted-foreground">Team</div>
+            <div className="font-medium">{currentBusiness.currency.symbol}{budgetTotals.teamTotal.toLocaleString()}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-muted-foreground">Partners</div>
+            <div className="font-medium">{currentBusiness.currency.symbol}{budgetTotals.partnerTotal.toLocaleString()}</div>
+          </div>
+          <div className="text-center">
+            <div className="text-muted-foreground">Company</div>
+            <div className="font-medium">{currentBusiness.currency.symbol}{budgetTotals.companyTotal.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {budgetTotals.isOverAllocated && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Over-allocated!</AlertTitle>
+            <AlertDescription>
+              The total allocation exceeds the budget by {currentBusiness.currency.symbol}{Math.abs(budgetTotals.remaining).toLocaleString()}.
+              Please adjust allocations to stay within the budget limit.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {budgetTotals.percentage >= 90 && !budgetTotals.isOverAllocated && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Nearly Full</AlertTitle>
+            <AlertDescription>
+              You've allocated {budgetTotals.percentage.toFixed(1)}% of the budget. Only {currentBusiness.currency.symbol}{budgetTotals.remaining.toLocaleString()} remaining.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   const TeamAllocationForm = () => {
     const [selectedMember, setSelectedMember] = useState('');
     const [allocationType, setAllocationType] = useState<'percentage' | 'fixed'>('percentage');
     const [allocationValue, setAllocationValue] = useState('');
 
+    const validation = validateAllocation(allocationType, allocationValue);
+
     const handleAddTeamAllocation = () => {
-      if (!selectedMember || !allocationValue) return;
+      if (!selectedMember || !allocationValue || !validation.isValid) return;
 
       const member = data.teamMembers.find(m => m.id === selectedMember);
       if (!member) return;
 
       const value = parseFloat(allocationValue);
-      const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * allocation.budget 
-        : value;
+      const totalAllocated = validation.amount;
 
       const allocationData: AllocationTeamAllocation = {
         memberId: member.id,
@@ -80,42 +198,67 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
 
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Select value={selectedMember} onValueChange={setSelectedMember}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select member" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableTeamMembers.map(member => (
-                <SelectItem key={member.id} value={member.id}>
-                  {member.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="percentage">Percentage</SelectItem>
-              <SelectItem value="fixed">Fixed Amount</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <Select value={selectedMember} onValueChange={setSelectedMember}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select member" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTeamMembers.map(member => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed Amount</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex space-x-1">
-            <Input
-              type="number"
-              step="0.01"
-              value={allocationValue}
-              onChange={(e) => setAllocationValue(e.target.value)}
-              placeholder={allocationType === 'percentage' ? '10' : '1000'}
-            />
-            <Button onClick={handleAddTeamAllocation} size="sm">
-              <Plus className="w-4 h-4" />
-            </Button>
+            <div className="flex space-x-1">
+              <Input
+                type="number"
+                step="0.01"
+                value={allocationValue}
+                onChange={(e) => setAllocationValue(e.target.value)}
+                placeholder={allocationType === 'percentage' ? '10' : '1000'}
+                className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
+              />
+              <Button 
+                onClick={handleAddTeamAllocation} 
+                size="sm"
+                disabled={!selectedMember || !allocationValue || !validation.isValid}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
+
+          {/* Real-time preview */}
+          {allocationValue && (
+            <div className="text-sm space-y-1">
+              {validation.isValid ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Allocation Amount:</span>
+                  <span className="font-medium text-green-600">
+                    {currentBusiness.currency.symbol}{validation.amount.toLocaleString()}
+                  </span>
+                </div>
+              ) : validation.message && (
+                <div className="text-destructive text-xs">
+                  {validation.message}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -159,16 +302,16 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
     const [allocationType, setAllocationType] = useState<'percentage' | 'fixed'>('percentage');
     const [allocationValue, setAllocationValue] = useState('');
 
+    const validation = validateAllocation(allocationType, allocationValue);
+
     const handleAddPartnerAllocation = () => {
-      if (!selectedPartner || !allocationValue) return;
+      if (!selectedPartner || !allocationValue || !validation.isValid) return;
 
       const partner = data.partners.find(p => p.id === selectedPartner);
       if (!partner) return;
 
       const value = parseFloat(allocationValue);
-      const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * allocation.budget 
-        : value;
+      const totalAllocated = validation.amount;
 
       const allocationData: AllocationPartnerAllocation = {
         partnerId: partner.id,
@@ -193,42 +336,67 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
 
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Select value={selectedPartner} onValueChange={setSelectedPartner}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select partner" />
-            </SelectTrigger>
-            <SelectContent>
-              {availablePartners.map(partner => (
-                <SelectItem key={partner.id} value={partner.id}>
-                  {partner.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="percentage">Percentage</SelectItem>
-              <SelectItem value="fixed">Fixed Amount</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            <Select value={selectedPartner} onValueChange={setSelectedPartner}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select partner" />
+              </SelectTrigger>
+              <SelectContent>
+                {availablePartners.map(partner => (
+                  <SelectItem key={partner.id} value={partner.id}>
+                    {partner.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed Amount</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex space-x-1">
-            <Input
-              type="number"
-              step="0.01"
-              value={allocationValue}
-              onChange={(e) => setAllocationValue(e.target.value)}
-              placeholder={allocationType === 'percentage' ? '10' : '1000'}
-            />
-            <Button onClick={handleAddPartnerAllocation} size="sm">
-              <Plus className="w-4 h-4" />
-            </Button>
+            <div className="flex space-x-1">
+              <Input
+                type="number"
+                step="0.01"
+                value={allocationValue}
+                onChange={(e) => setAllocationValue(e.target.value)}
+                placeholder={allocationType === 'percentage' ? '10' : '1000'}
+                className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
+              />
+              <Button 
+                onClick={handleAddPartnerAllocation} 
+                size="sm"
+                disabled={!selectedPartner || !allocationValue || !validation.isValid}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
+
+          {/* Real-time preview */}
+          {allocationValue && (
+            <div className="text-sm space-y-1">
+              {validation.isValid ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Allocation Amount:</span>
+                  <span className="font-medium text-green-600">
+                    {currentBusiness.currency.symbol}{validation.amount.toLocaleString()}
+                  </span>
+                </div>
+              ) : validation.message && (
+                <div className="text-destructive text-xs">
+                  {validation.message}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -275,13 +443,36 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
       allocationCompanyAllocation?.allocationValue?.toString() || ''
     );
 
+    // For existing allocations, calculate remaining budget considering we'll replace the current allocation
+    const remainingForCompany = budgetTotals.remaining + (allocationCompanyAllocation?.totalAllocated || 0);
+    const validation = {
+      isValid: true,
+      amount: 0,
+      message: undefined as string | undefined
+    };
+
+    if (allocationValue) {
+      const numValue = parseFloat(allocationValue);
+      const amount = allocationType === 'percentage' ? (numValue / 100) * allocation.budget : numValue;
+      
+      if (isNaN(numValue)) {
+        validation.isValid = false;
+        validation.message = 'Please enter a valid amount';
+      } else if (amount > remainingForCompany) {
+        validation.isValid = false;
+        validation.amount = amount;
+        validation.message = `This would exceed the available budget of ${currentBusiness.currency.symbol}${remainingForCompany.toLocaleString()}`;
+      } else {
+        validation.isValid = true;
+        validation.amount = amount;
+      }
+    }
+
     const handleSetCompanyAllocation = () => {
-      if (!allocationValue) return;
+      if (!allocationValue || !validation.isValid) return;
 
       const value = parseFloat(allocationValue);
-      const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * allocation.budget 
-        : value;
+      const totalAllocated = validation.amount;
 
       const allocationData: AllocationCompanyAllocation = {
         businessId: currentBusiness.id,
@@ -303,29 +494,54 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
 
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="percentage">Percentage</SelectItem>
-              <SelectItem value="fixed">Fixed Amount</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Percentage</SelectItem>
+                <SelectItem value="fixed">Fixed Amount</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <div className="flex space-x-1">
-            <Input
-              type="number"
-              step="0.01"
-              value={allocationValue}
-              onChange={(e) => setAllocationValue(e.target.value)}
-              placeholder={allocationType === 'percentage' ? '10' : '1000'}
-            />
-            <Button onClick={handleSetCompanyAllocation} size="sm">
-              Set
-            </Button>
+            <div className="flex space-x-1">
+              <Input
+                type="number"
+                step="0.01"
+                value={allocationValue}
+                onChange={(e) => setAllocationValue(e.target.value)}
+                placeholder={allocationType === 'percentage' ? '10' : '1000'}
+                className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
+              />
+              <Button 
+                onClick={handleSetCompanyAllocation} 
+                size="sm"
+                disabled={!allocationValue || !validation.isValid}
+              >
+                Set
+              </Button>
+            </div>
           </div>
+
+          {/* Real-time preview */}
+          {allocationValue && (
+            <div className="text-sm space-y-1">
+              {validation.isValid ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Allocation Amount:</span>
+                  <span className="font-medium text-green-600">
+                    {currentBusiness.currency.symbol}{validation.amount.toLocaleString()}
+                  </span>
+                </div>
+              ) : validation.message && (
+                <div className="text-destructive text-xs">
+                  {validation.message}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {allocationCompanyAllocation && (
@@ -357,10 +573,12 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Allocation Details - {allocation.title}</DialogTitle>
         </DialogHeader>
+        
+        <BudgetSummary />
         
         <Tabs defaultValue="team" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
