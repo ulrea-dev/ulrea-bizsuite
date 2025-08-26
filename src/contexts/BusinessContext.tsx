@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, FontOption, ColorPalette } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
 import { useTheme } from '@/hooks/useTheme';
@@ -30,6 +30,7 @@ type BusinessAction =
   | { type: 'UPDATE_PAYMENT'; payload: { id: string; updates: Partial<Payment> } }
   | { type: 'ADD_TEAM_ALLOCATION'; payload: { projectId: string; allocation: TeamAllocation } }
   | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } }
+  | { type: 'ADD_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } }
   | { type: 'UPDATE_BUSINESS'; payload: { id: string; updates: Partial<Business> } }
   | { type: 'DELETE_BUSINESS'; payload: string }
   | { type: 'SET_USERNAME'; payload: string }
@@ -155,6 +156,20 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
             ? { 
                 ...project, 
                 partnerAllocations: [...(project.partnerAllocations || []), action.payload.allocation],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+      };
+
+    case 'ADD_COMPANY_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                companyAllocations: [...(project.companyAllocations || []), action.payload.allocation],
                 updatedAt: new Date().toISOString() 
               }
             : project

@@ -34,6 +34,11 @@ export const loadData = (): AppData => {
       ...data,
       // Ensure partners array exists (for backward compatibility)
       partners: data.partners || [],
+      // Ensure projects have companyAllocations (for backward compatibility)
+      projects: (data.projects || []).map((project: any) => ({
+        ...project,
+        companyAllocations: project.companyAllocations || []
+      })),
       userSettings: {
         ...initialData.userSettings,
         ...data.userSettings,

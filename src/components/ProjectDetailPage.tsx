@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye } from 'lucide-react';
+import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Project, TeamAllocation, PartnerAllocation } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
@@ -23,11 +23,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [allocationModalOpen, setAllocationModalOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<{
-    type: 'team' | 'partner';
+    type: 'team' | 'partner' | 'company';
     id: string;
     name: string;
   } | null>(null);
-  const [allocationType, setAllocationType] = useState<'team' | 'partner'>('team');
+  const [allocationType, setAllocationType] = useState<'team' | 'partner' | 'company'>('team');
 
   const project = data.projects.find(p => p.id === projectId);
   const client = project?.clientId ? data.clients.find(c => c.id === project.clientId) : null;
@@ -45,17 +45,18 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   const totalTeamAllocated = project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
   const totalPartnerAllocated = project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const totalAllocated = totalTeamAllocated + totalPartnerAllocated;
+  const totalCompanyAllocated = project.companyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const totalAllocated = totalTeamAllocated + totalPartnerAllocated + totalCompanyAllocated;
   const totalPaid = payments.reduce((sum, payment) => payment.status === 'completed' ? sum + payment.amount : sum, 0);
   const remainingBudget = project.totalValue - totalAllocated;
   const outstandingPayments = totalAllocated - totalPaid;
 
-  const openPaymentModal = (type: 'team' | 'partner', id: string, name: string) => {
+  const openPaymentModal = (type: 'team' | 'partner' | 'company', id: string, name: string) => {
     setSelectedRecipient({ type, id, name });
     setPaymentModalOpen(true);
   };
 
-  const openAllocationModal = (type: 'team' | 'partner') => {
+  const openAllocationModal = (type: 'team' | 'partner' | 'company') => {
     setAllocationType(type);
     setAllocationModalOpen(true);
   };
@@ -180,6 +181,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               <span className="dashboard-text-secondary">Partners:</span>
               <span className="dashboard-text-primary">{formatCurrency(totalPartnerAllocated, currentBusiness.currency)}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="dashboard-text-secondary">Company:</span>
+              <span className="dashboard-text-primary">{formatCurrency(totalCompanyAllocated, currentBusiness.currency)}</span>
+            </div>
             <div className="flex items-center justify-between border-t pt-2">
               <span className="dashboard-text-secondary">Remaining:</span>
               <span className="font-semibold dashboard-text-primary">{formatCurrency(remainingBudget, currentBusiness.currency)}</span>
@@ -193,6 +198,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         <TabsList>
           <TabsTrigger value="team">Team Allocations</TabsTrigger>
           <TabsTrigger value="partners">Partner Allocations</TabsTrigger>
+          <TabsTrigger value="company">Company Allocations</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
         </TabsList>
 
@@ -317,6 +323,73 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                       <Button 
                         size="sm" 
                         onClick={() => openPaymentModal('partner', allocation.partnerId, allocation.partnerName)}
+                        disabled={allocation.outstanding === 0}
+                      >
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        Pay
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="company" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold dashboard-text-primary">Company Allocations</h3>
+            <Button onClick={() => openAllocationModal('company')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Company Allocation
+            </Button>
+          </div>
+
+          {!project.companyAllocations?.length ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="h-12 w-12 dashboard-text-secondary mb-4" />
+                <p className="dashboard-text-secondary">No company allocations yet</p>
+                <Button className="mt-4" onClick={() => openAllocationModal('company')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Company Allocation
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {project.companyAllocations?.map((allocation) => (
+                <Card key={allocation.partnerId}>
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 dashboard-surface rounded-lg">
+                        <Building2 className="h-4 w-4 dashboard-text-primary" />
+                      </div>
+                      <div>
+                        <div className="font-semibold dashboard-text-primary">{allocation.partnerName}</div>
+                        <div className="text-sm dashboard-text-secondary">
+                          {allocation.allocationType === 'percentage' 
+                            ? `${allocation.allocationValue}% of project` 
+                            : formatCurrency(allocation.allocationValue, currentBusiness.currency)
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <div className="font-semibold dashboard-text-primary">
+                        {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
+                      </div>
+                      <div className="text-sm dashboard-text-secondary">
+                        Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
+                      </div>
+                      {allocation.outstanding > 0 && (
+                        <div className="text-sm text-orange-600">
+                          Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
+                        </div>
+                      )}
+                      <Button 
+                        size="sm" 
+                        onClick={() => openPaymentModal('company', allocation.partnerId, allocation.partnerName)}
                         disabled={allocation.outstanding === 0}
                       >
                         <DollarSign className="h-3 w-3 mr-1" />
