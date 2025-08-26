@@ -27,8 +27,8 @@ export const AnalyticsPage: React.FC = () => {
   
   // Calculate metrics
   const totalProjectValue = currentProjects.reduce((sum, project) => {
-    const projectValue = project.usePhases && project.phases?.length 
-      ? project.phases.reduce((phaseSum, phase) => phaseSum + phase.budget, 0)
+    const projectValue = project.isMultiPhase && project.allocations?.length 
+      ? project.allocations.reduce((allocationSum, allocation) => allocationSum + allocation.budget, 0)
       : project.totalValue;
     return sum + projectValue;
   }, 0);
@@ -62,8 +62,8 @@ export const AnalyticsPage: React.FC = () => {
   // Top projects by value
   const topProjects = currentProjects
     .map(project => {
-      const projectValue = project.usePhases && project.phases?.length 
-        ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+      const projectValue = project.isMultiPhase && project.allocations?.length 
+        ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
         : project.totalValue;
       return { ...project, calculatedValue: projectValue };
     })

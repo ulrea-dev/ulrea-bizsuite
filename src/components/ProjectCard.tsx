@@ -27,20 +27,20 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   clientName,
   teamMembers 
 }) => {
-  // Calculate total project value from phases if using phases, otherwise use totalValue
-  const totalProjectValue = project.usePhases && project.phases?.length 
-    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+  // Calculate total project value from allocations if using multiple phases, otherwise use totalValue
+  const totalProjectValue = project.isMultiPhase && project.allocations?.length 
+    ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
     : project.totalValue;
 
-  // Use phase allocations if project uses phases, otherwise use regular allocations
-  const totalTeamAllocated = project.usePhases 
-    ? (project.phaseTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+  // Use allocation-based allocations if project uses multiple phases, otherwise use regular allocations
+  const totalTeamAllocated = project.isMultiPhase 
+    ? (project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
     : project.teamAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
-  const totalPartnerAllocated = project.usePhases 
-    ? (project.phasePartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+  const totalPartnerAllocated = project.isMultiPhase 
+    ? (project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
     : (project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
-  const companyAllocated = project.usePhases 
-    ? (project.phaseCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
+  const companyAllocated = project.isMultiPhase 
+    ? (project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0)
     : (project.companyAllocation?.totalAllocated || 0);
   
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;

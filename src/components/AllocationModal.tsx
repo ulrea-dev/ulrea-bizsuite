@@ -48,8 +48,8 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
     e.preventDefault();
     if (!project || !currentBusiness) return;
 
-    const projectValue = project.usePhases && project.phases?.length 
-      ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+    const projectValue = project.isMultiPhase && project.allocations?.length 
+      ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
       : project.totalValue;
     const allocatedAmount = formData.allocationType === 'percentage'
       ? (projectValue * parseFloat(formData.allocationValue)) / 100
@@ -216,8 +216,8 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
               <div className="text-sm space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Project Value:</span>
-                  <span>{currentBusiness.currency.symbol}{(project.usePhases && project.phases?.length 
-                    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                  <span>{currentBusiness.currency.symbol}{(project.isMultiPhase && project.allocations?.length 
+                    ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
                     : project.totalValue).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
@@ -225,8 +225,8 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
                   <span className="font-semibold">
                     {currentBusiness.currency.symbol}
                     {formData.allocationType === 'percentage' 
-                      ? (((project.usePhases && project.phases?.length 
-                          ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                      ? (((project.isMultiPhase && project.allocations?.length 
+                          ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
                           : project.totalValue) * parseFloat(formData.allocationValue)) / 100).toLocaleString()
                       : parseFloat(formData.allocationValue).toLocaleString()
                     }

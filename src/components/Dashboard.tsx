@@ -240,8 +240,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
                   <div className="text-right">
                     <div className="font-semibold">
                       {formatCurrency(
-                        project.usePhases && project.phases?.length 
-                          ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+                        project.isMultiPhase && project.allocations?.length 
+                          ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
                           : project.totalValue,
                         currentBusiness.currency
                       )}
