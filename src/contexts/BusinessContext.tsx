@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, FontOption, ColorPalette } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, FontOption, ColorPalette } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
 import { useTheme } from '@/hooks/useTheme';
@@ -22,8 +22,14 @@ type BusinessAction =
   | { type: 'UPDATE_PROJECT'; payload: { id: string; updates: Partial<Project> } }
   | { type: 'ADD_TEAM_MEMBER'; payload: TeamMember }
   | { type: 'UPDATE_TEAM_MEMBER'; payload: { id: string; updates: Partial<TeamMember> } }
+  | { type: 'ADD_PARTNER'; payload: Partner }
+  | { type: 'UPDATE_PARTNER'; payload: { id: string; updates: Partial<Partner> } }
   | { type: 'ADD_CLIENT'; payload: Client }
   | { type: 'UPDATE_CLIENT'; payload: { id: string; updates: Partial<Client> } }
+  | { type: 'ADD_PAYMENT'; payload: Payment }
+  | { type: 'UPDATE_PAYMENT'; payload: { id: string; updates: Partial<Payment> } }
+  | { type: 'ADD_TEAM_ALLOCATION'; payload: { projectId: string; allocation: TeamAllocation } }
+  | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } }
   | { type: 'UPDATE_BUSINESS'; payload: { id: string; updates: Partial<Business> } }
   | { type: 'DELETE_BUSINESS'; payload: string }
   | { type: 'SET_USERNAME'; payload: string }
@@ -79,6 +85,22 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
         ),
       };
     
+    case 'ADD_PARTNER':
+      return {
+        ...state,
+        partners: [...state.partners, action.payload],
+      };
+    
+    case 'UPDATE_PARTNER':
+      return {
+        ...state,
+        partners: state.partners.map(partner =>
+          partner.id === action.payload.id
+            ? { ...partner, ...action.payload.updates }
+            : partner
+        ),
+      };
+    
     case 'ADD_CLIENT':
       return {
         ...state,
@@ -92,6 +114,50 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           client.id === action.payload.id
             ? { ...client, ...action.payload.updates }
             : client
+        ),
+      };
+
+    case 'ADD_PAYMENT':
+      return {
+        ...state,
+        payments: [...state.payments, action.payload],
+      };
+    
+    case 'UPDATE_PAYMENT':
+      return {
+        ...state,
+        payments: state.payments.map(payment =>
+          payment.id === action.payload.id
+            ? { ...payment, ...action.payload.updates }
+            : payment
+        ),
+      };
+
+    case 'ADD_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                teamAllocations: [...(project.teamAllocations || []), action.payload.allocation],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
+        ),
+      };
+
+    case 'ADD_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.projectId
+            ? { 
+                ...project, 
+                partnerAllocations: [...(project.partnerAllocations || []), action.payload.allocation],
+                updatedAt: new Date().toISOString() 
+              }
+            : project
         ),
       };
     
@@ -159,6 +225,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       businesses: [],
       projects: [],
       teamMembers: [],
+      partners: [],
       clients: [],
       payments: [],
       currentBusinessId: null,

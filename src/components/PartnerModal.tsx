@@ -1,53 +1,53 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TeamMember } from '@/types/business';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Partner } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 
-interface TeamMemberModalProps {
+interface PartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  member?: TeamMember | null;
+  partner?: Partner | null;
   mode: 'create' | 'edit' | 'view';
 }
 
-export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClose, member, mode }) => {
+export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, partner, mode }) => {
   const { dispatch } = useBusiness();
   const [formData, setFormData] = useState({
-    name: member?.name || '',
-    email: member?.email || '',
-    role: member?.role || ''
+    name: partner?.name || '',
+    email: partner?.email || '',
+    type: partner?.type || 'sales' as Partner['type']
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (mode === 'create') {
-      const newMember: TeamMember = {
-        id: `member_${Date.now()}`,
+      const newPartner: Partner = {
+        id: `partner_${Date.now()}`,
         name: formData.name,
         email: formData.email,
-        role: formData.role,
+        type: formData.type,
         paymentHistory: [],
         createdAt: new Date().toISOString()
       };
 
       dispatch({
-        type: 'ADD_TEAM_MEMBER',
-        payload: newMember
+        type: 'ADD_PARTNER',
+        payload: newPartner
       });
-    } else if (mode === 'edit' && member) {
+    } else if (mode === 'edit' && partner) {
       dispatch({
-        type: 'UPDATE_TEAM_MEMBER',
+        type: 'UPDATE_PARTNER',
         payload: { 
-          id: member.id, 
+          id: partner.id, 
           updates: {
             name: formData.name,
             email: formData.email,
-            role: formData.role
+            type: formData.type
           }
         }
       });
@@ -63,14 +63,14 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' && 'Add Team Member'}
-            {mode === 'edit' && 'Edit Team Member'}
-            {mode === 'view' && 'Team Member Details'}
+            {mode === 'create' && 'Add Partner'}
+            {mode === 'edit' && 'Edit Partner'}
+            {mode === 'view' && 'Partner Details'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create' && 'Add a new team member'}
-            {mode === 'edit' && 'Update team member information'}
-            {mode === 'view' && 'View team member information'}
+            {mode === 'create' && 'Add a new business partner'}
+            {mode === 'edit' && 'Update partner information'}
+            {mode === 'view' && 'View partner information'}
           </DialogDescription>
         </DialogHeader>
 
@@ -89,15 +89,20 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                placeholder="Enter role"
+              <Label htmlFor="type">Partner Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: Partner['type']) => setFormData(prev => ({ ...prev, type: value }))}
                 disabled={isReadOnly}
-                required
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sales">Sales Partner</SelectItem>
+                  <SelectItem value="managing">Managing Partner</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -114,14 +119,13 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             />
           </div>
 
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               {isReadOnly ? 'Close' : 'Cancel'}
             </Button>
             {!isReadOnly && (
               <Button type="submit">
-                {mode === 'create' ? 'Add Member' : 'Update Member'}
+                {mode === 'create' ? 'Add Partner' : 'Update Partner'}
               </Button>
             )}
           </DialogFooter>

@@ -16,6 +16,7 @@ const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Building2 },
   { id: 'projects', label: 'Projects', icon: FolderOpen },
   { id: 'team', label: 'Team', icon: Users },
+  { id: 'partners', label: 'Partners', icon: UserCheck },
   { id: 'clients', label: 'Clients', icon: UserCheck },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings },

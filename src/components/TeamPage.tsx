@@ -160,10 +160,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                           <Badge variant="outline">{member.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            {formatCurrency(member.defaultRate, currentBusiness.currency)}
-                          </div>
+                          <div className="dashboard-text-secondary">-</div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">

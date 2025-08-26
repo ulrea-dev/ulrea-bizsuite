@@ -1,17 +1,18 @@
-
 import React, { useState } from 'react';
 import { Navigation } from './Navigation';
 import { BusinessSetup } from './BusinessSetup';
 import { ProjectsPage } from './ProjectsPage';
 import { TeamPage } from './TeamPage';
+import { PartnersPage } from './PartnersPage';
 import { ClientsPage } from './ClientsPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
+import { ProjectDetailPage } from './ProjectDetailPage';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/storage';
-import { TrendingUp, FolderOpen, Users, DollarSign } from 'lucide-react';
+import { TrendingUp, FolderOpen, Users, DollarSign, Handshake } from 'lucide-react';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -21,15 +22,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const { data, currentBusiness, switchBusiness } = useBusiness();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const handleNavigateToPage = (page: string, itemId?: string) => {
+    if (page === 'projects' && itemId) {
+      setSelectedProjectId(itemId);
+      setCurrentPage('project-detail');
+    } else {
+      setCurrentPage(page);
+    }
+  };
 
   const renderPage = () => {
+    if (currentPage === 'project-detail' && selectedProjectId) {
+      return (
+        <ProjectDetailPage 
+          projectId={selectedProjectId} 
+          onBack={() => setCurrentPage('projects')}
+        />
+      );
+    }
+
     switch (currentPage) {
       case 'projects':
-        return <ProjectsPage onNavigateToPage={setCurrentPage} />;
+        return <ProjectsPage onNavigateToPage={handleNavigateToPage} />;
       case 'team':
-        return <TeamPage onNavigateToPage={setCurrentPage} />;
+        return <TeamPage onNavigateToPage={handleNavigateToPage} />;
+      case 'partners':
+        return <PartnersPage onNavigateToPage={handleNavigateToPage} />;
       case 'clients':
-        return <ClientsPage onNavigateToPage={setCurrentPage} />;
+        return <ClientsPage onNavigateToPage={handleNavigateToPage} />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'settings':
@@ -81,8 +103,6 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
 }) => {
   const { data, currentBusiness } = useBusiness();
 
-  // Show multi-business overview if multiple businesses exist but none is selected
-  // or if user wants to see overview of all businesses
   if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
     return (
       <div className="p-6">
@@ -106,9 +126,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
   const activeProjects = currentProjects.filter(project => project.status === 'active');
   const totalProjectValue = currentProjects.reduce((sum, project) => sum + project.totalValue, 0);
   const totalTeamAllocated = currentProjects.reduce((sum, project) => 
-    sum + project.teamAllocations.reduce((allocSum, alloc) => allocSum + alloc.totalAllocated, 0), 0
+    sum + (project.teamAllocations?.reduce((allocSum, alloc) => allocSum + alloc.totalAllocated, 0) || 0), 0
   );
-  const netMargin = totalProjectValue - totalTeamAllocated;
 
   return (
     <div className="p-6 space-y-6">
@@ -117,23 +136,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
         <p className="dashboard-text-secondary">Welcome to {currentBusiness.name}</p>
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-            <DollarSign className="h-4 w-4 dashboard-text-secondary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(currentBusiness.currentBalance, currentBusiness.currency)}
-            </div>
-            <p className="text-xs dashboard-text-secondary">
-              Min: {formatCurrency(currentBusiness.minimumBalance, currentBusiness.currency)}
-            </p>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
@@ -149,36 +152,40 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Allocations</CardTitle>
+            <CardTitle className="text-sm font-medium">Team Members</CardTitle>
             <Users className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
-            </div>
-            <p className="text-xs dashboard-text-secondary">
-              Across {data.teamMembers.length} members
-            </p>
+            <div className="text-2xl font-bold">{data.teamMembers?.length || 0}</div>
+            <p className="text-xs dashboard-text-secondary">Active members</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Margin</CardTitle>
-            <TrendingUp className="h-4 w-4 dashboard-text-secondary" />
+            <CardTitle className="text-sm font-medium">Partners</CardTitle>
+            <Handshake className="h-4 w-4 dashboard-text-secondary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{data.partners?.length || 0}</div>
+            <p className="text-xs dashboard-text-secondary">Business partners</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Team Allocations</CardTitle>
+            <DollarSign className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(netMargin, currentBusiness.currency)}
+              {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
             </div>
-            <p className="text-xs dashboard-text-secondary">
-              Project value - allocations
-            </p>
+            <p className="text-xs dashboard-text-secondary">Total allocated</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity */}
       {activeProjects.length > 0 && (
         <Card>
           <CardHeader>
@@ -198,7 +205,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
                       {formatCurrency(project.totalValue, currentBusiness.currency)}
                     </div>
                     <div className="text-sm dashboard-text-secondary">
-                      {project.teamAllocations.length} team members
+                      {project.teamAllocations?.length || 0} team members
                     </div>
                   </div>
                 </div>

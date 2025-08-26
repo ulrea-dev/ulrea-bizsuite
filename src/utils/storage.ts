@@ -8,6 +8,7 @@ const getInitialData = (): AppData => ({
   businesses: [],
   projects: [],
   teamMembers: [],
+  partners: [],
   clients: [],
   payments: [],
   currentBusinessId: null,

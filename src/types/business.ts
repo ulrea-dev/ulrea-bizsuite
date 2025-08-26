@@ -21,9 +21,27 @@ export interface TeamMember {
   name: string;
   email: string;
   role: string;
-  defaultRate: number;
   paymentHistory: Payment[];
   createdAt: string;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  email: string;
+  type: 'sales' | 'managing';
+  paymentHistory: Payment[];
+  createdAt: string;
+}
+
+export interface PartnerAllocation {
+  partnerId: string;
+  partnerName: string;
+  allocationType: 'percentage' | 'fixed';
+  allocationValue: number;
+  totalAllocated: number;
+  paidAmount: number;
+  outstanding: number;
 }
 
 export interface Client {
@@ -42,10 +60,13 @@ export interface Payment {
   date: string;
   projectId: string;
   memberId?: string;
+  partnerId?: string;
   clientId?: string;
   type: 'incoming' | 'outgoing';
+  recipientType?: 'team' | 'partner';
   status: 'pending' | 'completed';
   method?: string;
+  description?: string;
 }
 
 export interface TeamAllocation {
@@ -69,6 +90,7 @@ export interface Project {
   endDate?: string;
   clientId?: string;
   teamAllocations: TeamAllocation[];
+  partnerAllocations: PartnerAllocation[];
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +134,7 @@ export interface AppData {
   businesses: Business[];
   projects: Project[];
   teamMembers: TeamMember[];
+  partners: Partner[];
   clients: Client[];
   payments: Payment[];
   currentBusinessId: string | null;
