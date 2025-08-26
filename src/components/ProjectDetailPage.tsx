@@ -59,21 +59,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
     : project.totalValue;
 
-  // Calculate allocations from allocations if using allocations
-  const allocationTeamAllocated = project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const allocationPartnerAllocated = project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const allocationCompanyAllocated = project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  
-  // Use allocation allocations if project uses allocations, otherwise use regular allocations
-  const totalTeamAllocated = project.isMultiPhase 
-    ? allocationTeamAllocated
-    : (project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
-  const totalPartnerAllocated = project.isMultiPhase 
-    ? allocationPartnerAllocated 
-    : (project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
-  const companyAllocated = project.isMultiPhase 
-    ? allocationCompanyAllocated 
-    : (project.companyAllocation?.totalAllocated || 0);
+  // Only show allocations if project has actual allocations created
+  const totalTeamAllocated = project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const totalPartnerAllocated = project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const companyAllocated = project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
   
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const clientPaymentsReceived = project.clientPayments || 0;
