@@ -62,6 +62,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             onShowBusinessSetup={() => setShowBusinessSetup(true)}
             onSelectBusiness={(businessId) => switchBusiness(businessId)}
             onCreateBusiness={() => setShowBusinessSetup(true)}
+            onNavigateToProject={(projectId) => handleNavigateToPage('projects', projectId)}
           />
         );
     }
@@ -94,12 +95,14 @@ interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
   onSelectBusiness: (businessId: string) => void;
   onCreateBusiness: () => void;
+  onNavigateToProject: (projectId: string) => void;
 }
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ 
   onShowBusinessSetup, 
   onSelectBusiness, 
-  onCreateBusiness 
+  onCreateBusiness,
+  onNavigateToProject
 }) => {
   const { data, currentBusiness } = useBusiness();
 
@@ -195,7 +198,11 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
           <CardContent>
             <div className="space-y-4">
               {activeProjects.slice(0, 5).map(project => (
-                <div key={project.id} className="flex items-center justify-between p-4 dashboard-surface-elevated rounded-lg">
+                <div 
+                  key={project.id} 
+                  className="flex items-center justify-between p-4 dashboard-surface-elevated rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => onNavigateToProject(project.id)}
+                >
                   <div>
                     <h4 className="font-medium">{project.name}</h4>
                     <p className="text-sm dashboard-text-secondary">{project.description}</p>

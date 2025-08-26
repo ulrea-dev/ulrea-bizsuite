@@ -13,6 +13,7 @@ interface ProjectCardProps {
   currency: Currency;
   onNavigateToClient?: (clientId: string) => void;
   onNavigateToTeam?: () => void;
+  onNavigateToProject?: (projectId: string) => void;
   clientName?: string;
   teamMembers?: Array<{ id: string; name: string }>;
 }
@@ -22,6 +23,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   currency, 
   onNavigateToClient, 
   onNavigateToTeam,
+  onNavigateToProject,
   clientName,
   teamMembers 
 }) => {
@@ -48,7 +50,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   return (
-    <Card className="card-hover animate-slide-in-right">
+    <Card 
+      className="card-hover animate-slide-in-right cursor-pointer transition-transform hover:scale-[1.02]" 
+      onClick={() => onNavigateToProject?.(project.id)}
+    >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">

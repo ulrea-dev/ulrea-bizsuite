@@ -6,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { ProjectModal } from './ProjectModal';
+import { EnhancedProjectModal } from './EnhancedProjectModal';
 import { ProjectCard } from './ProjectCard';
 import { Project } from '@/types/business';
 
 interface ProjectsPageProps {
-  onNavigateToPage?: (page: string) => void;
+  onNavigateToPage?: (page: string, itemId?: string) => void;
 }
 
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) => {
@@ -139,6 +139,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
                 onNavigateToTeam={() => {
                   onNavigateToPage?.('team');
                 }}
+                onNavigateToProject={(projectId) => {
+                  onNavigateToPage?.('projects', projectId);
+                }}
               />
               <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                 <Button
@@ -163,7 +166,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
         </div>
       )}
 
-      <ProjectModal
+      <EnhancedProjectModal
         isOpen={showProjectModal}
         onClose={() => setShowProjectModal(false)}
         project={selectedProject}
