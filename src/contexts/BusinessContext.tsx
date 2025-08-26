@@ -437,6 +437,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                         }
                       : allocation
                   ) || [],
+                  allocationTeamAllocations: project.allocationTeamAllocations?.map(allocation =>
+                    allocation.memberId === action.payload.memberId && 
+                    (!action.payload.allocationId || allocation.allocationId === action.payload.allocationId)
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + action.payload.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + action.payload.amount)
+                        }
+                      : allocation
+                  ) || [],
                   updatedAt: new Date().toISOString()
                 }
               : project
@@ -451,6 +461,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                   ...project,
                   partnerAllocations: project.partnerAllocations?.map(allocation =>
                     allocation.partnerId === action.payload.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + action.payload.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + action.payload.amount)
+                        }
+                      : allocation
+                  ) || [],
+                  allocationPartnerAllocations: project.allocationPartnerAllocations?.map(allocation =>
+                    allocation.partnerId === action.payload.partnerId && 
+                    (!action.payload.allocationId || allocation.allocationId === action.payload.allocationId)
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount + action.payload.amount,
@@ -498,6 +518,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                         }
                       : allocation
                   ) || [],
+                  allocationTeamAllocations: project.allocationTeamAllocations?.map(allocation =>
+                    allocation.memberId === oldPayment.memberId && 
+                    (!oldPayment.allocationId || allocation.allocationId === oldPayment.allocationId)
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + amountDifference,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + amountDifference)
+                        }
+                      : allocation
+                  ) || [],
                   updatedAt: new Date().toISOString()
                 }
               : project
@@ -513,6 +543,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                   ...project,
                   partnerAllocations: project.partnerAllocations?.map(allocation =>
                     allocation.partnerId === oldPayment.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + amountDifference,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + amountDifference)
+                        }
+                      : allocation
+                  ) || [],
+                  allocationPartnerAllocations: project.allocationPartnerAllocations?.map(allocation =>
+                    allocation.partnerId === oldPayment.partnerId && 
+                    (!oldPayment.allocationId || allocation.allocationId === oldPayment.allocationId)
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount + amountDifference,
@@ -553,6 +593,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                         }
                       : allocation
                   ) || [],
+                  allocationTeamAllocations: project.allocationTeamAllocations?.map(allocation =>
+                    allocation.memberId === paymentToDelete.memberId && 
+                    (!paymentToDelete.allocationId || allocation.allocationId === paymentToDelete.allocationId)
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount - paymentToDelete.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount - paymentToDelete.amount)
+                        }
+                      : allocation
+                  ) || [],
                   updatedAt: new Date().toISOString()
                 }
               : project
@@ -567,6 +617,16 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                   ...project,
                   partnerAllocations: project.partnerAllocations?.map(allocation =>
                     allocation.partnerId === paymentToDelete.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount - paymentToDelete.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount - paymentToDelete.amount)
+                        }
+                      : allocation
+                  ) || [],
+                  allocationPartnerAllocations: project.allocationPartnerAllocations?.map(allocation =>
+                    allocation.partnerId === paymentToDelete.partnerId && 
+                    (!paymentToDelete.allocationId || allocation.allocationId === paymentToDelete.allocationId)
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount - paymentToDelete.amount,
