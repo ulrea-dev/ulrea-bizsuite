@@ -201,7 +201,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount + amountDifference,
-                          outstanding: allocation.outstanding - amountDifference
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + amountDifference)
                         }
                       : allocation
                   ) || [],
@@ -223,7 +223,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount + amountDifference,
-                          outstanding: allocation.outstanding - amountDifference
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + amountDifference)
                         }
                       : allocation
                   ) || [],
@@ -256,7 +256,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount - paymentToDelete.amount,
-                          outstanding: allocation.outstanding + paymentToDelete.amount
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount - paymentToDelete.amount)
                         }
                       : allocation
                   ) || [],
@@ -277,7 +277,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                       ? {
                           ...allocation,
                           paidAmount: allocation.paidAmount - paymentToDelete.amount,
-                          outstanding: allocation.outstanding + paymentToDelete.amount
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount - paymentToDelete.amount)
                         }
                       : allocation
                   ) || [],
