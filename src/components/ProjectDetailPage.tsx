@@ -35,6 +35,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [clientPaymentModalOpen, setClientPaymentModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentMode, setPaymentMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedAllocationId, setSelectedAllocationId] = useState<string | null>(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [expenseMode, setExpenseMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -423,12 +424,13 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                               </div>
                               <div className="flex items-center gap-2">
                                 {memberOutstanding > 0 && (
-                                  <Button
+                                <Button
                                     size="sm"
                                     onClick={() => {
                                       setSelectedRecipient({ type: 'team', id: member.id, name: member.name });
                                       setSelectedPayment(null);
                                       setPaymentMode('create');
+                                      setSelectedAllocationId(allocation.id);
                                       setPaymentModalOpen(true);
                                     }}
                                   >
@@ -851,6 +853,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             setPaymentModalOpen(false);
             setSelectedRecipient(null);
             setSelectedPayment(null);
+            setSelectedAllocationId(null);
           }}
           projectId={projectId}
           recipientType={selectedRecipient.type}
@@ -858,7 +861,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           recipientName={selectedRecipient.name}
           payment={selectedPayment}
           mode={paymentMode}
-          allocationId={selectedPayment?.allocationId}
+          allocationId={selectedPayment?.allocationId || selectedAllocationId}
         />
       )}
 
