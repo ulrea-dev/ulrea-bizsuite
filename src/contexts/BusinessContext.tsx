@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppData, Business, Project, TeamMember, Client } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
@@ -19,6 +18,10 @@ type BusinessAction =
   | { type: 'ADD_BUSINESS'; payload: Business }
   | { type: 'ADD_PROJECT'; payload: Project }
   | { type: 'UPDATE_PROJECT'; payload: { id: string; updates: Partial<Project> } }
+  | { type: 'ADD_TEAM_MEMBER'; payload: TeamMember }
+  | { type: 'UPDATE_TEAM_MEMBER'; payload: { id: string; updates: Partial<TeamMember> } }
+  | { type: 'ADD_CLIENT'; payload: Client }
+  | { type: 'UPDATE_CLIENT'; payload: { id: string; updates: Partial<Client> } }
   | { type: 'SET_USERNAME'; payload: string };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -51,6 +54,38 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           project.id === action.payload.id
             ? { ...project, ...action.payload.updates, updatedAt: new Date().toISOString() }
             : project
+        ),
+      };
+    
+    case 'ADD_TEAM_MEMBER':
+      return {
+        ...state,
+        teamMembers: [...state.teamMembers, action.payload],
+      };
+    
+    case 'UPDATE_TEAM_MEMBER':
+      return {
+        ...state,
+        teamMembers: state.teamMembers.map(member =>
+          member.id === action.payload.id
+            ? { ...member, ...action.payload.updates }
+            : member
+        ),
+      };
+    
+    case 'ADD_CLIENT':
+      return {
+        ...state,
+        clients: [...state.clients, action.payload],
+      };
+    
+    case 'UPDATE_CLIENT':
+      return {
+        ...state,
+        clients: state.clients.map(client =>
+          client.id === action.payload.id
+            ? { ...client, ...action.payload.updates }
+            : client
         ),
       };
     
