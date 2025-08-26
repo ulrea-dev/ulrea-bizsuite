@@ -1,5 +1,6 @@
 
 import { AppData, Business, Project, TeamMember, Client, Payment, SUPPORTED_CURRENCIES } from '@/types/business';
+import { getDefaultFont, getDefaultColorPalette } from './appearance';
 
 const STORAGE_KEY = 'bizsuite-data';
 
@@ -14,6 +15,8 @@ const getInitialData = (): AppData => ({
     username: '',
     theme: 'light',
     defaultCurrency: SUPPORTED_CURRENCIES[0], // USD
+    fontFamily: getDefaultFont(),
+    colorPalette: getDefaultColorPalette(),
   },
 });
 

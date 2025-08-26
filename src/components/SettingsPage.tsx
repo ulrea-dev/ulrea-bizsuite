@@ -9,13 +9,15 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Upload, Trash2, Moon, Sun, Database, User, Building } from 'lucide-react';
+import { Download, Upload, Trash2, Moon, Sun, Database, User, Building, Palette, Type } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTheme } from '@/hooks/useTheme';
 import { exportData, importData, clearAllData } from '@/utils/storage';
 import { SUPPORTED_CURRENCIES } from '@/types/business';
 import { BusinessManagement } from './BusinessManagement';
 import { BusinessSetup } from './BusinessSetup';
+import { FontSelector } from './FontSelector';
+import { ColorPaletteSelector } from './ColorPaletteSelector';
 
 export const SettingsPage: React.FC = () => {
   const { data, currentBusiness, dispatch } = useBusiness();
@@ -85,8 +87,9 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="user" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="user">User Settings</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="businesses">Businesses</TabsTrigger>
           <TabsTrigger value="data">Data Management</TabsTrigger>
         </TabsList>
@@ -159,6 +162,42 @@ export const SettingsPage: React.FC = () => {
         </CardContent>
       </Card>
 
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-6 mt-6">
+          {/* Font Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Type className="h-5 w-5" />
+                Typography
+              </CardTitle>
+              <CardDescription>Customize the fonts used throughout the application</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FontSelector
+                selectedFont={data.userSettings.fontFamily}
+                onFontChange={(font) => dispatch({ type: 'SET_FONT', payload: font })}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Color Palette Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Color Scheme
+              </CardTitle>
+              <CardDescription>Choose or create a color palette that matches your brand</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ColorPaletteSelector
+                selectedPalette={data.userSettings.colorPalette}
+                onPaletteChange={(palette) => dispatch({ type: 'SET_COLOR_PALETTE', payload: palette })}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="businesses" className="space-y-6 mt-6">

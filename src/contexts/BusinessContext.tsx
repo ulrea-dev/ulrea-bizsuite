@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, FontOption, ColorPalette } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
+import { applyFont, applyColorPalette } from '@/utils/appearance';
 
 interface BusinessContextType {
   data: AppData;
@@ -24,7 +25,9 @@ type BusinessAction =
   | { type: 'UPDATE_CLIENT'; payload: { id: string; updates: Partial<Client> } }
   | { type: 'UPDATE_BUSINESS'; payload: { id: string; updates: Partial<Business> } }
   | { type: 'DELETE_BUSINESS'; payload: string }
-  | { type: 'SET_USERNAME'; payload: string };
+  | { type: 'SET_USERNAME'; payload: string }
+  | { type: 'SET_FONT'; payload: FontOption }
+  | { type: 'SET_COLOR_PALETTE'; payload: ColorPalette };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
@@ -117,6 +120,24 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           username: action.payload,
         },
       };
+
+    case 'SET_FONT':
+      return {
+        ...state,
+        userSettings: {
+          ...state.userSettings,
+          fontFamily: action.payload,
+        },
+      };
+
+    case 'SET_COLOR_PALETTE':
+      return {
+        ...state,
+        userSettings: {
+          ...state.userSettings,
+          colorPalette: action.payload,
+        },
+      };
     
     default:
       return state;
@@ -134,6 +155,17 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     saveData(data);
   }, [data]);
+
+  // Apply font and color palette on load and when they change
+  useEffect(() => {
+    if (data.userSettings.fontFamily) {
+      applyFont(data.userSettings.fontFamily);
+    }
+    if (data.userSettings.colorPalette) {
+      const isDark = data.userSettings.theme === 'dark';
+      applyColorPalette(data.userSettings.colorPalette, isDark);
+    }
+  }, [data.userSettings.fontFamily, data.userSettings.colorPalette, data.userSettings.theme]);
 
   const addBusiness = (businessData: Omit<Business, 'id' | 'createdAt' | 'updatedAt'>) => {
     const business: Business = {

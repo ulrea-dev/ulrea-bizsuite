@@ -73,6 +73,41 @@ export interface Project {
   updatedAt: string;
 }
 
+export interface FontOption {
+  id: string;
+  name: string;
+  family: string;
+  weights: string[];
+  googleFontUrl?: string;
+}
+
+export interface ColorPalette {
+  id: string;
+  name: string;
+  type: 'predefined' | 'custom';
+  colors: {
+    background: string;
+    foreground: string;
+    card: string;
+    cardForeground: string;
+    popover: string;
+    popoverForeground: string;
+    primary: string;
+    primaryForeground: string;
+    secondary: string;
+    secondaryForeground: string;
+    muted: string;
+    mutedForeground: string;
+    accent: string;
+    accentForeground: string;
+    destructive: string;
+    destructiveForeground: string;
+    border: string;
+    input: string;
+    ring: string;
+  };
+}
+
 export interface AppData {
   businesses: Business[];
   projects: Project[];
@@ -84,6 +119,8 @@ export interface AppData {
     username: string;
     theme: 'light' | 'dark';
     defaultCurrency: Currency;
+    fontFamily: FontOption;
+    colorPalette: ColorPalette;
   };
 }
 
