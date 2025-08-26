@@ -10,17 +10,17 @@ import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
-import { ProjectPhase, PhaseTeamAllocation, PhasePartnerAllocation, PhaseCompanyAllocation } from '@/types/business';
+import { ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation } from '@/types/business';
 
-interface PhaseAllocationModalProps {
+interface AllocationDetailModalProps {
   projectId: string;
-  phase: ProjectPhase;
+  allocation: ProjectAllocation;
   children?: React.ReactNode;
 }
 
-export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({ 
+export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({ 
   projectId, 
-  phase, 
+  allocation, 
   children 
 }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
@@ -29,16 +29,16 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
   const project = data.projects.find(p => p.id === projectId);
   if (!project || !currentBusiness) return null;
 
-  const phaseTeamAllocations = project.phaseTeamAllocations?.filter(a => a.phaseId === phase.id) || [];
-  const phasePartnerAllocations = project.phasePartnerAllocations?.filter(a => a.phaseId === phase.id) || [];
-  const phaseCompanyAllocation = project.phaseCompanyAllocations?.find(a => a.phaseId === phase.id);
+  const allocationTeamAllocations = project.allocationTeamAllocations?.filter(a => a.allocationId === allocation.id) || [];
+  const allocationPartnerAllocations = project.allocationPartnerAllocations?.filter(a => a.allocationId === allocation.id) || [];
+  const allocationCompanyAllocation = project.allocationCompanyAllocations?.find(a => a.allocationId === allocation.id);
 
   const availableTeamMembers = data.teamMembers.filter(member => 
-    !phaseTeamAllocations.some(allocation => allocation.memberId === member.id)
+    !allocationTeamAllocations.some(allocation => allocation.memberId === member.id)
   );
 
   const availablePartners = data.partners.filter(partner => 
-    !phasePartnerAllocations.some(allocation => allocation.partnerId === partner.id)
+    !allocationPartnerAllocations.some(allocation => allocation.partnerId === partner.id)
   );
 
   const TeamAllocationForm = () => {
@@ -54,14 +54,14 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
 
       const value = parseFloat(allocationValue);
       const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * phase.budget 
+        ? (value / 100) * allocation.budget 
         : value;
 
-      const allocation: PhaseTeamAllocation = {
+      const allocationData: AllocationTeamAllocation = {
         memberId: member.id,
         memberName: member.name,
-        phaseId: phase.id,
-        phaseName: phase.title,
+        allocationId: allocation.id,
+        allocationName: allocation.title,
         allocationType,
         allocationValue: value,
         totalAllocated,
@@ -70,8 +70,8 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
       };
 
       dispatch({
-        type: 'ADD_PHASE_TEAM_ALLOCATION',
-        payload: { projectId, allocation },
+        type: 'ADD_ALLOCATION_TEAM_ALLOCATION',
+        payload: { projectId, allocation: allocationData },
       });
 
       setSelectedMember('');
@@ -119,28 +119,28 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          {phaseTeamAllocations.map(allocation => (
-            <Card key={allocation.memberId}>
+          {allocationTeamAllocations.map(alloc => (
+            <Card key={alloc.memberId}>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">{allocation.memberName}</CardTitle>
+                    <CardTitle className="text-sm">{alloc.memberName}</CardTitle>
                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                       <Badge variant="outline">
-                        {allocation.allocationType === 'percentage' 
-                          ? `${allocation.allocationValue}%` 
-                          : `${currentBusiness.currency.symbol}${allocation.allocationValue.toLocaleString()}`
+                        {alloc.allocationType === 'percentage' 
+                          ? `${alloc.allocationValue}%` 
+                          : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
                         }
                       </Badge>
-                      <span>Total: {currentBusiness.currency.symbol}{allocation.totalAllocated.toLocaleString()}</span>
+                      <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => dispatch({
-                      type: 'REMOVE_PHASE_TEAM_ALLOCATION',
-                      payload: { projectId, phaseId: phase.id, memberId: allocation.memberId },
+                      type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION',
+                      payload: { projectId, allocationId: allocation.id, memberId: alloc.memberId },
                     })}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -167,14 +167,14 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
 
       const value = parseFloat(allocationValue);
       const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * phase.budget 
+        ? (value / 100) * allocation.budget 
         : value;
 
-      const allocation: PhasePartnerAllocation = {
+      const allocationData: AllocationPartnerAllocation = {
         partnerId: partner.id,
         partnerName: partner.name,
-        phaseId: phase.id,
-        phaseName: phase.title,
+        allocationId: allocation.id,
+        allocationName: allocation.title,
         allocationType,
         allocationValue: value,
         totalAllocated,
@@ -183,8 +183,8 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
       };
 
       dispatch({
-        type: 'ADD_PHASE_PARTNER_ALLOCATION',
-        payload: { projectId, allocation },
+        type: 'ADD_ALLOCATION_PARTNER_ALLOCATION',
+        payload: { projectId, allocation: allocationData },
       });
 
       setSelectedPartner('');
@@ -232,28 +232,28 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
         </div>
 
         <div className="space-y-2">
-          {phasePartnerAllocations.map(allocation => (
-            <Card key={allocation.partnerId}>
+          {allocationPartnerAllocations.map(alloc => (
+            <Card key={alloc.partnerId}>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-sm">{allocation.partnerName}</CardTitle>
+                    <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                       <Badge variant="outline">
-                        {allocation.allocationType === 'percentage' 
-                          ? `${allocation.allocationValue}%` 
-                          : `${currentBusiness.currency.symbol}${allocation.allocationValue.toLocaleString()}`
+                        {alloc.allocationType === 'percentage' 
+                          ? `${alloc.allocationValue}%` 
+                          : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
                         }
                       </Badge>
-                      <span>Total: {currentBusiness.currency.symbol}{allocation.totalAllocated.toLocaleString()}</span>
+                      <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => dispatch({
-                      type: 'REMOVE_PHASE_PARTNER_ALLOCATION',
-                      payload: { projectId, phaseId: phase.id, partnerId: allocation.partnerId },
+                      type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION',
+                      payload: { projectId, allocationId: allocation.id, partnerId: alloc.partnerId },
                     })}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -269,10 +269,10 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
 
   const CompanyAllocationForm = () => {
     const [allocationType, setAllocationType] = useState<'percentage' | 'fixed'>(
-      phaseCompanyAllocation?.allocationType || 'percentage'
+      allocationCompanyAllocation?.allocationType || 'percentage'
     );
     const [allocationValue, setAllocationValue] = useState(
-      phaseCompanyAllocation?.allocationValue?.toString() || ''
+      allocationCompanyAllocation?.allocationValue?.toString() || ''
     );
 
     const handleSetCompanyAllocation = () => {
@@ -280,24 +280,24 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
 
       const value = parseFloat(allocationValue);
       const totalAllocated = allocationType === 'percentage' 
-        ? (value / 100) * phase.budget 
+        ? (value / 100) * allocation.budget 
         : value;
 
-      const allocation: PhaseCompanyAllocation = {
+      const allocationData: AllocationCompanyAllocation = {
         businessId: currentBusiness.id,
         businessName: currentBusiness.name,
-        phaseId: phase.id,
-        phaseName: phase.title,
+        allocationId: allocation.id,
+        allocationName: allocation.title,
         allocationType,
         allocationValue: value,
         totalAllocated,
-        paidAmount: phaseCompanyAllocation?.paidAmount || 0,
-        outstanding: totalAllocated - (phaseCompanyAllocation?.paidAmount || 0),
+        paidAmount: allocationCompanyAllocation?.paidAmount || 0,
+        outstanding: totalAllocated - (allocationCompanyAllocation?.paidAmount || 0),
       };
 
       dispatch({
-        type: 'SET_PHASE_COMPANY_ALLOCATION',
-        payload: { projectId, allocation },
+        type: 'SET_ALLOCATION_COMPANY_ALLOCATION',
+        payload: { projectId, allocation: allocationData },
       });
     };
 
@@ -328,7 +328,7 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
           </div>
         </div>
 
-        {phaseCompanyAllocation && (
+        {allocationCompanyAllocation && (
           <Card>
             <CardHeader className="py-3">
               <div className="flex items-center justify-between">
@@ -336,12 +336,12 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
                   <CardTitle className="text-sm">{currentBusiness.name}</CardTitle>
                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <Badge variant="outline">
-                      {phaseCompanyAllocation.allocationType === 'percentage' 
-                        ? `${phaseCompanyAllocation.allocationValue}%` 
-                        : `${currentBusiness.currency.symbol}${phaseCompanyAllocation.allocationValue.toLocaleString()}`
+                      {allocationCompanyAllocation.allocationType === 'percentage' 
+                        ? `${allocationCompanyAllocation.allocationValue}%` 
+                        : `${currentBusiness.currency.symbol}${allocationCompanyAllocation.allocationValue.toLocaleString()}`
                       }
                     </Badge>
-                    <span>Total: {currentBusiness.currency.symbol}{phaseCompanyAllocation.totalAllocated.toLocaleString()}</span>
+                    <span>Total: {currentBusiness.currency.symbol}{allocationCompanyAllocation.totalAllocated.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export const PhaseAllocationModal: React.FC<PhaseAllocationModalProps> = ({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Manage Phase Allocations - {phase.title}</DialogTitle>
+          <DialogTitle>Manage Allocation Details - {allocation.title}</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="team" className="w-full">

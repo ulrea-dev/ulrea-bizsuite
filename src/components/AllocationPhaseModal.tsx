@@ -13,53 +13,53 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
-import { ProjectPhase } from '@/types/business';
+import { ProjectAllocation } from '@/types/business';
 
-interface PhaseModalProps {
+interface AllocationPhaseModalProps {
   projectId: string;
-  phase?: ProjectPhase;
+  allocation?: ProjectAllocation;
   children?: React.ReactNode;
 }
 
-export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, children }) => {
+export const AllocationPhaseModal: React.FC<AllocationPhaseModalProps> = ({ projectId, allocation, children }) => {
   const { dispatch } = useBusiness();
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(phase?.title || '');
-  const [budget, setBudget] = useState(phase?.budget?.toString() || '');
-  const [description, setDescription] = useState(phase?.description || '');
-  const [status, setStatus] = useState<'planning' | 'active' | 'completed' | 'on-hold'>(phase?.status || 'planning');
+  const [title, setTitle] = useState(allocation?.title || '');
+  const [budget, setBudget] = useState(allocation?.budget?.toString() || '');
+  const [description, setDescription] = useState(allocation?.description || '');
+  const [status, setStatus] = useState<'planning' | 'active' | 'completed' | 'on-hold'>(allocation?.status || 'planning');
   const [startDate, setStartDate] = useState<Date | undefined>(
-    phase?.startDate ? new Date(phase.startDate) : undefined
+    allocation?.startDate ? new Date(allocation.startDate) : undefined
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    phase?.endDate ? new Date(phase.endDate) : undefined
+    allocation?.endDate ? new Date(allocation.endDate) : undefined
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !budget.trim() || !startDate) return;
 
-    const phaseData = {
-      id: phase?.id || generateId(),
+    const allocationData = {
+      id: allocation?.id || generateId(),
       title: title.trim(),
       budget: parseFloat(budget),
       description: description.trim(),
       status,
       startDate: startDate.toISOString(),
       endDate: endDate?.toISOString(),
-      createdAt: phase?.createdAt || new Date().toISOString(),
+      createdAt: allocation?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (phase) {
+    if (allocation) {
       dispatch({
-        type: 'UPDATE_PHASE',
-        payload: { projectId, phaseId: phase.id, updates: phaseData },
+        type: 'UPDATE_ALLOCATION',
+        payload: { projectId, allocationId: allocation.id, updates: allocationData },
       });
     } else {
       dispatch({
-        type: 'ADD_PHASE',
-        payload: { projectId, phase: phaseData },
+        type: 'ADD_ALLOCATION',
+        payload: { projectId, allocation: allocationData },
       });
     }
 
@@ -68,7 +68,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, childr
   };
 
   const resetForm = () => {
-    if (!phase) {
+    if (!allocation) {
       setTitle('');
       setBudget('');
       setDescription('');
@@ -84,19 +84,19 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, childr
         {children || (
           <Button size="sm">
             <Plus className="w-4 h-4 mr-2" />
-            Add Phase
+            Add Allocation
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {phase ? 'Edit Phase' : 'Add New Phase'}
+            {allocation ? 'Edit Allocation' : 'Add New Allocation'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Phase Title</Label>
+            <Label htmlFor="title">Allocation Title</Label>
             <Input
               id="title"
               value={title}
@@ -192,7 +192,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, childr
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Phase description (optional)"
+              placeholder="Allocation description (optional)"
               rows={3}
             />
           </div>
@@ -202,7 +202,7 @@ export const PhaseModal: React.FC<PhaseModalProps> = ({ projectId, phase, childr
               Cancel
             </Button>
             <Button type="submit">
-              {phase ? 'Update Phase' : 'Add Phase'}
+              {allocation ? 'Update Allocation' : 'Add Allocation'}
             </Button>
           </div>
         </form>

@@ -69,7 +69,7 @@ export interface Payment {
   amount: number;
   date: string;
   projectId: string;
-  phaseId?: string;
+  allocationId?: string;
   memberId?: string;
   partnerId?: string;
   clientId?: string;
@@ -80,7 +80,7 @@ export interface Payment {
   description?: string;
 }
 
-export interface ProjectPhase {
+export interface ProjectAllocation {
   id: string;
   title: string;
   budget: number;
@@ -102,19 +102,19 @@ export interface TeamAllocation {
   outstanding: number;
 }
 
-export interface PhaseTeamAllocation extends TeamAllocation {
-  phaseId: string;
-  phaseName: string;
+export interface AllocationTeamAllocation extends TeamAllocation {
+  allocationId: string;
+  allocationName: string;
 }
 
-export interface PhasePartnerAllocation extends PartnerAllocation {
-  phaseId: string;
-  phaseName: string;
+export interface AllocationPartnerAllocation extends PartnerAllocation {
+  allocationId: string;
+  allocationName: string;
 }
 
-export interface PhaseCompanyAllocation extends CompanyAllocation {
-  phaseId: string;
-  phaseName: string;
+export interface AllocationCompanyAllocation extends CompanyAllocation {
+  allocationId: string;
+  allocationName: string;
 }
 
 export type ExpenseCategory = 
@@ -131,7 +131,7 @@ export type ExpenseCategory =
 export interface Expense {
   id: string;
   projectId: string;
-  phaseId?: string;
+  allocationId?: string;
   name: string;
   category: ExpenseCategory;
   amount: number;
@@ -153,14 +153,14 @@ export interface Project {
   startDate: string;
   endDate?: string;
   clientId?: string;
-  usePhases?: boolean;
-  phases: ProjectPhase[];
-  teamAllocations: TeamAllocation[];
-  partnerAllocations: PartnerAllocation[];
-  companyAllocation?: CompanyAllocation;
-  phaseTeamAllocations: PhaseTeamAllocation[];
-  phasePartnerAllocations: PhasePartnerAllocation[];
-  phaseCompanyAllocations: PhaseCompanyAllocation[];
+  isMultiPhase?: boolean;
+  allocations: ProjectAllocation[];
+  teamAllocations: TeamAllocation[]; // Legacy - will be removed
+  partnerAllocations: PartnerAllocation[]; // Legacy - will be removed
+  companyAllocation?: CompanyAllocation; // Legacy - will be removed
+  allocationTeamAllocations: AllocationTeamAllocation[];
+  allocationPartnerAllocations: AllocationPartnerAllocation[];
+  allocationCompanyAllocations: AllocationCompanyAllocation[];
   clientPayments: number;
   expenses: Expense[];
   createdAt: string;

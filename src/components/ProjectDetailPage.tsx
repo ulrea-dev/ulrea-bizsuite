@@ -13,8 +13,8 @@ import { PaymentModal } from './PaymentModal';
 import { AllocationModal } from './AllocationModal';
 import { ClientPaymentModal } from './ClientPaymentModal';
 import { ExpenseModal } from './ExpenseModal';
-import { PhaseModal } from './PhaseModal';
-import { PhaseCard } from './PhaseCard';
+import { AllocationPhaseModal } from './AllocationPhaseModal';
+import { AllocationPhaseCard } from './AllocationPhaseCard';
 
 interface ProjectDetailPageProps {
   projectId: string;
@@ -54,25 +54,25 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     );
   }
 
-  // Calculate total project value from phases if using phases, otherwise use totalValue
-  const totalProjectValue = project.usePhases && project.phases?.length 
-    ? project.phases.reduce((sum, phase) => sum + phase.budget, 0)
+  // Calculate total project value from allocations if using multiple allocations, otherwise use totalValue
+  const totalProjectValue = project.isMultiPhase && project.allocations?.length 
+    ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
     : project.totalValue;
 
-  // Calculate allocations from phases if using phases
-  const phaseTeamAllocated = project.phaseTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const phasePartnerAllocated = project.phasePartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const phaseCompanyAllocated = project.phaseCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  // Calculate allocations from allocations if using allocations
+  const allocationTeamAllocated = project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const allocationPartnerAllocated = project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const allocationCompanyAllocated = project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
   
-  // Use phase allocations if project uses phases, otherwise use regular allocations
-  const totalTeamAllocated = project.usePhases 
-    ? phaseTeamAllocated
+  // Use allocation allocations if project uses allocations, otherwise use regular allocations
+  const totalTeamAllocated = project.isMultiPhase 
+    ? allocationTeamAllocated
     : (project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
-  const totalPartnerAllocated = project.usePhases 
-    ? phasePartnerAllocated 
+  const totalPartnerAllocated = project.isMultiPhase 
+    ? allocationPartnerAllocated 
     : (project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0);
-  const companyAllocated = project.usePhases 
-    ? phaseCompanyAllocated 
+  const companyAllocated = project.isMultiPhase 
+    ? allocationCompanyAllocated 
     : (project.companyAllocation?.totalAllocated || 0);
   
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
@@ -339,7 +339,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           <TabsTrigger value="team">Team Allocations</TabsTrigger>
           <TabsTrigger value="partners">Partner Allocations</TabsTrigger>
           <TabsTrigger value="company">Company Allocation</TabsTrigger>
-          <TabsTrigger value="phases">Project Phases</TabsTrigger>
+          <TabsTrigger value="allocations">Project Allocations</TabsTrigger>
           <TabsTrigger value="expenses">Expense Allocation</TabsTrigger>
           <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
@@ -569,84 +569,37 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           )}
         </TabsContent>
 
-        <TabsContent value="phases" className="space-y-4">
+        <TabsContent value="allocations" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold dashboard-text-primary">Project Phases</h3>
-            <PhaseModal projectId={projectId}>
+            <h3 className="text-lg font-semibold dashboard-text-primary">Project Allocations</h3>
+            <AllocationPhaseModal projectId={projectId}>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Phase
+                Add Allocation
               </Button>
-            </PhaseModal>
+            </AllocationPhaseModal>
           </div>
 
-          {/* Phase Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm dashboard-text-secondary">Total Phases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold dashboard-text-primary">
-                  {project.phases?.length || 0}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm dashboard-text-secondary">Total Phase Budget</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold dashboard-text-primary">
-                  {formatCurrency(project.phases?.reduce((sum, phase) => sum + phase.budget, 0) || 0, currentBusiness.currency)}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm dashboard-text-secondary">Active Phases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-green-600">
-                  {project.phases?.filter(phase => phase.status === 'active').length || 0}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm dashboard-text-secondary">Completed Phases</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-blue-600">
-                  {project.phases?.filter(phase => phase.status === 'completed').length || 0}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {!project.phases || project.phases.length === 0 ? (
+          {!project.allocations || project.allocations.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Layers className="h-12 w-12 dashboard-text-secondary mb-4" />
-                <p className="dashboard-text-secondary">No phases created yet</p>
-                <p className="text-sm dashboard-text-secondary mb-4">Break down your project into manageable phases with dedicated budgets</p>
-                <PhaseModal projectId={projectId}>
+                <p className="dashboard-text-secondary">No allocations created yet</p>
+                <p className="text-sm dashboard-text-secondary mb-4">Break down your project into manageable allocations with dedicated budgets</p>
+                <AllocationPhaseModal projectId={projectId}>
                   <Button className="mt-4">
                     <Plus className="h-4 w-4 mr-2" />
-                    Create First Phase
+                    Create First Allocation
                   </Button>
-                </PhaseModal>
+                </AllocationPhaseModal>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4">
-              {project.phases.map((phase) => (
-                <PhaseCard 
-                  key={phase.id} 
-                  phase={phase} 
+              {project.allocations.map((allocation) => (
+                <AllocationPhaseCard 
+                  key={allocation.id} 
+                  allocation={allocation} 
                   project={project} 
                   currentBusiness={currentBusiness} 
                 />

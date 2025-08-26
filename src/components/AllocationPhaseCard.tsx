@@ -5,18 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Edit, Trash2, Calendar, DollarSign, Users, Building } from 'lucide-react';
 import { format } from 'date-fns';
-import { ProjectPhase, Project, Business } from '@/types/business';
+import { ProjectAllocation, Project, Business } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { PhaseModal } from './PhaseModal';
-import { PhaseAllocationModal } from './PhaseAllocationModal';
+import { AllocationPhaseModal } from './AllocationPhaseModal';
+import { AllocationDetailModal } from './AllocationDetailModal';
 
-interface PhaseCardProps {
-  phase: ProjectPhase;
+interface AllocationPhaseCardProps {
+  allocation: ProjectAllocation;
   project: Project;
   currentBusiness: Business;
 }
 
-export const PhaseCard: React.FC<PhaseCardProps> = ({ phase, project, currentBusiness }) => {
+export const AllocationPhaseCard: React.FC<AllocationPhaseCardProps> = ({ allocation, project, currentBusiness }) => {
   const { dispatch } = useBusiness();
 
   const getStatusColor = (status: string) => {
@@ -40,43 +40,43 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({ phase, project, currentBus
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this phase? This will also remove all associated allocations and payments.')) {
+    if (window.confirm('Are you sure you want to delete this allocation? This will also remove all associated allocations and payments.')) {
       dispatch({
-        type: 'DELETE_PHASE',
-        payload: { projectId: project.id, phaseId: phase.id },
+        type: 'DELETE_ALLOCATION',
+        payload: { projectId: project.id, allocationId: allocation.id },
       });
     }
   };
 
-  // Calculate phase allocations and spending
-  const phaseTeamAllocations = project.phaseTeamAllocations?.filter(a => a.phaseId === phase.id) || [];
-  const phasePartnerAllocations = project.phasePartnerAllocations?.filter(a => a.phaseId === phase.id) || [];
-  const phaseCompanyAllocation = project.phaseCompanyAllocations?.find(a => a.phaseId === phase.id);
+  // Calculate allocation allocations and spending
+  const allocationTeamAllocations = project.allocationTeamAllocations?.filter(a => a.allocationId === allocation.id) || [];
+  const allocationPartnerAllocations = project.allocationPartnerAllocations?.filter(a => a.allocationId === allocation.id) || [];
+  const allocationCompanyAllocation = project.allocationCompanyAllocations?.find(a => a.allocationId === allocation.id);
 
   const totalAllocated = [
-    ...phaseTeamAllocations.map(a => a.totalAllocated),
-    ...phasePartnerAllocations.map(a => a.totalAllocated),
-    ...(phaseCompanyAllocation ? [phaseCompanyAllocation.totalAllocated] : [])
+    ...allocationTeamAllocations.map(a => a.totalAllocated),
+    ...allocationPartnerAllocations.map(a => a.totalAllocated),
+    ...(allocationCompanyAllocation ? [allocationCompanyAllocation.totalAllocated] : [])
   ].reduce((sum, amount) => sum + amount, 0);
 
-  const budgetProgress = phase.budget > 0 ? (totalAllocated / phase.budget) * 100 : 0;
+  const budgetProgress = allocation.budget > 0 ? (totalAllocated / allocation.budget) * 100 : 0;
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-lg">{phase.title}</CardTitle>
-            <Badge className={getStatusColor(phase.status)}>
-              {getStatusLabel(phase.status)}
+            <CardTitle className="text-lg">{allocation.title}</CardTitle>
+            <Badge className={getStatusColor(allocation.status)}>
+              {getStatusLabel(allocation.status)}
             </Badge>
           </div>
           <div className="flex space-x-1">
-            <PhaseModal projectId={project.id} phase={phase}>
+            <AllocationPhaseModal projectId={project.id} allocation={allocation}>
               <Button variant="ghost" size="sm">
                 <Edit className="w-4 h-4" />
               </Button>
-            </PhaseModal>
+            </AllocationPhaseModal>
             <Button variant="ghost" size="sm" onClick={handleDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -84,18 +84,18 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({ phase, project, currentBus
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {phase.description && (
-          <p className="text-sm text-muted-foreground">{phase.description}</p>
+        {allocation.description && (
+          <p className="text-sm text-muted-foreground">{allocation.description}</p>
         )}
 
         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
           <div className="flex items-center">
             <Calendar className="w-4 h-4 mr-1" />
-            {format(new Date(phase.startDate), 'MMM dd, yyyy')}
-            {phase.endDate && (
+            {format(new Date(allocation.startDate), 'MMM dd, yyyy')}
+            {allocation.endDate && (
               <>
                 <span className="mx-1">-</span>
-                {format(new Date(phase.endDate), 'MMM dd, yyyy')}
+                {format(new Date(allocation.endDate), 'MMM dd, yyyy')}
               </>
             )}
           </div>
@@ -108,7 +108,7 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({ phase, project, currentBus
               <span className="text-sm font-medium">Budget</span>
             </div>
             <span className="text-sm font-mono">
-              {currentBusiness.currency.symbol}{phase.budget.toLocaleString()}
+              {currentBusiness.currency.symbol}{allocation.budget.toLocaleString()}
             </span>
           </div>
           
@@ -123,25 +123,25 @@ export const PhaseCard: React.FC<PhaseCardProps> = ({ phase, project, currentBus
 
         <div className="flex items-center justify-between">
           <div className="flex space-x-4 text-xs text-muted-foreground">
-            {phaseTeamAllocations.length > 0 && (
+            {allocationTeamAllocations.length > 0 && (
               <div className="flex items-center">
                 <Users className="w-3 h-3 mr-1" />
-                {phaseTeamAllocations.length} team
+                {allocationTeamAllocations.length} team
               </div>
             )}
-            {phasePartnerAllocations.length > 0 && (
+            {allocationPartnerAllocations.length > 0 && (
               <div className="flex items-center">
                 <Building className="w-3 h-3 mr-1" />
-                {phasePartnerAllocations.length} partners
+                {allocationPartnerAllocations.length} partners
               </div>
             )}
           </div>
           
-          <PhaseAllocationModal projectId={project.id} phase={phase}>
+          <AllocationDetailModal projectId={project.id} allocation={allocation}>
             <Button variant="outline" size="sm">
               Manage Allocations
             </Button>
-          </PhaseAllocationModal>
+          </AllocationDetailModal>
         </div>
       </CardContent>
     </Card>
