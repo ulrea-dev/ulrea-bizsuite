@@ -1,125 +1,11 @@
-import React, { useState } from 'react';
-import { AppSidebar } from './AppSidebar';
-import { BusinessSetup } from './BusinessSetup';
-import { ProjectsPage } from './ProjectsPage';
-import { TeamPage } from './TeamPage';
-import { PartnersPage } from './PartnersPage';
-import { ClientsPage } from './ClientsPage';
-import { ClientDetailPage } from './ClientDetailPage';
-import { AnalyticsPage } from './AnalyticsPage';
-import { SettingsPage } from './SettingsPage';
-import { MultiBusinessOverview } from './MultiBusinessOverview';
-import { ProjectDetailPage } from './ProjectDetailPage';
+
+import React from 'react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { BusinessSetup } from './BusinessSetup';
+import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { formatCurrency } from '@/utils/storage';
 import { TrendingUp, FolderOpen, Users, DollarSign, Handshake } from 'lucide-react';
-
-interface DashboardProps {
-  onLogout: () => void;
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
-  const { data, currentBusiness, switchBusiness } = useBusiness();
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [showBusinessSetup, setShowBusinessSetup] = useState(false);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-
-  const handleNavigateToPage = (page: string, itemId?: string) => {
-    if (page === 'projects' && itemId) {
-      setSelectedProjectId(itemId);
-      setCurrentPage('project-detail');
-    } else if (page === 'client-detail' && itemId) {
-      setSelectedClientId(itemId);
-      setCurrentPage('client-detail');
-    } else {
-      setCurrentPage(page);
-      setSelectedProjectId(null);
-      setSelectedClientId(null);
-    }
-  };
-
-  const renderPage = () => {
-    if (currentPage === 'project-detail' && selectedProjectId) {
-      return (
-        <ProjectDetailPage 
-          projectId={selectedProjectId} 
-          onBack={() => setCurrentPage('projects')}
-        />
-      );
-    }
-
-    if (currentPage === 'client-detail' && selectedClientId) {
-      return (
-        <ClientDetailPage 
-          clientId={selectedClientId} 
-          onBack={() => setCurrentPage('clients')}
-          onNavigateToProject={(projectId) => handleNavigateToPage('projects', projectId)}
-        />
-      );
-    }
-
-    switch (currentPage) {
-      case 'projects':
-        return <ProjectsPage onNavigateToPage={handleNavigateToPage} />;
-      case 'team':
-        return <TeamPage onNavigateToPage={handleNavigateToPage} />;
-      case 'partners':
-        return <PartnersPage onNavigateToPage={handleNavigateToPage} />;
-      case 'clients':
-        return <ClientsPage onNavigateToPage={handleNavigateToPage} />;
-      case 'analytics':
-        return <AnalyticsPage />;
-      case 'settings':
-        return <SettingsPage />;
-      default:
-        return (
-          <DashboardHome 
-            onShowBusinessSetup={() => setShowBusinessSetup(true)}
-            onSelectBusiness={(businessId) => switchBusiness(businessId)}
-            onCreateBusiness={() => setShowBusinessSetup(true)}
-            onNavigateToProject={(projectId) => handleNavigateToPage('projects', projectId)}
-          />
-        );
-    }
-  };
-
-  if (showBusinessSetup) {
-    return (
-      <div className="min-h-screen dashboard-surface flex items-center justify-center p-6">
-        <BusinessSetup onComplete={() => setShowBusinessSetup(false)} />
-      </div>
-    );
-  }
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen dashboard-surface flex w-full">
-        <AppSidebar 
-          currentPage={currentPage} 
-          onPageChange={setCurrentPage}
-          onLogout={onLogout}
-          onCreateBusiness={() => setShowBusinessSetup(true)}
-        />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b dashboard-border">
-            <SidebarTrigger className="-ml-1" />
-            <div className="ml-auto flex items-center gap-2">
-              <div className="text-sm dashboard-text-secondary">
-                {currentBusiness?.name || 'No Business Selected'}
-              </div>
-            </div>
-          </header>
-          <main className="flex-1 p-6">
-            {renderPage()}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
-};
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
@@ -128,7 +14,7 @@ interface DashboardHomeProps {
   onNavigateToProject: (projectId: string) => void;
 }
 
-const DashboardHome: React.FC<DashboardHomeProps> = ({ 
+export const DashboardHome: React.FC<DashboardHomeProps> = ({ 
   onShowBusinessSetup, 
   onSelectBusiness, 
   onCreateBusiness,
@@ -138,20 +24,16 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
 
   if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
     return (
-      <div className="p-6">
-        <MultiBusinessOverview 
-          onSelectBusiness={onSelectBusiness}
-          onCreateBusiness={onCreateBusiness}
-        />
-      </div>
+      <MultiBusinessOverview 
+        onSelectBusiness={onSelectBusiness}
+        onCreateBusiness={onCreateBusiness}
+      />
     );
   }
 
   if (!currentBusiness) {
     return (
-      <div className="p-6">
-        <BusinessSetup onComplete={onShowBusinessSetup} />
-      </div>
+      <BusinessSetup onComplete={onShowBusinessSetup} />
     );
   }
 
@@ -163,7 +45,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold dashboard-text-primary">Dashboard</h1>
         <p className="dashboard-text-secondary">Welcome to {currentBusiness.name}</p>
