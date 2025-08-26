@@ -4,15 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TeamAllocation, PartnerAllocation } from '@/types/business';
+import { TeamAllocation, PartnerAllocation, CompanyAllocation } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 
 interface AllocationModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
-  allocationType: 'team' | 'partner';
-  allocation?: TeamAllocation | PartnerAllocation | null;
+  allocationType: 'team' | 'partner' | 'company';
+  allocation?: TeamAllocation | PartnerAllocation | CompanyAllocation | null;
   mode: 'create' | 'edit' | 'view';
 }
 
@@ -26,7 +26,7 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
 }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const [formData, setFormData] = useState({
-    memberId: allocation ? ('memberId' in allocation ? allocation.memberId : allocation.partnerId) : '',
+    memberId: allocation ? ('memberId' in allocation ? allocation.memberId : 'partnerId' in allocation ? allocation.partnerId : '') : '',
     allocationType: allocation?.allocationType || 'percentage',
     allocationValue: allocation?.allocationValue?.toString() || ''
   });
@@ -38,53 +38,75 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
     ? data.teamMembers.filter(member => 
         !project?.teamAllocations?.some(allocation => allocation.memberId === member.id)
       )
-    : data.partners.filter(partner => 
+    : allocationType === 'partner'
+    ? data.partners.filter(partner => 
         !project?.partnerAllocations?.some(allocation => allocation.partnerId === partner.id)
-      );
+      )
+    : []; // No members for company allocation
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!project || !currentBusiness) return;
 
-    const member = availableMembers.find(m => m.id === formData.memberId);
-    if (!member) return;
-
     const allocatedAmount = formData.allocationType === 'percentage'
       ? (project.totalValue * parseFloat(formData.allocationValue)) / 100
       : parseFloat(formData.allocationValue);
 
-    if (allocationType === 'team') {
+    if (allocationType === 'company') {
+      const companyAllocation: CompanyAllocation = {
+        businessId: currentBusiness.id,
+        businessName: currentBusiness.name,
+        allocationType: formData.allocationType as 'percentage' | 'fixed',
+        allocationValue: parseFloat(formData.allocationValue),
+        totalAllocated: allocatedAmount,
+        paidAmount: 0,
+        outstanding: allocatedAmount,
+      };
+
       dispatch({
-        type: 'ADD_TEAM_ALLOCATION',
+        type: 'SET_COMPANY_ALLOCATION',
         payload: {
           projectId,
-          allocation: {
-            memberId: formData.memberId,
-            memberName: member.name,
-            allocationType: formData.allocationType as 'percentage' | 'fixed',
-            allocationValue: parseFloat(formData.allocationValue),
-            totalAllocated: allocatedAmount,
-            paidAmount: 0,
-            outstanding: allocatedAmount,
-          },
+          allocation: companyAllocation,
         },
       });
     } else {
-      dispatch({
-        type: 'ADD_PARTNER_ALLOCATION',
-        payload: {
-          projectId,
-          allocation: {
-            partnerId: formData.memberId,
-            partnerName: member.name,
-            allocationType: formData.allocationType as 'percentage' | 'fixed',
-            allocationValue: parseFloat(formData.allocationValue),
-            totalAllocated: allocatedAmount,
-            paidAmount: 0,
-            outstanding: allocatedAmount,
+      const member = availableMembers.find(m => m.id === formData.memberId);
+      if (!member) return;
+
+      if (allocationType === 'team') {
+        dispatch({
+          type: 'ADD_TEAM_ALLOCATION',
+          payload: {
+            projectId,
+            allocation: {
+              memberId: formData.memberId,
+              memberName: member.name,
+              allocationType: formData.allocationType as 'percentage' | 'fixed',
+              allocationValue: parseFloat(formData.allocationValue),
+              totalAllocated: allocatedAmount,
+              paidAmount: 0,
+              outstanding: allocatedAmount,
+            },
           },
-        },
-      });
+        });
+      } else if (allocationType === 'partner') {
+        dispatch({
+          type: 'ADD_PARTNER_ALLOCATION',
+          payload: {
+            projectId,
+            allocation: {
+              partnerId: formData.memberId,
+              partnerName: member.name,
+              allocationType: formData.allocationType as 'percentage' | 'fixed',
+              allocationValue: parseFloat(formData.allocationValue),
+              totalAllocated: allocatedAmount,
+              paidAmount: 0,
+              outstanding: allocatedAmount,
+            },
+          },
+        });
+      }
     }
 
     onClose();
@@ -97,36 +119,58 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Add' : mode === 'edit' ? 'Edit' : 'View'} {allocationType === 'team' ? 'Team Member' : 'Partner'} Allocation
+            {mode === 'create' ? 'Add' : mode === 'edit' ? 'Edit' : 'View'} {
+              allocationType === 'team' ? 'Team Member' : 
+              allocationType === 'partner' ? 'Partner' : 
+              'Company'
+            } Allocation
           </DialogTitle>
           <DialogDescription>
             {mode === 'view' 
-              ? `View ${allocationType === 'team' ? 'team member' : 'partner'} allocation details.`
-              : `${mode === 'create' ? 'Add a new' : 'Edit'} ${allocationType === 'team' ? 'team member' : 'partner'} allocation to this project.`
+              ? `View ${allocationType === 'team' ? 'team member' : allocationType === 'partner' ? 'partner' : 'company'} allocation details.`
+              : `${mode === 'create' ? 'Add a new' : 'Edit'} ${allocationType === 'team' ? 'team member' : allocationType === 'partner' ? 'partner' : 'company'} allocation to this project.`
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="member">{allocationType === 'team' ? 'Team Member' : 'Partner'}</Label>
-            <Select
-              value={formData.memberId}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, memberId: value }))}
-              disabled={isReadOnly}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={`Select a ${allocationType === 'team' ? 'team member' : 'partner'}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name} - {member.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {allocationType !== 'company' && (
+            <div className="space-y-2">
+              <Label htmlFor="member">{allocationType === 'team' ? 'Team Member' : 'Partner'}</Label>
+              <Select
+                value={formData.memberId}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, memberId: value }))}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select a ${allocationType === 'team' ? 'team member' : 'partner'}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name} - {member.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {allocationType === 'company' && currentBusiness && (
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">Business Profit Allocation</h4>
+              <div className="text-sm space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Business:</span>
+                  <span>{currentBusiness.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type:</span>
+                  <span>{currentBusiness.type}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -190,7 +234,13 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
               {isReadOnly ? 'Close' : 'Cancel'}
             </Button>
             {!isReadOnly && (
-              <Button type="submit" disabled={!formData.memberId || !formData.allocationValue}>
+              <Button 
+                type="submit" 
+                disabled={
+                  (allocationType !== 'company' && !formData.memberId) || 
+                  !formData.allocationValue
+                }
+              >
                 {mode === 'create' ? 'Add' : 'Update'} Allocation
               </Button>
             )}
