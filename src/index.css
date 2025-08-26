@@ -39,13 +39,13 @@
     --radius: 0.75rem;
     
     /* Business Dashboard Specific */
-    --dashboard-background: 0 0% 98%;
-    --dashboard-surface: 0 0% 100%;
-    --dashboard-surface-elevated: 0 0% 100%;
-    --dashboard-border: 0 0% 90%;
-    --dashboard-text-primary: 0 0% 8%;
-    --dashboard-text-secondary: 0 0% 35%;
-    --dashboard-text-muted: 0 0% 55%;
+    --dashboard-background: var(--background);
+    --dashboard-surface: var(--card);
+    --dashboard-surface-elevated: var(--card);
+    --dashboard-border: var(--border);
+    --dashboard-text-primary: var(--foreground);
+    --dashboard-text-secondary: var(--muted-foreground);
+    --dashboard-text-muted: var(--muted-foreground);
     
     /* Status Colors (Monochrome) */
     --status-positive: 0 0% 25%;
@@ -97,13 +97,13 @@
     --ring: 0 0% 80%;
     
     /* Business Dashboard Specific - Dark */
-    --dashboard-background: 0 0% 6%;
-    --dashboard-surface: 0 0% 10%;
-    --dashboard-surface-elevated: 0 0% 12%;
-    --dashboard-border: 0 0% 18%;
-    --dashboard-text-primary: 0 0% 95%;
-    --dashboard-text-secondary: 0 0% 75%;
-    --dashboard-text-muted: 0 0% 55%;
+    --dashboard-background: var(--background);
+    --dashboard-surface: var(--card);
+    --dashboard-surface-elevated: var(--card);
+    --dashboard-border: var(--border);
+    --dashboard-text-primary: var(--foreground);
+    --dashboard-text-secondary: var(--muted-foreground);
+    --dashboard-text-muted: var(--muted-foreground);
     
     /* Status Colors (Monochrome) - Dark */
     --status-positive: 0 0% 85%;

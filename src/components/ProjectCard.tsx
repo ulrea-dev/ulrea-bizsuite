@@ -19,11 +19,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, currency }) =
   
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
-      case 'active': return 'bg-status-positive text-white';
-      case 'completed': return 'bg-status-positive text-white';
-      case 'on-hold': return 'bg-status-neutral text-white';
-      case 'cancelled': return 'bg-status-negative text-white';
-      default: return 'bg-status-neutral text-white';
+      case 'active': return 'bg-status-positive text-primary-foreground';
+      case 'completed': return 'bg-status-positive text-primary-foreground';
+      case 'on-hold': return 'bg-status-neutral text-primary-foreground';
+      case 'cancelled': return 'bg-status-negative text-primary-foreground';
+      default: return 'bg-status-neutral text-primary-foreground';
     }
   };
 

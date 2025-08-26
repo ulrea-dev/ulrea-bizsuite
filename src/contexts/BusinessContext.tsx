@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AppData, Business, Project, TeamMember, Client, FontOption, ColorPalette } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BusinessContextType {
   data: AppData;
@@ -145,6 +146,8 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
 };
 
 export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { theme } = useTheme();
+  
   let initialData;
   try {
     initialData = loadData();
@@ -186,10 +189,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       applyFont(data.userSettings.fontFamily);
     }
     if (data.userSettings.colorPalette) {
-      const isDark = data.userSettings.theme === 'dark';
+      const isDark = theme === 'dark';
       applyColorPalette(data.userSettings.colorPalette, isDark);
     }
-  }, [data.userSettings.fontFamily, data.userSettings.colorPalette, data.userSettings.theme]);
+  }, [data.userSettings.fontFamily, data.userSettings.colorPalette, theme]);
 
   const addBusiness = (businessData: Omit<Business, 'id' | 'createdAt' | 'updatedAt'>) => {
     const business: Business = {
