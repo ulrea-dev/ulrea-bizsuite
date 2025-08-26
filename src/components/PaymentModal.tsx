@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Payment } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -33,7 +33,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [formData, setFormData] = useState({
     amount: payment?.amount?.toString() || '',
     date: payment?.date || new Date().toISOString().split('T')[0],
-    method: payment?.method || '',
     description: payment?.description || ''
   });
 
@@ -49,7 +48,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         recipientType,
         type: 'outgoing',
         status: 'completed',
-        method: formData.method,
+        method: '', // Not needed but keeping for compatibility
         description: formData.description,
         ...(recipientType === 'team' ? { memberId: recipientId } : { partnerId: recipientId })
       };
@@ -66,7 +65,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           updates: {
             amount: parseFloat(formData.amount),
             date: formData.date,
-            method: formData.method,
             description: formData.description
           }
         }
@@ -121,17 +119,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 required
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="method">Payment Method</Label>
-            <Input
-              id="method"
-              value={formData.method}
-              onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value }))}
-              placeholder="Bank transfer, Cash, Check, etc."
-              disabled={isReadOnly}
-            />
           </div>
 
           <div className="space-y-2">

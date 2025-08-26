@@ -185,7 +185,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           project.id === action.payload.projectId
             ? { 
                 ...project, 
-                clientPayments: action.payload.amount,
+                clientPayments: (project.clientPayments || 0) + action.payload.amount,
                 updatedAt: new Date().toISOString() 
               }
             : project

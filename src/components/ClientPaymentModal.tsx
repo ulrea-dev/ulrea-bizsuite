@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -30,27 +31,29 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
   const [formData, setFormData] = useState({
     amount: payment?.amount?.toString() || '',
     date: payment?.date || new Date().toISOString().split('T')[0],
-    method: payment?.method || '',
     description: payment?.description || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const amount = parseFloat(formData.amount);
+    
     if (mode === 'create') {
       const newPayment: Payment = {
         id: `payment_${Date.now()}`,
-        amount: parseFloat(formData.amount),
+        amount: amount,
         date: formData.date,
         projectId,
         clientId,
         recipientType: 'client',
         type: 'incoming',
         status: 'completed',
-        method: formData.method,
+        method: '', // Not needed but keeping for compatibility
         description: formData.description
       };
 
+      // Add the payment record
       dispatch({
         type: 'ADD_PAYMENT',
         payload: newPayment
@@ -61,20 +64,32 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
         type: 'UPDATE_CLIENT_PAYMENTS',
         payload: { 
           projectId, 
-          amount: parseFloat(formData.amount) 
+          amount: amount 
         }
       });
     } else if (mode === 'edit' && payment) {
+      const oldAmount = payment.amount;
+      const newAmount = amount;
+      const difference = newAmount - oldAmount;
+
       dispatch({
         type: 'UPDATE_PAYMENT',
         payload: { 
           id: payment.id, 
           updates: {
-            amount: parseFloat(formData.amount),
+            amount: newAmount,
             date: formData.date,
-            method: formData.method,
             description: formData.description
           }
+        }
+      });
+
+      // Update the project's client payments total by the difference
+      dispatch({
+        type: 'UPDATE_CLIENT_PAYMENTS',
+        payload: { 
+          projectId, 
+          amount: difference 
         }
       });
     }
@@ -127,17 +142,6 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
                 required
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="method">Payment Method</Label>
-            <Input
-              id="method"
-              value={formData.method}
-              onChange={(e) => setFormData(prev => ({ ...prev, method: e.target.value }))}
-              placeholder="Bank transfer, Cash, Check, etc."
-              disabled={isReadOnly}
-            />
           </div>
 
           <div className="space-y-2">
