@@ -9,7 +9,6 @@ import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/storage';
 import { TrendingUp, FolderOpen, Users, DollarSign } from 'lucide-react';
 
@@ -20,6 +19,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const { data, currentBusiness } = useBusiness();
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -34,9 +34,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardHome />;
+        return <DashboardHome onShowBusinessSetup={() => setShowBusinessSetup(true)} />;
     }
   };
+
+  if (showBusinessSetup) {
+    return (
+      <div className="min-h-screen dashboard-surface flex items-center justify-center p-6">
+        <BusinessSetup onComplete={() => setShowBusinessSetup(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen dashboard-surface flex">
@@ -52,13 +60,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   );
 };
 
-const DashboardHome: React.FC = () => {
+interface DashboardHomeProps {
+  onShowBusinessSetup: () => void;
+}
+
+const DashboardHome: React.FC<DashboardHomeProps> = ({ onShowBusinessSetup }) => {
   const { data, currentBusiness } = useBusiness();
 
   if (!currentBusiness) {
     return (
       <div className="p-6">
-        <BusinessSetup />
+        <BusinessSetup onComplete={onShowBusinessSetup} />
       </div>
     );
   }

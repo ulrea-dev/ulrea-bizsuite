@@ -45,7 +45,7 @@ export const BusinessSetup: React.FC<BusinessSetupProps> = ({ onComplete }) => {
   };
 
   return (
-    <Card className="dashboard-surface border-dashboard-border shadow-xl">
+    <Card className="dashboard-surface border-dashboard-border shadow-xl max-w-2xl w-full">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
