@@ -120,7 +120,7 @@ export const AnalyticsPage: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Allocated</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Allocated</CardTitle>
             <Users className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
@@ -128,7 +128,7 @@ export const AnalyticsPage: React.FC = () => {
               {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
             </div>
             <p className="text-xs dashboard-text-secondary">
-              Total team allocations
+              Across all projects
             </p>
           </CardContent>
         </Card>

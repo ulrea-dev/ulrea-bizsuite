@@ -89,14 +89,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Allocations</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Allocated</CardTitle>
             <DollarSign className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
             </div>
-            <p className="text-xs dashboard-text-secondary">Total allocated</p>
+            <p className="text-xs dashboard-text-secondary">Across all projects</p>
           </CardContent>
         </Card>
       </div>

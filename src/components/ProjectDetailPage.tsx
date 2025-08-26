@@ -124,11 +124,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     }
   };
 
-  const openAllocationModal = (type: 'team' | 'partner' | 'company') => {
-    setAllocationType(type);
-    setAllocationModalOpen(true);
-  };
-
   const [selectedClientPayment, setSelectedClientPayment] = useState<Payment | null>(null);
   const [clientPaymentMode, setClientPaymentMode] = useState<'create' | 'edit' | 'view'>('create');
 
@@ -144,23 +139,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     setClientPaymentModalOpen(true);
   };
 
-  const removeTeamAllocation = (memberId: string, memberName: string) => {
-    if (confirm(`Are you sure you want to remove ${memberName} from this project? This will also delete all associated payments.`)) {
-      dispatch({
-        type: 'REMOVE_TEAM_ALLOCATION',
-        payload: { projectId, memberId }
-      });
-    }
-  };
-
-  const removePartnerAllocation = (partnerId: string, partnerName: string) => {
-    if (confirm(`Are you sure you want to remove ${partnerName} from this project? This will also delete all associated payments.`)) {
-      dispatch({
-        type: 'REMOVE_PARTNER_ALLOCATION',
-        payload: { projectId, partnerId }
-      });
-    }
-  };
 
   const openExpenseModal = (mode: 'create' | 'edit' | 'view', expense?: Expense) => {
     setSelectedExpense(expense || null);
@@ -333,241 +311,15 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         </Card>
       </div>
 
-      {/* Team & Partner Management - Updated to include expenses tab */}
-      <Tabs defaultValue="team" className="space-y-6">
+      {/* Project Management */}
+      <Tabs defaultValue="allocations" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="team">Team Allocations</TabsTrigger>
-          <TabsTrigger value="partners">Partner Allocations</TabsTrigger>
-          <TabsTrigger value="company">Company Allocation</TabsTrigger>
           <TabsTrigger value="allocations">Project Allocations</TabsTrigger>
-          <TabsTrigger value="expenses">Expense Allocation</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="team" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold dashboard-text-primary">Team Members</h3>
-            <Button onClick={() => openAllocationModal('team')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Team Member
-            </Button>
-          </div>
-
-          {project.teamAllocations?.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 dashboard-text-secondary mb-4" />
-                <p className="dashboard-text-secondary">No team members assigned yet</p>
-                <Button className="mt-4" onClick={() => openAllocationModal('team')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Team Member
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {project.teamAllocations?.map((allocation) => (
-                <Card key={allocation.memberId}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 dashboard-surface rounded-lg">
-                        <User className="h-4 w-4 dashboard-text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-semibold dashboard-text-primary">{allocation.memberName}</div>
-                        <div className="text-sm dashboard-text-secondary">
-                          {allocation.allocationType === 'percentage' 
-                            ? `${allocation.allocationValue}% of project` 
-                            : formatCurrency(allocation.allocationValue, currentBusiness.currency)
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right space-y-1">
-                        <div className="font-semibold dashboard-text-primary">
-                          {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
-                        </div>
-                        <div className="text-sm dashboard-text-secondary">
-                          Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
-                        </div>
-                        {allocation.outstanding > 0 && (
-                          <div className="text-sm text-orange-600">
-                            Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Button 
-                          size="sm" 
-                          onClick={() => openPaymentModal('team', allocation.memberId, allocation.memberName)}
-                          disabled={allocation.outstanding === 0}
-                        >
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          Pay
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => removeTeamAllocation(allocation.memberId, allocation.memberName)}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="partners" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold dashboard-text-primary">Partners</h3>
-            <Button onClick={() => openAllocationModal('partner')}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Partner
-            </Button>
-          </div>
-
-          {project.partnerAllocations?.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Handshake className="h-12 w-12 dashboard-text-secondary mb-4" />
-                <p className="dashboard-text-secondary">No partners assigned yet</p>
-                <Button className="mt-4" onClick={() => openAllocationModal('partner')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Partner
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {project.partnerAllocations?.map((allocation) => (
-                <Card key={allocation.partnerId}>
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 dashboard-surface rounded-lg">
-                        <Handshake className="h-4 w-4 dashboard-text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-semibold dashboard-text-primary">{allocation.partnerName}</div>
-                        <div className="text-sm dashboard-text-secondary">
-                          {allocation.allocationType === 'percentage' 
-                            ? `${allocation.allocationValue}% of project` 
-                            : formatCurrency(allocation.allocationValue, currentBusiness.currency)
-                          }
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right space-y-1">
-                        <div className="font-semibold dashboard-text-primary">
-                          {formatCurrency(allocation.totalAllocated, currentBusiness.currency)}
-                        </div>
-                        <div className="text-sm dashboard-text-secondary">
-                          Paid: {formatCurrency(allocation.paidAmount, currentBusiness.currency)}
-                        </div>
-                        {allocation.outstanding > 0 && (
-                          <div className="text-sm text-orange-600">
-                            Outstanding: {formatCurrency(allocation.outstanding, currentBusiness.currency)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Button 
-                          size="sm" 
-                          onClick={() => openPaymentModal('partner', allocation.partnerId, allocation.partnerName)}
-                          disabled={allocation.outstanding === 0}
-                        >
-                          <DollarSign className="h-3 w-3 mr-1" />
-                          Pay
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          onClick={() => removePartnerAllocation(allocation.partnerId, allocation.partnerName)}
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="company" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold dashboard-text-primary">Company Allocation</h3>
-            {!project.companyAllocation && (
-              <Button onClick={() => openAllocationModal('company')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Set Company Allocation
-              </Button>
-            )}
-          </div>
-
-          {!project.companyAllocation ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="h-12 w-12 dashboard-text-secondary mb-4" />
-                <p className="dashboard-text-secondary">No company allocation set yet</p>
-                <p className="text-sm dashboard-text-secondary mb-4">Set your business profit allocation for this project</p>
-                <Button className="mt-4" onClick={() => openAllocationModal('company')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Set Company Allocation
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 dashboard-surface rounded-lg">
-                    <Building2 className="h-4 w-4 dashboard-text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold dashboard-text-primary">{project.companyAllocation.businessName}</div>
-                    <div className="text-sm dashboard-text-secondary">
-                      {project.companyAllocation.allocationType === 'percentage' 
-                        ? `${project.companyAllocation.allocationValue}% of project (Business Profit)` 
-                        : `${formatCurrency(project.companyAllocation.allocationValue, currentBusiness.currency)} (Business Profit)`
-                      }
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right space-y-1">
-                  <div className="font-semibold text-green-600">
-                    {formatCurrency(project.companyAllocation.totalAllocated, currentBusiness.currency)}
-                  </div>
-                  <div className="text-sm dashboard-text-secondary">
-                    Withdrawn: {formatCurrency(project.companyAllocation.paidAmount, currentBusiness.currency)}
-                  </div>
-                  {project.companyAllocation.outstanding > 0 && (
-                    <div className="text-sm text-blue-600">
-                      Available: {formatCurrency(project.companyAllocation.outstanding, currentBusiness.currency)}
-                    </div>
-                  )}
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => openAllocationModal('company')}
-                  >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
         <TabsContent value="allocations" className="space-y-4">
           <div className="flex items-center justify-between">
