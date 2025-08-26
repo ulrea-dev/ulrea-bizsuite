@@ -68,7 +68,9 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const clientPaymentsReceived = project.clientPayments || 0;
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const netProfit = clientPaymentsReceived - totalAllocated - totalExpenses;
-  const totalPaid = payments.reduce((sum, payment) => payment.status === 'completed' ? sum + payment.amount : sum, 0);
+  const totalPaid = payments
+    .filter(payment => payment.type === 'outgoing' && payment.status === 'completed')
+    .reduce((sum, payment) => sum + payment.amount, 0);
   const remainingBudget = totalProjectValue - totalAllocated - totalExpenses;
   const outstandingPayments = totalAllocated - totalPaid;
 
