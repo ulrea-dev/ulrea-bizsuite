@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Payment } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { Trash2 } from 'lucide-react';
 
 interface ClientPaymentModalProps {
   isOpen: boolean;
@@ -49,7 +50,6 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
         recipientType: 'client',
         type: 'incoming',
         status: 'completed',
-        method: '', // Not needed but keeping for compatibility
         description: formData.description
       };
 
@@ -95,6 +95,16 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
     }
 
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (payment) {
+      dispatch({
+        type: 'DELETE_PAYMENT',
+        payload: payment.id
+      });
+      onClose();
+    }
   };
 
   const isReadOnly = mode === 'view';
@@ -156,15 +166,30 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
             />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              {isReadOnly ? 'Close' : 'Cancel'}
-            </Button>
-            {!isReadOnly && (
-              <Button type="submit">
-                {mode === 'create' ? 'Record Payment' : 'Update Payment'}
+          <DialogFooter className="flex justify-between">
+            <div>
+              {(mode === 'edit' || mode === 'view') && payment && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  onClick={handleDelete}
+                  size="sm"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                {isReadOnly ? 'Close' : 'Cancel'}
               </Button>
-            )}
+              {!isReadOnly && (
+                <Button type="submit">
+                  {mode === 'create' ? 'Record Payment' : 'Update Payment'}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

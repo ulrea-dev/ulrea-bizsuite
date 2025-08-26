@@ -28,6 +28,7 @@ type BusinessAction =
   | { type: 'UPDATE_CLIENT'; payload: { id: string; updates: Partial<Client> } }
   | { type: 'ADD_PAYMENT'; payload: Payment }
   | { type: 'UPDATE_PAYMENT'; payload: { id: string; updates: Partial<Payment> } }
+  | { type: 'DELETE_PAYMENT'; payload: string }
   | { type: 'ADD_TEAM_ALLOCATION'; payload: { projectId: string; allocation: TeamAllocation } }
   | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } }
   | { type: 'SET_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } }
@@ -121,20 +122,187 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
       };
 
     case 'ADD_PAYMENT':
-      return {
+      const newState = {
         ...state,
         payments: [...state.payments, action.payload],
       };
+
+      // Update allocations when payment is made
+      if (action.payload.recipientType === 'team' && action.payload.memberId) {
+        return {
+          ...newState,
+          projects: newState.projects.map(project =>
+            project.id === action.payload.projectId
+              ? {
+                  ...project,
+                  teamAllocations: project.teamAllocations?.map(allocation =>
+                    allocation.memberId === action.payload.memberId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + action.payload.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + action.payload.amount)
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      } else if (action.payload.recipientType === 'partner' && action.payload.partnerId) {
+        return {
+          ...newState,
+          projects: newState.projects.map(project =>
+            project.id === action.payload.projectId
+              ? {
+                  ...project,
+                  partnerAllocations: project.partnerAllocations?.map(allocation =>
+                    allocation.partnerId === action.payload.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + action.payload.amount,
+                          outstanding: allocation.totalAllocated - (allocation.paidAmount + action.payload.amount)
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      }
+
+      return newState;
     
     case 'UPDATE_PAYMENT':
-      return {
+      const oldPayment = state.payments.find(p => p.id === action.payload.id);
+      const updatedPayments = state.payments.map(payment =>
+        payment.id === action.payload.id
+          ? { ...payment, ...action.payload.updates }
+          : payment
+      );
+
+      let updatedState = {
         ...state,
-        payments: state.payments.map(payment =>
-          payment.id === action.payload.id
-            ? { ...payment, ...action.payload.updates }
-            : payment
-        ),
+        payments: updatedPayments,
       };
+
+      // Update allocations based on payment changes
+      if (oldPayment && oldPayment.recipientType === 'team' && oldPayment.memberId) {
+        const amountDifference = (action.payload.updates.amount || oldPayment.amount) - oldPayment.amount;
+        updatedState = {
+          ...updatedState,
+          projects: updatedState.projects.map(project =>
+            project.id === oldPayment.projectId
+              ? {
+                  ...project,
+                  teamAllocations: project.teamAllocations?.map(allocation =>
+                    allocation.memberId === oldPayment.memberId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + amountDifference,
+                          outstanding: allocation.outstanding - amountDifference
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      } else if (oldPayment && oldPayment.recipientType === 'partner' && oldPayment.partnerId) {
+        const amountDifference = (action.payload.updates.amount || oldPayment.amount) - oldPayment.amount;
+        updatedState = {
+          ...updatedState,
+          projects: updatedState.projects.map(project =>
+            project.id === oldPayment.projectId
+              ? {
+                  ...project,
+                  partnerAllocations: project.partnerAllocations?.map(allocation =>
+                    allocation.partnerId === oldPayment.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount + amountDifference,
+                          outstanding: allocation.outstanding - amountDifference
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      }
+
+      return updatedState;
+
+    case 'DELETE_PAYMENT':
+      const paymentToDelete = state.payments.find(p => p.id === action.payload);
+      let stateAfterDelete = {
+        ...state,
+        payments: state.payments.filter(payment => payment.id !== action.payload),
+      };
+
+      // Reverse the allocation changes when payment is deleted
+      if (paymentToDelete && paymentToDelete.recipientType === 'team' && paymentToDelete.memberId) {
+        stateAfterDelete = {
+          ...stateAfterDelete,
+          projects: stateAfterDelete.projects.map(project =>
+            project.id === paymentToDelete.projectId
+              ? {
+                  ...project,
+                  teamAllocations: project.teamAllocations?.map(allocation =>
+                    allocation.memberId === paymentToDelete.memberId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount - paymentToDelete.amount,
+                          outstanding: allocation.outstanding + paymentToDelete.amount
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      } else if (paymentToDelete && paymentToDelete.recipientType === 'partner' && paymentToDelete.partnerId) {
+        stateAfterDelete = {
+          ...stateAfterDelete,
+          projects: stateAfterDelete.projects.map(project =>
+            project.id === paymentToDelete.projectId
+              ? {
+                  ...project,
+                  partnerAllocations: project.partnerAllocations?.map(allocation =>
+                    allocation.partnerId === paymentToDelete.partnerId
+                      ? {
+                          ...allocation,
+                          paidAmount: allocation.paidAmount - paymentToDelete.amount,
+                          outstanding: allocation.outstanding + paymentToDelete.amount
+                        }
+                      : allocation
+                  ) || [],
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      } else if (paymentToDelete && paymentToDelete.type === 'incoming') {
+        // Handle client payment deletion
+        stateAfterDelete = {
+          ...stateAfterDelete,
+          projects: stateAfterDelete.projects.map(project =>
+            project.id === paymentToDelete.projectId
+              ? {
+                  ...project,
+                  clientPayments: (project.clientPayments || 0) - paymentToDelete.amount,
+                  updatedAt: new Date().toISOString()
+                }
+              : project
+          ),
+        };
+      }
+
+      return stateAfterDelete;
 
     case 'ADD_TEAM_ALLOCATION':
       return {

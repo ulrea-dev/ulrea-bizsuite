@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Users, Handshake, DollarSign, Calendar, User, Edit, Plus, Eye, Building2 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation } from '@/types/business';
+import { Project, TeamAllocation, PartnerAllocation, CompanyAllocation, Payment } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
 import { ProjectModal } from './ProjectModal';
 import { PaymentModal } from './PaymentModal';
@@ -30,6 +30,8 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   } | null>(null);
   const [allocationType, setAllocationType] = useState<'team' | 'partner' | 'company'>('team');
   const [clientPaymentModalOpen, setClientPaymentModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentMode, setPaymentMode] = useState<'create' | 'edit' | 'view'>('create');
 
   const project = data.projects.find(p => p.id === projectId);
   const client = project?.clientId ? data.clients.find(c => c.id === project.clientId) : null;
@@ -57,12 +59,63 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   const openPaymentModal = (type: 'team' | 'partner', id: string, name: string) => {
     setSelectedRecipient({ type, id, name });
+    setSelectedPayment(null);
+    setPaymentMode('create');
     setPaymentModalOpen(true);
+  };
+
+  const openPaymentEditModal = (payment: Payment) => {
+    const recipient = payment.recipientType === 'team' 
+      ? teamMembers.find(m => m.id === payment.memberId)
+      : partners.find(p => p.id === payment.partnerId);
+    
+    if (recipient) {
+      setSelectedRecipient({ 
+        type: payment.recipientType as 'team' | 'partner', 
+        id: payment.recipientType === 'team' ? payment.memberId! : payment.partnerId!, 
+        name: recipient.name 
+      });
+      setSelectedPayment(payment);
+      setPaymentMode('edit');
+      setPaymentModalOpen(true);
+    }
+  };
+
+  const openPaymentViewModal = (payment: Payment) => {
+    const recipient = payment.recipientType === 'team' 
+      ? teamMembers.find(m => m.id === payment.memberId)
+      : partners.find(p => p.id === payment.partnerId);
+    
+    if (recipient) {
+      setSelectedRecipient({ 
+        type: payment.recipientType as 'team' | 'partner', 
+        id: payment.recipientType === 'team' ? payment.memberId! : payment.partnerId!, 
+        name: recipient.name 
+      });
+      setSelectedPayment(payment);
+      setPaymentMode('view');
+      setPaymentModalOpen(true);
+    }
   };
 
   const openAllocationModal = (type: 'team' | 'partner' | 'company') => {
     setAllocationType(type);
     setAllocationModalOpen(true);
+  };
+
+  const [selectedClientPayment, setSelectedClientPayment] = useState<Payment | null>(null);
+  const [clientPaymentMode, setClientPaymentMode] = useState<'create' | 'edit' | 'view'>('create');
+
+  const openClientPaymentEditModal = (payment: Payment) => {
+    setSelectedClientPayment(payment);
+    setClientPaymentMode('edit');
+    setClientPaymentModalOpen(true);
+  };
+
+  const openClientPaymentViewModal = (payment: Payment) => {
+    setSelectedClientPayment(payment);
+    setClientPaymentMode('view');
+    setClientPaymentModalOpen(true);
   };
 
   return (
@@ -423,7 +476,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
         <TabsContent value="client-payments" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold dashboard-text-primary">Client Payments</h3>
-            <Button onClick={() => setClientPaymentModalOpen(true)}>
+            <Button onClick={() => {
+              setSelectedClientPayment(null);
+              setClientPaymentMode('create');
+              setClientPaymentModalOpen(true);
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               Record Payment
             </Button>
@@ -470,7 +527,11 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <DollarSign className="h-12 w-12 dashboard-text-secondary mb-4" />
                 <p className="dashboard-text-secondary">No client payments recorded yet</p>
-                <Button className="mt-4" onClick={() => setClientPaymentModalOpen(true)}>
+                <Button className="mt-4" onClick={() => {
+                  setSelectedClientPayment(null);
+                  setClientPaymentMode('create');
+                  setClientPaymentModalOpen(true);
+                }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Record First Payment
                 </Button>
@@ -490,20 +551,38 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                           Payment from {client?.name || 'Client'}
                         </div>
                         <div className="text-sm dashboard-text-secondary">
-                          {new Date(payment.date).toLocaleDateString()} • {payment.method}
+                          {new Date(payment.date).toLocaleDateString()}
                         </div>
                         {payment.description && (
                           <div className="text-sm dashboard-text-secondary">{payment.description}</div>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-green-600">
-                        {formatCurrency(payment.amount, currentBusiness.currency)}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <div className="font-semibold text-green-600">
+                          {formatCurrency(payment.amount, currentBusiness.currency)}
+                        </div>
+                        <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+                          {payment.status}
+                        </Badge>
                       </div>
-                      <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-                        {payment.status}
-                      </Badge>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openClientPaymentViewModal(payment)}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => openClientPaymentEditModal(payment)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -527,14 +606,18 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
               {payments.map((payment) => {
                 const recipient = payment.recipientType === 'team' 
                   ? teamMembers.find(m => m.id === payment.memberId)
-                  : partners.find(p => p.id === payment.partnerId);
+                  : payment.recipientType === 'partner'
+                  ? partners.find(p => p.id === payment.partnerId)
+                  : null;
                 
                 return (
                   <Card key={payment.id}>
                     <CardContent className="flex items-center justify-between p-4">
                       <div className="flex items-center gap-4">
                         <div className="p-2 dashboard-surface rounded-lg">
-                          {payment.recipientType === 'team' ? (
+                          {payment.type === 'incoming' ? (
+                            <DollarSign className="h-4 w-4 text-green-600" />
+                          ) : payment.recipientType === 'team' ? (
                             <User className="h-4 w-4 dashboard-text-primary" />
                           ) : (
                             <Handshake className="h-4 w-4 dashboard-text-primary" />
@@ -542,23 +625,56 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                         </div>
                         <div>
                           <div className="font-semibold dashboard-text-primary">
-                            {recipient?.name || 'Unknown Recipient'}
+                            {payment.type === 'incoming' 
+                              ? `Payment from ${client?.name || 'Client'}`
+                              : recipient?.name || 'Unknown Recipient'
+                            }
                           </div>
                           <div className="text-sm dashboard-text-secondary">
-                            {new Date(payment.date).toLocaleDateString()} • {payment.method}
+                            {new Date(payment.date).toLocaleDateString()}
                           </div>
                           {payment.description && (
                             <div className="text-sm dashboard-text-secondary">{payment.description}</div>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-green-600">
-                          {formatCurrency(payment.amount, currentBusiness.currency)}
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className={`font-semibold ${payment.type === 'incoming' ? 'text-green-600' : 'dashboard-text-primary'}`}>
+                            {formatCurrency(payment.amount, currentBusiness.currency)}
+                          </div>
+                          <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
+                            {payment.status}
+                          </Badge>
                         </div>
-                        <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
-                          {payment.status}
-                        </Badge>
+                        <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              if (payment.type === 'incoming') {
+                                openClientPaymentViewModal(payment);
+                              } else {
+                                openPaymentViewModal(payment);
+                              }
+                            }}
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              if (payment.type === 'incoming') {
+                                openClientPaymentEditModal(payment);
+                              } else {
+                                openPaymentEditModal(payment);
+                              }
+                            }}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -583,12 +699,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           onClose={() => {
             setPaymentModalOpen(false);
             setSelectedRecipient(null);
+            setSelectedPayment(null);
           }}
           projectId={projectId}
           recipientType={selectedRecipient.type}
           recipientId={selectedRecipient.id}
           recipientName={selectedRecipient.name}
-          mode="create"
+          payment={selectedPayment}
+          mode={paymentMode}
         />
       )}
 
@@ -602,11 +720,15 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
       <ClientPaymentModal
         isOpen={clientPaymentModalOpen}
-        onClose={() => setClientPaymentModalOpen(false)}
+        onClose={() => {
+          setClientPaymentModalOpen(false);
+          setSelectedClientPayment(null);
+        }}
         projectId={projectId}
         clientId={client?.id}
         clientName={client?.name || 'Client'}
-        mode="create"
+        payment={selectedClientPayment}
+        mode={clientPaymentMode}
       />
     </div>
   );
