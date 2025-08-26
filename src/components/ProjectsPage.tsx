@@ -155,16 +155,10 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
                 project={project} 
                 currency={currentBusiness.currency}
                 clientName={project.clientId ? data.clients.find(c => c.id === project.clientId)?.name : undefined}
-                teamMembers={[
-                  ...project.teamAllocations.map(alloc => ({
+                teamMembers={project.allocationTeamAllocations?.map(alloc => ({
                     id: alloc.memberId,
                     name: alloc.memberName
-                  })),
-                  ...(project.allocationTeamAllocations?.map(alloc => ({
-                    id: alloc.memberId,
-                    name: alloc.memberName
-                  })) || [])
-                ]}
+                   })) || []}
                 onNavigateToClient={() => {
                   onNavigateToPage?.('clients');
                 }}
