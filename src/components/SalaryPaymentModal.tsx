@@ -1,27 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
-import { useBusiness } from '@/contexts/BusinessContext';
-import { generateId, formatCurrency } from '@/utils/storage';
-import { SUPPORTED_CURRENCIES } from '@/types/business';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useBusiness } from '@/contexts/BusinessContext';
+import { generateId, formatCurrency } from '@/utils/storage';
+import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
+import { SUPPORTED_CURRENCIES, SalaryPayment } from '@/types/business';
 
 interface SalaryPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  salaryRecordId?: string | null;
+  salaryRecordId: string | null;
 }
 
 export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
@@ -29,91 +22,130 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
   onClose,
   salaryRecordId,
 }) => {
-  const { data, dispatch } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    amount: '',
-    paymentDate: new Date().toISOString().split('T')[0],
-    paymentMethod: '',
-    description: '',
-  });
 
-  const salaryRecord = salaryRecordId 
-    ? (data.salaryRecords || []).find(r => r.id === salaryRecordId)
-    : null;
+  const [amount, setAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [notes, setNotes] = useState('');
 
-  const teamMember = salaryRecord 
-    ? data.teamMembers.find(m => m.id === salaryRecord.teamMemberId)
-    : null;
+  // Get all available currencies
+  const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
+  
+  // Find the salary record and team member
+  const salaryRecord = data.salaryRecords.find(record => record.id === salaryRecordId);
+  const teamMember = salaryRecord ? data.teamMembers.find(member => member.id === salaryRecord.teamMemberId) : null;
 
-  const currency = salaryRecord 
-    ? SUPPORTED_CURRENCIES.find(c => c.code === salaryRecord.currency) || data.userSettings.defaultCurrency
-    : data.userSettings.defaultCurrency;
+  // Get all salary records for this team member to calculate combined total
+  const memberSalaryRecords = salaryRecord ? 
+    data.salaryRecords.filter(record => record.teamMemberId === salaryRecord.teamMemberId && record.businessId === currentBusiness?.id) : [];
+  
+  const primaryRecord = memberSalaryRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
+  const secondaryRecord = memberSalaryRecords.find(r => (r as any).salaryType === 'secondary');
+
+  // Calculate combined monthly equivalent salary
+  const calculateCombinedSalary = () => {
+    let total = 0;
+
+    if (primaryRecord) {
+      const primaryCurrency = allCurrencies.find(c => c.code === primaryRecord.currency) || data.userSettings.defaultCurrency;
+      let monthlyAmount = primaryRecord.amount;
+      
+      // Convert to monthly equivalent
+      switch (primaryRecord.frequency) {
+        case 'weekly':
+          monthlyAmount = primaryRecord.amount * 4.33;
+          break;
+        case 'bi-weekly':
+          monthlyAmount = primaryRecord.amount * 2.17;
+          break;
+        case 'quarterly':
+          monthlyAmount = primaryRecord.amount / 3;
+          break;
+        case 'annually':
+          monthlyAmount = primaryRecord.amount / 12;
+          break;
+      }
+
+      const converted = convertCurrency(monthlyAmount, primaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+      total += converted;
+    }
+
+    if (secondaryRecord) {
+      const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
+      let monthlyAmount = secondaryRecord.amount;
+      
+      // Convert to monthly equivalent
+      switch (secondaryRecord.frequency) {
+        case 'weekly':
+          monthlyAmount = secondaryRecord.amount * 4.33;
+          break;
+        case 'bi-weekly':
+          monthlyAmount = secondaryRecord.amount * 2.17;
+          break;
+        case 'quarterly':
+          monthlyAmount = secondaryRecord.amount / 3;
+          break;
+        case 'annually':
+          monthlyAmount = secondaryRecord.amount / 12;
+          break;
+      }
+
+      const converted = convertCurrency(monthlyAmount, secondaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+      total += converted;
+    }
+
+    return total;
+  };
+
+  const combinedSalary = calculateCombinedSalary();
 
   useEffect(() => {
-    if (salaryRecord) {
-      setFormData({
-        amount: salaryRecord.amount.toString(),
-        paymentDate: new Date().toISOString().split('T')[0],
-        paymentMethod: '',
-        description: '',
-      });
+    if (isOpen && salaryRecord) {
+      // Set default amount to combined salary
+      setAmount(combinedSalary.toString());
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentMethod('');
+      setNotes('');
     }
-  }, [salaryRecord]);
+  }, [isOpen, salaryRecord, combinedSalary]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!salaryRecord) {
+  const handleSave = () => {
+    if (!salaryRecord || !currentBusiness) {
       toast({
         title: "Error",
-        description: "Salary record not found.",
+        description: "Salary record not found",
         variant: "destructive",
       });
       return;
     }
 
-    if (!formData.amount || !formData.paymentDate) {
+    if (!amount || !paymentDate) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const paymentDate = new Date(formData.paymentDate);
-    const period = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
-
-    const salaryPayment = {
+    const payment: SalaryPayment = {
       id: generateId(),
       salaryRecordId: salaryRecord.id,
-      amount,
-      paymentDate: new Date(formData.paymentDate).toISOString(),
-      period,
-      method: formData.paymentMethod,
-      description: formData.description,
+      amount: parseFloat(amount),
+      currency: data.userSettings.defaultCurrency.code,
+      paymentDate,
+      paymentMethod: paymentMethod || undefined,
+      notes: notes || undefined,
       createdAt: new Date().toISOString(),
     };
 
-    dispatch({
-      type: 'ADD_SALARY_PAYMENT',
-      payload: salaryPayment,
-    });
+    dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
 
     toast({
       title: "Success",
-      description: "Salary payment recorded successfully.",
+      description: "Salary payment recorded successfully",
     });
 
     onClose();
@@ -123,81 +155,121 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
     return null;
   }
 
+  // Get salary breakdown for display
+  const getSalaryBreakdown = () => {
+    const breakdown = [];
+    
+    if (primaryRecord) {
+      const primaryCurrency = allCurrencies.find(c => c.code === primaryRecord.currency) || data.userSettings.defaultCurrency;
+      breakdown.push({
+        type: 'Primary',
+        position: primaryRecord.position,
+        amount: formatCurrency(primaryRecord.amount, primaryCurrency),
+        frequency: primaryRecord.frequency,
+      });
+    }
+    
+    if (secondaryRecord) {
+      const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
+      breakdown.push({
+        type: 'Secondary',
+        position: secondaryRecord.position,
+        amount: formatCurrency(secondaryRecord.amount, secondaryCurrency),  
+        frequency: secondaryRecord.frequency,
+      });
+    }
+    
+    return breakdown;
+  };
+
+  const salaryBreakdown = getSalaryBreakdown();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Record Salary Payment</DialogTitle>
-          <DialogDescription>
-            Record a salary payment for {teamMember.name} ({salaryRecord.position})
-          </DialogDescription>
+          <p className="text-sm text-muted-foreground">
+            Record a salary payment for {teamMember.name}
+          </p>
         </DialogHeader>
 
-        <div className="bg-muted p-3 rounded-lg mb-4">
-          <div className="text-sm">
-            <p><strong>Employee:</strong> {teamMember.name}</p>
-            <p><strong>Position:</strong> {salaryRecord.position}</p>
-            <p><strong>Regular Amount:</strong> {formatCurrency(salaryRecord.amount, currency)}</p>
-            <p><strong>Frequency:</strong> {salaryRecord.frequency}</p>
+        <div className="space-y-4">
+          {/* Employee Info */}
+          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+            <div><strong>Employee:</strong> {teamMember.name}</div>
+            
+            {/* Show salary breakdown */}
+            {salaryBreakdown.map((salary, index) => (
+              <div key={index} className="text-sm">
+                <strong>{salary.type} - {salary.position}:</strong> {salary.amount} ({salary.frequency})
+              </div>
+            ))}
+            
+            <div className="pt-2 border-t">
+              <strong>Combined Monthly Total:</strong> {formatCurrency(combinedSalary, data.userSettings.defaultCurrency)}
+            </div>
           </div>
-        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          {/* Payment Amount */}
+          <div className="space-y-2">
             <Label htmlFor="amount">Payment Amount *</Label>
-            <CurrencyInput
+            <Input
               id="amount"
-              value={formData.amount}
-              onChange={(value) => setFormData({ ...formData, amount: value })}
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              required
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              In {currency.name} ({currency.symbol})
+            <p className="text-xs text-muted-foreground">
+              In {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})
             </p>
           </div>
 
-          <div>
+          {/* Payment Date */}
+          <div className="space-y-2">
             <Label htmlFor="paymentDate">Payment Date *</Label>
             <Input
               id="paymentDate"
               type="date"
-              value={formData.paymentDate}
-              onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-              required
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
             />
           </div>
 
-          <div>
+          {/* Payment Method */}
+          <div className="space-y-2">
             <Label htmlFor="paymentMethod">Payment Method</Label>
             <Input
               id="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
               placeholder="e.g., Bank transfer, Cash, Check"
             />
           </div>
 
-          <div>
-            <Label htmlFor="description">Notes</Label>
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional notes about this payment (optional)"
               rows={3}
             />
           </div>
+        </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Record Payment
-            </Button>
-          </DialogFooter>
-        </form>
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>
+            Record Payment
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
