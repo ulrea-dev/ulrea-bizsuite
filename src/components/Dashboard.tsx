@@ -65,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
         return selectedProjectId ? (
           <ProjectDetailPage 
             projectId={selectedProjectId}
-            onNavigateBack={() => setCurrentPage('projects')}
+            onBack={() => setCurrentPage('projects')}
           />
         ) : (
           <ProjectsPage onNavigateToPage={onNavigateToPage} />
