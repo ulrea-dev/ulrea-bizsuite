@@ -40,6 +40,22 @@ export const SalariesPage: React.FC = () => {
   const [selectedPaymentRecordId, setSelectedPaymentRecordId] = useState<string | null>(null);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
 
+  // Helper functions moved to the top
+  const getTeamMemberName = (memberId: string) => {
+    const member = data.teamMembers.find(m => m.id === memberId);
+    return member ? member.name : 'Unknown Member';
+  };
+
+  const getProjectName = (projectId: string) => {
+    const project = data.projects.find(p => p.id === projectId);
+    return project ? project.name : 'Unknown Project';
+  };
+
+  const getClientName = (clientId: string) => {
+    const client = data.clients.find(c => c.id === clientId);
+    return client ? client.name : 'Unknown Client';
+  };
+
   if (!currentBusiness) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -194,21 +210,6 @@ export const SalariesPage: React.FC = () => {
       );
     })
     .reduce((total, payment) => total + payment.amount, 0);
-
-  const getTeamMemberName = (memberId: string) => {
-    const member = data.teamMembers.find(m => m.id === memberId);
-    return member ? member.name : 'Unknown Member';
-  };
-
-  const getProjectName = (projectId: string) => {
-    const project = data.projects.find(p => p.id === projectId);
-    return project ? project.name : 'Unknown Project';
-  };
-
-  const getClientName = (clientId: string) => {
-    const client = data.clients.find(c => c.id === clientId);
-    return client ? client.name : 'Unknown Client';
-  };
 
   const handleCreateSalary = () => {
     setSelectedTeamMemberId(null);
