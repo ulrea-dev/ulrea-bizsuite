@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setPrimaryCurrency(primaryRecord.currency);
         setPrimaryFrequency(primaryRecord.frequency);
         setPrimaryStartDate(primaryRecord.startDate);
-        setPrimaryProjectId(primaryRecord.projectId || '');
+        setPrimaryProjectId(primaryRecord.projectId || 'no-project');
       } else {
         setPrimaryEnabled(false);
         // Reset primary form
@@ -86,7 +87,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setPrimaryCurrency(currentBusiness.currency.code);
         setPrimaryFrequency('monthly');
         setPrimaryStartDate('');
-        setPrimaryProjectId('');
+        setPrimaryProjectId('no-project');
       }
 
       // Load secondary salary data
@@ -97,7 +98,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryCurrency(secondaryRecord.currency);
         setSecondaryFrequency(secondaryRecord.frequency);
         setSecondaryStartDate(secondaryRecord.startDate);
-        setSecondaryProjectId(secondaryRecord.projectId || '');
+        setSecondaryProjectId(secondaryRecord.projectId || 'no-project');
         setContractDuration((secondaryRecord as any).contractDuration?.toString() || '');
       } else {
         setSecondaryEnabled(false);
@@ -107,7 +108,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryCurrency(currentBusiness.currency.code);
         setSecondaryFrequency('monthly');
         setSecondaryStartDate('');
-        setSecondaryProjectId('');
+        setSecondaryProjectId('no-project');
         setContractDuration('');
       }
     } else if (isOpen && !teamMemberId) {
@@ -122,7 +123,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       setPrimaryCurrency(currentBusiness?.currency.code || 'USD');
       setPrimaryFrequency('monthly');
       setPrimaryStartDate('');
-      setPrimaryProjectId('');
+      setPrimaryProjectId('no-project');
       
       // Reset secondary form
       setSecondaryPosition('');
@@ -130,7 +131,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       setSecondaryCurrency(currentBusiness?.currency.code || 'USD');
       setSecondaryFrequency('monthly');
       setSecondaryStartDate('');
-      setSecondaryProjectId('');
+      setSecondaryProjectId('no-project');
       setContractDuration('');
     }
   }, [isOpen, teamMemberId, currentBusiness, businessSalaryRecords]);
@@ -237,7 +238,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           currency: primaryCurrency,
           frequency: primaryFrequency as any,
           startDate: primaryStartDate,
-          projectId: primaryProjectId || undefined,
+          projectId: primaryProjectId === 'no-project' ? undefined : primaryProjectId,
           createdAt: existingPrimary?.createdAt || now,
           updatedAt: now,
           salaryType: 'primary' as any,
@@ -273,7 +274,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           currency: secondaryCurrency,
           frequency: secondaryFrequency as any,
           startDate: secondaryStartDate,
-          projectId: secondaryProjectId || undefined,
+          projectId: secondaryProjectId === 'no-project' ? undefined : secondaryProjectId,
           createdAt: existingSecondary?.createdAt || now,
           updatedAt: now,
           salaryType: 'secondary' as any,
@@ -394,7 +395,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                         <SelectValue placeholder="Select project (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No specific project</SelectItem>
+                        <SelectItem value="no-project">No specific project</SelectItem>
                         {businessProjects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.name}
@@ -499,7 +500,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                         <SelectValue placeholder="Select project (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No specific project</SelectItem>
+                        <SelectItem value="no-project">No specific project</SelectItem>
                         {businessProjects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             {project.name}
