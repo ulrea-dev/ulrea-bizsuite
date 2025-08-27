@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Eye, Edit, DollarSign } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, DollarSign, Building } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { SalaryRecord } from '@/types/business';
 import { formatCurrency } from '@/utils/storage';
@@ -13,17 +13,33 @@ interface SalaryRecordColumnsProps {
   onEdit: (record: SalaryRecord) => void;
   onRecordPayment: (record: SalaryRecord) => void;
   getTeamMemberName: (memberId: string) => string;
+  getProjectName: (projectId: string) => string;
+  getClientName: (clientId: string) => string;
+  allCurrencies: Array<{ code: string; symbol: string; name: string; isCustom?: boolean }>;
 }
 
 export const createSalaryRecordColumns = ({ 
   onView, 
   onEdit, 
   onRecordPayment, 
-  getTeamMemberName 
+  getTeamMemberName,
+  getProjectName,
+  getClientName,
+  allCurrencies
 }: SalaryRecordColumnsProps) => [
   {
     header: 'Employee',
-    cell: (record: SalaryRecord) => getTeamMemberName(record.teamMemberId),
+    cell: (record: SalaryRecord) => (
+      <div>
+        <div className="font-medium">{getTeamMemberName(record.teamMemberId)}</div>
+        {record.isProjectBased && record.projectId && (
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <Building className="h-3 w-3" />
+            {getProjectName(record.projectId)}
+          </div>
+        )}
+      </div>
+    ),
   },
   {
     header: 'Position',
@@ -32,8 +48,17 @@ export const createSalaryRecordColumns = ({
   {
     header: 'Amount',
     cell: (record: SalaryRecord) => {
-      const currency = SUPPORTED_CURRENCIES.find(c => c.code === record.currency) || SUPPORTED_CURRENCIES[0];
-      return formatCurrency(record.amount, currency);
+      const currency = allCurrencies.find(c => c.code === record.currency) || SUPPORTED_CURRENCIES[0];
+      return (
+        <div>
+          <div>{formatCurrency(record.amount, currency)}</div>
+          {record.isProjectBased && (
+            <Badge variant="secondary" className="text-xs">
+              Project-based
+            </Badge>
+          )}
+        </div>
+      );
     },
   },
   {

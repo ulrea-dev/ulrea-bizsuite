@@ -153,6 +153,9 @@ export interface SalaryRecord {
   frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
   startDate: string;
   description?: string;
+  projectId?: string;
+  clientId?: string;
+  isProjectBased?: boolean;
   createdAt: string;
   updatedAt: string;
 }
