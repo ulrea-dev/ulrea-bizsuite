@@ -19,7 +19,8 @@ import { CustomCurrencyModal } from '@/components/CustomCurrencyModal';
 import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
-import { SUPPORTED_CURRENCIES } from '@/types/business';
+import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
+import { getDefaultFont, getDefaultColorPalette, applyFont, applyColorPalette } from '@/utils/appearance';
 import { Plus } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -27,6 +28,12 @@ export const SettingsPage: React.FC = () => {
   const { toast } = useToast();
   const [showCustomCurrencyModal, setShowCustomCurrencyModal] = useState(false);
   const [username, setUsername] = useState(data.userSettings.username);
+  const [selectedFont, setSelectedFont] = useState<FontOption>(
+    data.userSettings.fontFamily || getDefaultFont()
+  );
+  const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(
+    data.userSettings.colorPalette || getDefaultColorPalette()
+  );
 
   const allCurrencies = SUPPORTED_CURRENCIES.concat(data.customCurrencies || []);
 
@@ -75,6 +82,30 @@ export const SettingsPage: React.FC = () => {
       title: "Success",
       description: "Custom currency deleted successfully.",
     });
+  };
+
+  const handleFontChange = (font: FontOption) => {
+    setSelectedFont(font);
+    dispatch({ type: 'SET_FONT', payload: font });
+    applyFont(font);
+    toast({
+      title: "Success",
+      description: `Font changed to ${font.name}.`,
+    });
+  };
+
+  const handlePaletteChange = (palette: ColorPalette) => {
+    setSelectedPalette(palette);
+    dispatch({ type: 'SET_COLOR_PALETTE', payload: palette });
+    applyColorPalette(palette, data.userSettings.theme === 'dark');
+    toast({
+      title: "Success",
+      description: `Color palette changed to ${palette.name}.`,
+    });
+  };
+
+  const handleCurrencyAdded = (currency: Currency) => {
+    // The dispatch is already handled in the modal, just show success
   };
 
   return (
@@ -139,8 +170,14 @@ export const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <FontSelector />
-          <ColorPaletteSelector />
+          <FontSelector
+            selectedFont={selectedFont}
+            onFontChange={handleFontChange}
+          />
+          <ColorPaletteSelector
+            selectedPalette={selectedPalette}
+            onPaletteChange={handlePaletteChange}
+          />
         </TabsContent>
 
         <TabsContent value="currency" className="space-y-4">
@@ -216,6 +253,7 @@ export const SettingsPage: React.FC = () => {
       <CustomCurrencyModal
         isOpen={showCustomCurrencyModal}
         onClose={() => setShowCustomCurrencyModal(false)}
+        onCurrencyAdded={handleCurrencyAdded}
       />
     </div>
   );
