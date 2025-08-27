@@ -1,3 +1,4 @@
+
 export interface Currency {
   code: string;
   symbol: string;
@@ -52,7 +53,6 @@ export interface CompanyAllocation {
   paidAmount: number;
   outstanding: number;
 }
-
 
 export interface Client {
   id: string;
@@ -143,6 +143,40 @@ export interface Expense {
   updatedAt: string;
 }
 
+export interface SalaryRecord {
+  id: string;
+  businessId: string;
+  teamMemberId: string;
+  position: string;
+  amount: number;
+  currency: string;
+  frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
+  startDate: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalaryPayment {
+  id: string;
+  salaryRecordId: string;
+  amount: number;
+  paymentDate: string;
+  period: string;
+  method?: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface ExchangeRate {
+  id: string;
+  fromCurrency: string;
+  toCurrency: string;
+  rate: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: string;
   businessId: string;
@@ -209,6 +243,9 @@ export interface AppData {
   partners: Partner[];
   clients: Client[];
   payments: Payment[];
+  salaryRecords: SalaryRecord[];
+  salaryPayments: SalaryPayment[];
+  exchangeRates: ExchangeRate[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;
