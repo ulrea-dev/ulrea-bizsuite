@@ -189,6 +189,7 @@ export const SalariesPage: React.FC = () => {
         frequency: formData.frequency,
         startDate: formData.startDate,
         description: formData.description,
+        salaryType: 'primary',
         createdAt: now,
         updatedAt: now,
       };
