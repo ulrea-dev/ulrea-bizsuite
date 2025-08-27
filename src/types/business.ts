@@ -68,7 +68,7 @@ export interface Payment {
   id: string;
   amount: number;
   date: string;
-  projectId: string;
+  projectId?: string;
   allocationId?: string;
   memberId?: string;
   partnerId?: string;
@@ -78,6 +78,9 @@ export interface Payment {
   status: 'pending' | 'completed';
   method?: string;
   description?: string;
+  paymentSource?: 'project' | 'salary' | 'task';
+  taskDescription?: string;
+  taskType?: string;
 }
 
 export interface ProjectAllocation {

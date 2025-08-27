@@ -7,6 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { SalaryPaymentModal } from '@/components/SalaryPaymentModal';
 import { SalaryModal } from '@/components/SalaryModal';
+import { PendingProjectPayments } from '@/components/PendingProjectPayments';
+import { QuickTaskPaymentModal } from '@/components/QuickTaskPaymentModal';
+import { AllPaymentsView } from '@/components/AllPaymentsView';
 import { formatCurrency } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { SalaryRecord } from '@/types/business';
@@ -39,9 +42,10 @@ export const SalariesPage: React.FC = () => {
   const { toast } = useToast();
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showTaskPaymentModal, setShowTaskPaymentModal] = useState(false);
   const [selectedPaymentRecordId, setSelectedPaymentRecordId] = useState<string | null>(null);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'payroll' | 'management'>('payroll');
+  const [activeTab, setActiveTab] = useState<'payroll' | 'management' | 'pending' | 'payments'>('payroll');
 
   // Helper functions moved to the top
   const getTeamMemberName = (memberId: string) => {
@@ -255,15 +259,21 @@ export const SalariesPage: React.FC = () => {
             Default Currency: {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})
           </p>
         </div>
-        <Button onClick={handleCreateSalary}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Employee
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleCreateSalary}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Employee
+          </Button>
+          <Button onClick={() => setShowTaskPaymentModal(true)} variant="outline">
+            <DollarSign className="mr-2 h-4 w-4" />
+            Quick Task Payment
+          </Button>
+        </div>
       </div>
 
       {/* Tabs for different views */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'payroll' | 'management')}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'payroll' | 'management' | 'pending' | 'payments')}>
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="payroll" className="gap-2">
             <CalendarIcon className="h-4 w-4" />
             Monthly Payroll
@@ -272,10 +282,26 @@ export const SalariesPage: React.FC = () => {
             <FileText className="h-4 w-4" />
             Salary Management
           </TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Pending Payments
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="gap-2">
+            <DollarSign className="h-4 w-4" />
+            All Payments
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="payroll" className="space-y-6">
           <PayrollDashboard />
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-6">
+          <PendingProjectPayments />
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-6">
+          <AllPaymentsView />
         </TabsContent>
 
         <TabsContent value="management" className="space-y-6">
@@ -351,6 +377,12 @@ export const SalariesPage: React.FC = () => {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         salaryRecordId={selectedPaymentRecordId}
+      />
+
+      {/* Quick Task Payment Modal */}
+      <QuickTaskPaymentModal
+        isOpen={showTaskPaymentModal}
+        onClose={() => setShowTaskPaymentModal(false)}
       />
     </div>
   );
