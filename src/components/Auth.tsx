@@ -46,6 +46,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
+  const handleLoadDemo = async () => {
+    try {
+      const response = await fetch('/demo-data.json');
+      const demoData = await response.json();
+      const importedData = importData(JSON.stringify(demoData));
+      dispatch({ type: 'LOAD_DATA', payload: importedData });
+      
+      // Auto-login with demo user
+      onLogin(importedData.userSettings.username);
+    } catch (error) {
+      alert('Error loading demo data. Please try again.');
+    }
+  };
+
   const isReturningUser = data.userSettings.username && data.businesses.length > 0;
 
   return (
@@ -113,38 +127,60 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </CardContent>
         </Card>
 
-        {/* Import Backup Card */}
+        {/* Demo & Import Options */}
         <Card className="dashboard-surface border-dashboard-border shadow-lg card-hover">
           <CardHeader className="text-center pb-4">
             <CardTitle className="text-lg font-semibold dashboard-text-primary flex items-center justify-center gap-2">
               <Upload className="h-5 w-5" />
-              Import Backup
+              Quick Start Options
             </CardTitle>
             <CardDescription className="dashboard-text-secondary">
-              Restore your data from a previous backup
+              Load demo data or restore your backup
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-4">
-            <Input
-              type="file"
-              accept=".json"
-              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              className="text-sm"
-            />
-            
+            {/* Load Demo Button */}
             <Button 
-              onClick={handleImportBackup} 
-              disabled={!importFile}
-              variant="outline" 
+              onClick={handleLoadDemo} 
+              variant="default" 
               className="w-full flex items-center gap-2"
             >
-              <Upload className="h-4 w-4" />
-              Restore Backup
+              <Building2 className="h-4 w-4" />
+              Load Demo Data
             </Button>
             
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t dashboard-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 dashboard-text-muted">Or</span>
+              </div>
+            </div>
+            
+            {/* Import Backup Section */}
+            <div className="space-y-3">
+              <Input
+                type="file"
+                accept=".json"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                className="text-sm"
+              />
+              
+              <Button 
+                onClick={handleImportBackup} 
+                disabled={!importFile}
+                variant="outline" 
+                className="w-full flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Restore Backup
+              </Button>
+            </div>
+            
             <p className="text-xs dashboard-text-muted text-center">
-              This will replace all current data with the backup
+              Demo includes 2 businesses with projects, team members, and payments
             </p>
           </CardContent>
         </Card>
