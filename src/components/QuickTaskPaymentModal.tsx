@@ -48,7 +48,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   });
 
   const availableTasks = data.quickTasks?.filter(task => 
-    task.businessId === currentBusiness?.id && task.status !== 'completed'
+    task.businessId === currentBusiness?.id && !task.paidAt
   ) || [];
 
   useEffect(() => {
@@ -135,11 +135,17 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
       payload: newPayment
     });
 
-    // If paying for a specific task, mark it as completed
+    // If paying for a specific task, mark it as paid
     if (selectedTaskId && !manualMode) {
       dispatch({
-        type: 'COMPLETE_QUICK_TASK',
-        payload: { id: selectedTaskId, paidAt: formData.date }
+        type: 'UPDATE_QUICK_TASK',
+        payload: { 
+          id: selectedTaskId, 
+          updates: { 
+            paidAt: formData.date,
+            updatedAt: new Date().toISOString()
+          }
+        }
       });
     }
 

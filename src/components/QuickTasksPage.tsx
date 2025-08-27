@@ -47,8 +47,10 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
   );
 
   const totalPendingAmount = businessTasks
-    .filter(task => task.status !== 'completed')
+    .filter(task => !task.paidAt)
     .reduce((sum, task) => sum + task.amount, 0);
+  
+  const unpaidCompletedTasks = businessTasks.filter(task => task.status === 'completed' && !task.paidAt);
 
   const handleEditTask = (task: QuickTask) => {
     setEditingTask(task);
@@ -68,8 +70,14 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
 
   const handleMarkCompleted = (task: QuickTask) => {
     dispatch({
-      type: 'COMPLETE_QUICK_TASK',
-      payload: { id: task.id, paidAt: new Date().toISOString() }
+      type: 'UPDATE_QUICK_TASK',
+      payload: { 
+        id: task.id, 
+        updates: { 
+          status: 'completed',
+          updatedAt: new Date().toISOString()
+        }
+      }
     });
     toast({
       title: "Task Completed",
@@ -78,8 +86,11 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
   };
 
   const getStatusBadge = (task: QuickTask) => {
-    if (task.status === 'completed') {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+    if (task.status === 'completed' && task.paidAt) {
+      return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" /><DollarSign className="h-3 w-3 mr-1" />Completed & Paid</Badge>;
+    }
+    if (task.status === 'completed' && !task.paidAt) {
+      return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><CheckCircle className="h-3 w-3 mr-1" />Completed & Unpaid</Badge>;
     }
     if (task.dueDate && new Date(task.dueDate) < today && (task.status === 'active' || task.status === 'pending')) {
       return <Badge variant="destructive"><Clock className="h-3 w-3 mr-1" />Overdue</Badge>;
@@ -173,7 +184,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
                 <p className="text-2xl font-bold">
                   {formatCurrency(totalPendingAmount, currentBusiness.currency)}
                 </p>
-                <p className="text-xs text-muted-foreground">Pending Amount</p>
+                <p className="text-xs text-muted-foreground">Unpaid Amount</p>
               </div>
             </div>
           </CardContent>
@@ -185,7 +196,10 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
         <CardHeader>
           <CardTitle>All Tasks</CardTitle>
           <CardDescription>
-            {businessTasks.length} total tasks • {businessTasks.filter(t => t.status !== 'completed').length} pending payment
+            {businessTasks.length} total tasks • {businessTasks.filter(t => !t.paidAt).length} awaiting payment
+            {unpaidCompletedTasks.length > 0 && (
+              <span className="text-orange-600"> • {unpaidCompletedTasks.length} completed but unpaid</span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -241,14 +255,14 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
                   </div>
 
                   <div className="flex items-center gap-2 ml-4">
-                    {task.status !== 'completed' && (
+                    {!task.paidAt && (
                       <Button 
                         size="sm" 
-                        variant="outline"
+                        variant={task.status === 'completed' ? "default" : "outline"}
                         onClick={() => onNavigateToPage('salaries')}
                       >
                         <DollarSign className="h-3 w-3 mr-1" />
-                        Pay
+                        {task.status === 'completed' ? 'Pay Now' : 'Pay'}
                         <ArrowRight className="h-3 w-3 ml-1" />
                       </Button>
                     )}
