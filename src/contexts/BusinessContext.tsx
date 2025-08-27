@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette, Expense, ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation } from '@/types/business';
+import { AppData, Business, Project, TeamMember, Client, Partner, Payment, TeamAllocation, PartnerAllocation, CompanyAllocation, FontOption, ColorPalette, Expense, ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation, SalaryRecord, SalaryPayment, ExchangeRate } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 import { applyFont, applyColorPalette } from '@/utils/appearance';
 import { useTheme } from '@/hooks/useTheme';
@@ -51,7 +51,16 @@ type BusinessAction =
   | { type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocationId: string; memberId: string } }
   | { type: 'ADD_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: AllocationPartnerAllocation } }
   | { type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocationId: string; partnerId: string } }
-  | { type: 'SET_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: AllocationCompanyAllocation } };
+  | { type: 'SET_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: AllocationCompanyAllocation } }
+  | { type: 'ADD_SALARY_RECORD'; payload: SalaryRecord }
+  | { type: 'UPDATE_SALARY_RECORD'; payload: { id: string; updates: Partial<SalaryRecord> } }
+  | { type: 'DELETE_SALARY_RECORD'; payload: string }
+  | { type: 'ADD_SALARY_PAYMENT'; payload: SalaryPayment }
+  | { type: 'UPDATE_SALARY_PAYMENT'; payload: { id: string; updates: Partial<SalaryPayment> } }
+  | { type: 'DELETE_SALARY_PAYMENT'; payload: string }
+  | { type: 'ADD_EXCHANGE_RATE'; payload: ExchangeRate }
+  | { type: 'UPDATE_EXCHANGE_RATE'; payload: { id: string; updates: Partial<ExchangeRate> } }
+  | { type: 'DELETE_EXCHANGE_RATE'; payload: string };
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
@@ -846,7 +855,73 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
         },
       };
 
-    
+    case 'ADD_SALARY_RECORD':
+      return {
+        ...state,
+        salaryRecords: [...(state.salaryRecords || []), action.payload],
+      };
+
+    case 'UPDATE_SALARY_RECORD':
+      return {
+        ...state,
+        salaryRecords: (state.salaryRecords || []).map(record =>
+          record.id === action.payload.id
+            ? { ...record, ...action.payload.updates, updatedAt: new Date().toISOString() }
+            : record
+        ),
+      };
+
+    case 'DELETE_SALARY_RECORD':
+      return {
+        ...state,
+        salaryRecords: (state.salaryRecords || []).filter(record => record.id !== action.payload),
+        salaryPayments: (state.salaryPayments || []).filter(payment => payment.salaryRecordId !== action.payload),
+      };
+
+    case 'ADD_SALARY_PAYMENT':
+      return {
+        ...state,
+        salaryPayments: [...(state.salaryPayments || []), action.payload],
+      };
+
+    case 'UPDATE_SALARY_PAYMENT':
+      return {
+        ...state,
+        salaryPayments: (state.salaryPayments || []).map(payment =>
+          payment.id === action.payload.id
+            ? { ...payment, ...action.payload.updates }
+            : payment
+        ),
+      };
+
+    case 'DELETE_SALARY_PAYMENT':
+      return {
+        ...state,
+        salaryPayments: (state.salaryPayments || []).filter(payment => payment.id !== action.payload),
+      };
+
+    case 'ADD_EXCHANGE_RATE':
+      return {
+        ...state,
+        exchangeRates: [...(state.exchangeRates || []), action.payload],
+      };
+
+    case 'UPDATE_EXCHANGE_RATE':
+      return {
+        ...state,
+        exchangeRates: (state.exchangeRates || []).map(rate =>
+          rate.id === action.payload.id
+            ? { ...rate, ...action.payload.updates, updatedAt: new Date().toISOString() }
+            : rate
+        ),
+      };
+
+    case 'DELETE_EXCHANGE_RATE':
+      return {
+        ...state,
+        exchangeRates: (state.exchangeRates || []).filter(rate => rate.id !== action.payload),
+      };
+
     default:
       return state;
   }

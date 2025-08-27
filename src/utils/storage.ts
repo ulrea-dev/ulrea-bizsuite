@@ -11,6 +11,9 @@ const getInitialData = (): AppData => ({
   partners: [],
   clients: [],
   payments: [],
+  salaryRecords: [],
+  salaryPayments: [],
+  exchangeRates: [],
   currentBusinessId: null,
   userSettings: {
     username: '',
@@ -34,6 +37,10 @@ export const loadData = (): AppData => {
       ...data,
       // Ensure partners array exists (for backward compatibility)
       partners: data.partners || [],
+      // Ensure salary arrays exist (for backward compatibility)
+      salaryRecords: data.salaryRecords || [],
+      salaryPayments: data.salaryPayments || [],
+      exchangeRates: data.exchangeRates || [],
       // Ensure projects have clientPayments field (for backward compatibility)
       projects: (data.projects || []).map(project => ({
         ...project,
