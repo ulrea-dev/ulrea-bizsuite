@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -191,6 +190,18 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     return total;
   };
 
+  // Handle primary switch change
+  const handlePrimaryToggle = (checked: boolean) => {
+    console.log('Primary toggle clicked:', checked);
+    setPrimaryEnabled(checked);
+  };
+
+  // Handle secondary switch change
+  const handleSecondaryToggle = (checked: boolean) => {
+    console.log('Secondary toggle clicked:', checked);
+    setSecondaryEnabled(checked);
+  };
+
   const handleSave = () => {
     if (!currentBusiness || !selectedTeamMemberId) {
       toast({
@@ -372,7 +383,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 </div>
                 <Switch
                   checked={primaryEnabled}
-                  onCheckedChange={setPrimaryEnabled}
+                  onCheckedChange={handlePrimaryToggle}
                 />
               </div>
             </CardHeader>
@@ -477,7 +488,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 </div>
                 <Switch
                   checked={secondaryEnabled}
-                  onCheckedChange={setSecondaryEnabled}
+                  onCheckedChange={handleSecondaryToggle}
                 />
               </div>
             </CardHeader>
