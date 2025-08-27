@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
@@ -26,6 +25,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface SalaryModalProps {
   isOpen: boolean;
@@ -47,10 +47,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     currency: data.userSettings.defaultCurrency.code,
     frequency: 'monthly' as 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually',
     startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
     description: '',
     isProjectBased: false,
     projectId: '',
     clientId: '',
+    salaryType: 'primary' as 'primary' | 'secondary',
+    contractDuration: '',
   });
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
 
@@ -84,10 +87,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         currency: existingRecord.currency,
         frequency: existingRecord.frequency,
         startDate: existingRecord.startDate.split('T')[0],
+        endDate: existingRecord.endDate ? existingRecord.endDate.split('T')[0] : '',
         description: existingRecord.description || '',
         isProjectBased: !!(existingRecord as any).projectId,
         projectId: (existingRecord as any).projectId || '',
         clientId: (existingRecord as any).clientId || '',
+        salaryType: (existingRecord as any).salaryType || 'primary',
+        contractDuration: (existingRecord as any).contractDuration?.toString() || '',
       });
     } else {
       setFormData({
@@ -97,13 +103,29 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         currency: data.userSettings.defaultCurrency.code,
         frequency: 'monthly',
         startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
         description: '',
         isProjectBased: false,
         projectId: '',
         clientId: '',
+        salaryType: 'primary',
+        contractDuration: '',
       });
     }
   }, [existingRecord, data.userSettings.defaultCurrency.code]);
+
+  // Calculate end date automatically for secondary salaries
+  useEffect(() => {
+    if (formData.salaryType === 'secondary' && formData.contractDuration && formData.startDate) {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + parseInt(formData.contractDuration));
+      setFormData(prev => ({
+        ...prev,
+        endDate: endDate.toISOString().split('T')[0]
+      }));
+    }
+  }, [formData.salaryType, formData.contractDuration, formData.startDate]);
 
   useEffect(() => {
     // Calculate converted amount when amount or currency changes
@@ -147,6 +169,15 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       return;
     }
 
+    if (formData.salaryType === 'secondary' && !formData.contractDuration) {
+      toast({
+        title: "Error",
+        description: "Please specify contract duration for secondary salary.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (formData.isProjectBased && !formData.projectId) {
       toast({
         title: "Error",
@@ -175,10 +206,14 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       currency: formData.currency,
       frequency: formData.frequency,
       startDate: new Date(formData.startDate).toISOString(),
+      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
       description: formData.description,
       projectId: formData.isProjectBased ? formData.projectId : undefined,
       clientId: formData.isProjectBased ? formData.clientId : undefined,
       isProjectBased: formData.isProjectBased,
+      salaryType: formData.salaryType,
+      contractDuration: formData.salaryType === 'secondary' && formData.contractDuration ? 
+        parseInt(formData.contractDuration) : undefined,
       createdAt: existingRecord?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -214,7 +249,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {existingRecord ? 'Edit Salary Record' : 'Add Salary Record'}
@@ -248,6 +283,24 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           </div>
 
           <div>
+            <Label>Salary Type *</Label>
+            <RadioGroup
+              value={formData.salaryType}
+              onValueChange={(value: 'primary' | 'secondary') => setFormData({ ...formData, salaryType: value })}
+              className="flex space-x-6 mt-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="primary" id="primary" />
+                <Label htmlFor="primary">Primary Salary</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="secondary" id="secondary" />
+                <Label htmlFor="secondary">Secondary/Contract Salary</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div>
             <Label htmlFor="position">Position *</Label>
             <Input
               id="position"
@@ -257,6 +310,22 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
               required
             />
           </div>
+
+          {formData.salaryType === 'secondary' && (
+            <div>
+              <Label htmlFor="contractDuration">Contract Duration (months) *</Label>
+              <Input
+                id="contractDuration"
+                type="number"
+                min="1"
+                max="60"
+                value={formData.contractDuration}
+                onChange={(e) => setFormData({ ...formData, contractDuration: e.target.value })}
+                placeholder="e.g., 6 for 6 months"
+                required
+              />
+            </div>
+          )}
 
           <div className="flex items-center space-x-2">
             <Switch
@@ -391,13 +460,33 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
             </div>
           </div>
 
+          {formData.salaryType === 'secondary' && (
+            <div>
+              <Label htmlFor="endDate">Contract End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                readOnly
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Auto-calculated based on contract duration
+              </p>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Additional notes about this salary record (optional)"
+              placeholder={formData.salaryType === 'secondary' 
+                ? "Details about the contract work, specific project, or additional responsibilities"
+                : "Additional notes about this salary record (optional)"
+              }
               rows={3}
             />
           </div>

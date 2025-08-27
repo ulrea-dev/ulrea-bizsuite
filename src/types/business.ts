@@ -152,10 +152,13 @@ export interface SalaryRecord {
   currency: string;
   frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
   startDate: string;
+  endDate?: string; // For contract-based secondary salaries
   description?: string;
   projectId?: string;
   clientId?: string;
   isProjectBased?: boolean;
+  salaryType: 'primary' | 'secondary'; // New field to distinguish salary types
+  contractDuration?: number; // Duration in months for secondary salaries
   createdAt: string;
   updatedAt: string;
 }
