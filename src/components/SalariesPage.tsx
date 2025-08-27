@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Plus, Users, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -92,6 +91,18 @@ export const SalariesPage: React.FC = () => {
     const member = data.teamMembers.find(m => m.id === memberId);
     return member ? member.name : 'Unknown Member';
   };
+
+  const getProjectName = (projectId: string) => {
+    const project = data.projects.find(p => p.id === projectId);
+    return project ? project.name : 'Unknown Project';
+  };
+
+  const getClientName = (clientId: string) => {
+    const client = data.clients.find(c => c.id === clientId);
+    return client ? client.name : 'Unknown Client';
+  };
+
+  const allCurrencies = SUPPORTED_CURRENCIES.concat(data.customCurrencies || []);
 
   const handleCreateSalary = () => {
     setSelectedSalaryRecord(null);
@@ -239,6 +250,9 @@ export const SalariesPage: React.FC = () => {
     onEdit: handleEditSalary,
     onRecordPayment: handleRecordPayment,
     getTeamMemberName,
+    getProjectName,
+    getClientName,
+    allCurrencies,
   });
 
   const isReadOnly = modalMode === 'view';
