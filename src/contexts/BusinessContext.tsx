@@ -105,10 +105,13 @@ export type BusinessAction =
   | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } } // legacy per-project
   | { type: 'SET_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } } // legacy per-project
   | { type: 'ADD_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocation: AllocationTeamAllocation } }
+  | { type: 'UPDATE_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocationId: string; memberId: string; updates: Partial<AllocationTeamAllocation> } }
   | { type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocationId: string; memberId: string } }
   | { type: 'ADD_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: AllocationPartnerAllocation } }
+  | { type: 'UPDATE_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocationId: string; partnerId: string; updates: Partial<AllocationPartnerAllocation> } }
   | { type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocationId: string; partnerId: string } }
   | { type: 'SET_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: AllocationCompanyAllocation } }
+  | { type: 'UPDATE_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocationId: string; updates: Partial<AllocationCompanyAllocation> } }
   | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; clientPayments: number } }
   // Quick Task actions
   | { type: 'ADD_QUICK_TASK'; payload: QuickTask }
@@ -577,6 +580,40 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
             : p
         ),
       };
+    case 'UPDATE_ALLOCATION_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationTeamAllocations: (p.allocationTeamAllocations || []).map(a =>
+                  a.allocationId === action.payload.allocationId && a.memberId === action.payload.memberId
+                    ? { ...a, ...action.payload.updates }
+                    : a
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'UPDATE_ALLOCATION_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationPartnerAllocations: (p.allocationPartnerAllocations || []).map(a =>
+                  a.allocationId === action.payload.allocationId && a.partnerId === action.payload.partnerId
+                    ? { ...a, ...action.payload.updates }
+                    : a
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
     case 'SET_ALLOCATION_COMPANY_ALLOCATION':
       return {
         ...state,
@@ -590,6 +627,23 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
                   ),
                   action.payload.allocation,
                 ],
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'UPDATE_ALLOCATION_COMPANY_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationCompanyAllocations: (p.allocationCompanyAllocations || []).map(a =>
+                  a.allocationId === action.payload.allocationId
+                    ? { ...a, ...action.payload.updates }
+                    : a
+                ),
                 updatedAt: new Date().toISOString(),
               }
             : p

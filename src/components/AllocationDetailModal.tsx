@@ -9,10 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Trash2, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Trash2, Plus, AlertTriangle, CheckCircle, Edit } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
 import { ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation } from '@/types/business';
+import { TeamAllocationEditModal } from './TeamAllocationEditModal';
+import { PartnerAllocationEditModal } from './PartnerAllocationEditModal';
+import { CompanyAllocationEditModal } from './CompanyAllocationEditModal';
 
 interface AllocationDetailModalProps {
   projectId: string;
@@ -27,6 +30,11 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
 }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const [open, setOpen] = useState(false);
+  
+  // Edit modal states
+  const [editingTeamAllocation, setEditingTeamAllocation] = useState<AllocationTeamAllocation | null>(null);
+  const [editingPartnerAllocation, setEditingPartnerAllocation] = useState<AllocationPartnerAllocation | null>(null);
+  const [editingCompanyAllocation, setEditingCompanyAllocation] = useState<AllocationCompanyAllocation | null>(null);
 
   const project = data.projects.find(p => p.id === projectId);
   if (!project || !currentBusiness) return null;
@@ -266,28 +274,37 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
             <Card key={alloc.memberId}>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">{alloc.memberName}</CardTitle>
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <Badge variant="outline">
-                        {alloc.allocationType === 'percentage' 
-                          ? `${alloc.allocationValue}%` 
-                          : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
-                        }
-                      </Badge>
-                      <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => dispatch({
-                      type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION',
-                      payload: { projectId, allocationId: allocation.id, memberId: alloc.memberId },
-                    })}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                   <div>
+                     <CardTitle className="text-sm">{alloc.memberName}</CardTitle>
+                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                       <Badge variant="outline">
+                         {alloc.allocationType === 'percentage' 
+                           ? `${alloc.allocationValue}%` 
+                           : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
+                         }
+                       </Badge>
+                       <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
+                     </div>
+                   </div>
+                   <div className="flex gap-1">
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => setEditingTeamAllocation(alloc)}
+                     >
+                       <Edit className="w-4 h-4" />
+                     </Button>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => dispatch({
+                         type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION',
+                         payload: { projectId, allocationId: allocation.id, memberId: alloc.memberId },
+                       })}
+                     >
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                   </div>
                 </div>
               </CardHeader>
             </Card>
@@ -404,28 +421,37 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
             <Card key={alloc.partnerId}>
               <CardHeader className="py-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <Badge variant="outline">
-                        {alloc.allocationType === 'percentage' 
-                          ? `${alloc.allocationValue}%` 
-                          : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
-                        }
-                      </Badge>
-                      <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => dispatch({
-                      type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION',
-                      payload: { projectId, allocationId: allocation.id, partnerId: alloc.partnerId },
-                    })}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                   <div>
+                     <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
+                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                       <Badge variant="outline">
+                         {alloc.allocationType === 'percentage' 
+                           ? `${alloc.allocationValue}%` 
+                           : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
+                         }
+                       </Badge>
+                       <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
+                     </div>
+                   </div>
+                   <div className="flex gap-1">
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => setEditingPartnerAllocation(alloc)}
+                     >
+                       <Edit className="w-4 h-4" />
+                     </Button>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => dispatch({
+                         type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION',
+                         payload: { projectId, allocationId: allocation.id, partnerId: alloc.partnerId },
+                       })}
+                     >
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                   </div>
                 </div>
               </CardHeader>
             </Card>
@@ -548,18 +574,25 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
           <Card>
             <CardHeader className="py-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm">{currentBusiness.name}</CardTitle>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">
-                      {allocationCompanyAllocation.allocationType === 'percentage' 
-                        ? `${allocationCompanyAllocation.allocationValue}%` 
-                        : `${currentBusiness.currency.symbol}${allocationCompanyAllocation.allocationValue.toLocaleString()}`
-                      }
-                    </Badge>
-                    <span>Total: {currentBusiness.currency.symbol}{allocationCompanyAllocation.totalAllocated.toLocaleString()}</span>
-                  </div>
-                </div>
+                 <div>
+                   <CardTitle className="text-sm">{currentBusiness.name}</CardTitle>
+                   <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                     <Badge variant="outline">
+                       {allocationCompanyAllocation.allocationType === 'percentage' 
+                         ? `${allocationCompanyAllocation.allocationValue}%` 
+                         : `${currentBusiness.currency.symbol}${allocationCompanyAllocation.allocationValue.toLocaleString()}`
+                       }
+                     </Badge>
+                     <span>Total: {currentBusiness.currency.symbol}{allocationCompanyAllocation.totalAllocated.toLocaleString()}</span>
+                   </div>
+                 </div>
+                 <Button
+                   variant="ghost"
+                   size="sm"
+                   onClick={() => setEditingCompanyAllocation(allocationCompanyAllocation)}
+                 >
+                   <Edit className="w-4 h-4" />
+                 </Button>
               </div>
             </CardHeader>
           </Card>
@@ -600,6 +633,37 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
           </TabsContent>
         </Tabs>
       </DialogContent>
+      
+      {/* Edit Modals */}
+      {editingTeamAllocation && (
+        <TeamAllocationEditModal
+          open={!!editingTeamAllocation}
+          onOpenChange={(open) => !open && setEditingTeamAllocation(null)}
+          projectId={projectId}
+          allocation={allocation}
+          teamAllocation={editingTeamAllocation}
+        />
+      )}
+      
+      {editingPartnerAllocation && (
+        <PartnerAllocationEditModal
+          open={!!editingPartnerAllocation}
+          onOpenChange={(open) => !open && setEditingPartnerAllocation(null)}
+          projectId={projectId}
+          allocation={allocation}
+          partnerAllocation={editingPartnerAllocation}
+        />
+      )}
+      
+      {editingCompanyAllocation && (
+        <CompanyAllocationEditModal
+          open={!!editingCompanyAllocation}
+          onOpenChange={(open) => !open && setEditingCompanyAllocation(null)}
+          projectId={projectId}
+          allocation={allocation}
+          companyAllocation={editingCompanyAllocation}
+        />
+      )}
     </Dialog>
   );
 };
