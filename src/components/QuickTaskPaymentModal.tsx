@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  console.log('QuickTaskPaymentModal render', { isOpen });
   const { data, dispatch, currentBusiness } = useBusiness();
   const { toast } = useToast();
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -66,7 +65,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   }, [getSelectedTasks]);
 
   useEffect(() => {
-    console.log('useEffect [isOpen] triggered', { isOpen });
     // Reset form when modal opens
     if (isOpen) {
       setSelectedTaskIds([]);
@@ -84,28 +82,23 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    console.log('useEffect [selectedTaskIds, manualMode, bulkMode] triggered', { 
-      selectedTaskIds: selectedTaskIds.length, 
-      manualMode, 
-      bulkMode 
-    });
     // Auto-fill form when a single task is selected in non-bulk mode
-    if (selectedTaskIds.length === 1 && !manualMode && !bulkMode) {
+    if (selectedTaskIds.length === 1 && !manualMode && !bulkMode && availableTasks.length > 0) {
       const selectedTask = availableTasks.find(task => task.id === selectedTaskIds[0]);
       if (selectedTask) {
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           teamMemberId: selectedTask.assignedToId,
           amount: selectedTask.amount.toString(),
-          date: new Date().toISOString().split('T')[0],
           taskType: selectedTask.taskType || '',
           taskDescription: selectedTask.title,
           description: selectedTask.description || '',
-        });
+        }));
       }
     }
-  }, [selectedTaskIds, manualMode, bulkMode]); // Removed availableTasks dependency
+  }, [selectedTaskIds, manualMode, bulkMode, availableTasks]);
 
-  const handleTaskSelection = (taskId: string, checked: boolean) => {
+  const handleTaskSelection = useCallback((taskId: string, checked: boolean) => {
     if (bulkMode) {
       setSelectedTaskIds(prev => 
         checked ? [...prev, taskId] : prev.filter(id => id !== taskId)
@@ -113,15 +106,20 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     } else {
       setSelectedTaskIds(checked ? [taskId] : []);
     }
-  };
+  }, [bulkMode]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedTaskIds.length === availableTasks.length) {
       setSelectedTaskIds([]);
     } else {
       setSelectedTaskIds(availableTasks.map(task => task.id));
     }
-  };
+  }, [selectedTaskIds.length, availableTasks]);
+
+  const getAssigneeName = useCallback((assignedToId: string) => {
+    const member = data.teamMembers.find(m => m.id === assignedToId);
+    return member?.name || 'Unknown';
+  }, [data.teamMembers]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,11 +253,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     }
 
     onClose();
-  };
-
-  const getAssigneeName = (assignedToId: string) => {
-    const member = data.teamMembers.find(m => m.id === assignedToId);
-    return member?.name || 'Unknown';
   };
 
   if (!currentBusiness) {
