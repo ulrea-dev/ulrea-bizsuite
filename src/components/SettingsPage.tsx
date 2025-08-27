@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,22 +8,24 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Upload, Trash2, Moon, Sun, Database, User, Building, Palette, Type } from 'lucide-react';
+import { Download, Upload, Trash2, Moon, Sun, Database, User, Building, Palette, Type, Plus, Coins } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTheme } from '@/hooks/useTheme';
 import { exportData, importData, clearAllData } from '@/utils/storage';
-import { SUPPORTED_CURRENCIES } from '@/types/business';
+import { SUPPORTED_CURRENCIES, Currency } from '@/types/business';
 import { FONT_OPTIONS, COLOR_PALETTES } from '@/utils/appearance';
 import { BusinessManagement } from './BusinessManagement';
 import { BusinessSetup } from './BusinessSetup';
 import { FontSelector } from './FontSelector';
 import { ColorPaletteSelector } from './ColorPaletteSelector';
+import { CustomCurrencyModal } from './CustomCurrencyModal';
 
 export const SettingsPage: React.FC = () => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const { theme, toggleTheme } = useTheme();
   const [importFile, setImportFile] = useState<File | null>(null);
   const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+  const [showCustomCurrencyModal, setShowCustomCurrencyModal] = useState(false);
 
   if (showBusinessSetup) {
     return (
@@ -80,6 +81,28 @@ export const SettingsPage: React.FC = () => {
     dispatch({ type: 'SET_USERNAME', payload: username });
   };
 
+  const handleCurrencyChange = (currencyCode: string) => {
+    const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
+    const currency = allCurrencies.find(c => c.code === currencyCode);
+    if (currency) {
+      dispatch({
+        type: 'SET_DEFAULT_CURRENCY',
+        payload: currency,
+      });
+    }
+  };
+
+  const handleDeleteCustomCurrency = (currencyCode: string) => {
+    if (confirm('Are you sure you want to delete this custom currency?')) {
+      dispatch({
+        type: 'DELETE_CUSTOM_CURRENCY',
+        payload: currencyCode,
+      });
+    }
+  };
+
+  const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -96,73 +119,119 @@ export const SettingsPage: React.FC = () => {
         </TabsList>
 
         <TabsContent value="user" className="space-y-6 mt-6">
+          {/* User Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                User Settings
+              </CardTitle>
+              <CardDescription>Manage your personal preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={data.userSettings.username}
+                  onChange={(e) => handleUsernameUpdate(e.target.value)}
+                  placeholder="Enter your username"
+                />
+              </div>
 
-      {/* User Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            User Settings
-          </CardTitle>
-          <CardDescription>Manage your personal preferences</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              value={data.userSettings.username}
-              onChange={(e) => handleUsernameUpdate(e.target.value)}
-              placeholder="Enter your username"
-            />
-          </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Theme</Label>
+                  <p className="text-sm dashboard-text-secondary">
+                    Choose your preferred theme
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sun className="h-4 w-4" />
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                  />
+                  <Moon className="h-4 w-4" />
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Theme</Label>
-              <p className="text-sm dashboard-text-secondary">
-                Choose your preferred theme
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sun className="h-4 w-4" />
-              <Switch
-                checked={theme === 'dark'}
-                onCheckedChange={toggleTheme}
-              />
-              <Moon className="h-4 w-4" />
-            </div>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="defaultCurrency">Default Currency</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={data.userSettings.defaultCurrency.code}
+                    onValueChange={handleCurrencyChange}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                        Standard Currencies
+                      </div>
+                      {SUPPORTED_CURRENCIES.map(currency => (
+                        <SelectItem key={currency.code} value={currency.code}>
+                          {currency.symbol} {currency.name} ({currency.code})
+                        </SelectItem>
+                      ))}
+                      {(data.customCurrencies || []).length > 0 && (
+                        <>
+                          <div className="px-2 py-1 text-sm font-medium text-muted-foreground border-t mt-2 pt-2">
+                            Custom Currencies
+                          </div>
+                          {(data.customCurrencies || []).map(currency => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.symbol} {currency.name} ({currency.code})
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowCustomCurrencyModal(true)}
+                    title="Add Custom Currency"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="defaultCurrency">Default Currency</Label>
-            <Select
-              value={data.userSettings.defaultCurrency.code}
-              onValueChange={(value) => {
-                const currency = SUPPORTED_CURRENCIES.find(c => c.code === value);
-                if (currency) {
-                  dispatch({
-                    type: 'SET_USERNAME', // We need to add a SET_CURRENCY action
-                    payload: data.userSettings.username
-                  });
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_CURRENCIES.map(currency => (
-                  <SelectItem key={currency.code} value={currency.code}>
-                    {currency.symbol} {currency.name} ({currency.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
+              {/* Custom Currencies Management */}
+              {(data.customCurrencies || []).length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Coins className="h-5 w-5" />
+                      Custom Currencies
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {(data.customCurrencies || []).map(currency => (
+                        <div key={currency.code} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{currency.symbol} {currency.name}</Badge>
+                            <span className="text-sm text-muted-foreground">({currency.code})</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteCustomCurrency(currency.code)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="appearance" className="space-y-6 mt-6">
@@ -337,6 +406,12 @@ export const SettingsPage: React.FC = () => {
       </Card>
         </TabsContent>
       </Tabs>
+
+      <CustomCurrencyModal
+        isOpen={showCustomCurrencyModal}
+        onClose={() => setShowCustomCurrencyModal(false)}
+        onCurrencyAdded={() => {}}
+      />
     </div>
   );
 };

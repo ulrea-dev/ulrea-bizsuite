@@ -1,8 +1,8 @@
-
 export interface Currency {
   code: string;
   symbol: string;
   name: string;
+  isCustom?: boolean;
 }
 
 export interface Business {
@@ -246,6 +246,7 @@ export interface AppData {
   salaryRecords: SalaryRecord[];
   salaryPayments: SalaryPayment[];
   exchangeRates: ExchangeRate[];
+  customCurrencies: Currency[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;
