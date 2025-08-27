@@ -35,6 +35,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  console.log('QuickTaskPaymentModal render', { isOpen });
   const { data, dispatch, currentBusiness } = useBusiness();
   const { toast } = useToast();
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -65,6 +66,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   }, [getSelectedTasks]);
 
   useEffect(() => {
+    console.log('useEffect [isOpen] triggered', { isOpen });
     // Reset form when modal opens
     if (isOpen) {
       setSelectedTaskIds([]);
@@ -82,6 +84,11 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
+    console.log('useEffect [selectedTaskIds, manualMode, bulkMode] triggered', { 
+      selectedTaskIds: selectedTaskIds.length, 
+      manualMode, 
+      bulkMode 
+    });
     // Auto-fill form when a single task is selected in non-bulk mode
     if (selectedTaskIds.length === 1 && !manualMode && !bulkMode) {
       const selectedTask = availableTasks.find(task => task.id === selectedTaskIds[0]);
