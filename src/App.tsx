@@ -1,13 +1,19 @@
 
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
-// Temporarily render only Index to isolate invalid hook calls coming from providers/router.
 const App = () => (
-  <>
-    {/* Removed shadcn Toaster and Sonner Toaster during isolation */}
-    {/* Removed BrowserRouter/Routes/Route during isolation */}
-    <Index />
-  </>
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+    <Toaster />
+    <Sonner />
+  </BrowserRouter>
 );
 
 export default App;

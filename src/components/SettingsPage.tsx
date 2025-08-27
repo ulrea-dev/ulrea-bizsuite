@@ -20,7 +20,7 @@ import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
-import { getDefaultFont, getDefaultColorPalette, applyFont, applyColorPalette } from '@/utils/appearance';
+import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
 import { Plus } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -87,7 +87,7 @@ export const SettingsPage: React.FC = () => {
   const handleFontChange = (font: FontOption) => {
     setSelectedFont(font);
     dispatch({ type: 'SET_FONT', payload: font });
-    applyFont(font);
+    // Font will be applied automatically by useAppearance hook
     toast({
       title: "Success",
       description: `Font changed to ${font.name}.`,
@@ -97,7 +97,7 @@ export const SettingsPage: React.FC = () => {
   const handlePaletteChange = (palette: ColorPalette) => {
     setSelectedPalette(palette);
     dispatch({ type: 'SET_COLOR_PALETTE', payload: palette });
-    applyColorPalette(palette, data.userSettings.theme === 'dark');
+    // Color palette will be applied automatically by useAppearance hook
     toast({
       title: "Success",
       description: `Color palette changed to ${palette.name}.`,

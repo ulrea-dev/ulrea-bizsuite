@@ -4,10 +4,14 @@ import { Auth } from '@/components/Auth';
 import { Dashboard } from '@/components/Dashboard';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { BusinessProvider, useBusiness } from '@/contexts/BusinessContext';
+import { useAppearance } from '@/hooks/useAppearance';
 
 const AppContent: React.FC = () => {
   const { data, dispatch } = useBusiness();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Apply appearance settings (fonts and color palettes)
+  useAppearance();
 
   useEffect(() => {
     // Check if user is already logged in

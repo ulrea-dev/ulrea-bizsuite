@@ -182,24 +182,75 @@ export const applyFont = (font: FontOption) => {
 export const applyColorPalette = (palette: ColorPalette, isDark: boolean = false) => {
   const root = document.documentElement;
   
+  // Determine which colors to apply
+  const colorsToApply = isDark ? convertToDarkMode(palette.colors) : palette.colors;
+  
   // Apply base colors
-  Object.entries(palette.colors).forEach(([key, value]) => {
-    root.style.setProperty(`--${key}`, value);
+  Object.entries(colorsToApply).forEach(([key, value]) => {
+    // Convert camelCase to kebab-case for CSS variables
+    const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+    root.style.setProperty(`--${cssKey}`, value);
   });
 
-  // For dark mode, we need to create darker versions
+  // Apply sidebar colors (derived from base colors)
   if (isDark) {
-    // Convert light colors to dark equivalents
-    const darkColors = convertToDarkMode(palette.colors);
-    Object.entries(darkColors).forEach(([key, value]) => {
-      root.style.setProperty(`--${key}`, value);
-    });
+    root.style.setProperty('--sidebar-background', colorsToApply.background);
+    root.style.setProperty('--sidebar-foreground', colorsToApply.mutedForeground);
+    root.style.setProperty('--sidebar-primary', colorsToApply.primary);
+    root.style.setProperty('--sidebar-primary-foreground', colorsToApply.primaryForeground);
+    root.style.setProperty('--sidebar-accent', colorsToApply.accent);
+    root.style.setProperty('--sidebar-accent-foreground', colorsToApply.accentForeground); 
+    root.style.setProperty('--sidebar-border', colorsToApply.border);
+    root.style.setProperty('--sidebar-ring', colorsToApply.ring);
+  } else {
+    root.style.setProperty('--sidebar-background', '0 0% 98%');
+    root.style.setProperty('--sidebar-foreground', colorsToApply.foreground);
+    root.style.setProperty('--sidebar-primary', colorsToApply.primary);
+    root.style.setProperty('--sidebar-primary-foreground', colorsToApply.primaryForeground);
+    root.style.setProperty('--sidebar-accent', colorsToApply.secondary);
+    root.style.setProperty('--sidebar-accent-foreground', colorsToApply.secondaryForeground);
+    root.style.setProperty('--sidebar-border', colorsToApply.border);
+    root.style.setProperty('--sidebar-ring', colorsToApply.ring);
   }
+
+  // Apply dashboard-specific colors
+  root.style.setProperty('--dashboard-background', colorsToApply.background);
+  root.style.setProperty('--dashboard-surface', colorsToApply.card);
+  root.style.setProperty('--dashboard-surface-elevated', colorsToApply.card);
+  root.style.setProperty('--dashboard-border', colorsToApply.border);
+  root.style.setProperty('--dashboard-text-primary', colorsToApply.foreground);
+  root.style.setProperty('--dashboard-text-secondary', colorsToApply.mutedForeground);
+  root.style.setProperty('--dashboard-text-muted', colorsToApply.mutedForeground);
+
+  // Apply status colors
+  if (isDark) {
+    root.style.setProperty('--status-positive', '142 76% 70%');
+    root.style.setProperty('--status-neutral', colorsToApply.mutedForeground);
+    root.style.setProperty('--status-negative', '0 84% 70%');
+  } else {
+    root.style.setProperty('--status-positive', '142 76% 36%');
+    root.style.setProperty('--status-neutral', colorsToApply.mutedForeground);
+    root.style.setProperty('--status-negative', '0 84% 60%');
+  }
+
+  // Apply interactive states
+  const hoverSurface = isDark ? '0 0% 15%' : (colorsToApply.secondary || '0 0% 94%');
+  const activeSurface = isDark ? '0 0% 20%' : (colorsToApply.accent || '0 0% 91%');
+  root.style.setProperty('--hover-surface', hoverSurface);
+  root.style.setProperty('--active-surface', activeSurface);
 };
 
 // Convert light colors to dark mode equivalents
 const convertToDarkMode = (lightColors: ColorPalette['colors']) => {
-  // This is a simplified conversion - in practice, you'd want more sophisticated logic
+  // Extract hue and saturation from primary color for consistency
+  const primaryMatch = lightColors.primary.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  const ringMatch = lightColors.ring.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  
+  const primaryHue = primaryMatch ? primaryMatch[1] : '221';
+  const primarySat = primaryMatch ? primaryMatch[2] : '83';
+  const ringHue = ringMatch ? ringMatch[1] : primaryHue;
+  const ringSat = ringMatch ? ringMatch[2] : primarySat;
+
   return {
     background: '0 0% 8%',
     foreground: '0 0% 95%',
@@ -207,7 +258,7 @@ const convertToDarkMode = (lightColors: ColorPalette['colors']) => {
     cardForeground: '0 0% 95%',
     popover: '0 0% 8%',
     popoverForeground: '0 0% 95%',
-    primary: lightColors.primary, // Keep primary color similar
+    primary: `${primaryHue} ${primarySat}% 70%`, // Lighter version for dark mode
     primaryForeground: '0 0% 10%',
     secondary: '0 0% 15%',
     secondaryForeground: '0 0% 85%',
@@ -215,11 +266,11 @@ const convertToDarkMode = (lightColors: ColorPalette['colors']) => {
     mutedForeground: '0 0% 60%',
     accent: '0 0% 18%',
     accentForeground: '0 0% 90%',
-    destructive: lightColors.destructive,
+    destructive: '0 84% 70%', // Lighter destructive for dark mode
     destructiveForeground: '0 0% 8%',
     border: '0 0% 18%',
     input: '0 0% 18%',
-    ring: lightColors.ring
+    ring: `${ringHue} ${ringSat}% 80%` // Lighter ring for dark mode
   };
 };
 

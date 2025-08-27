@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useBusiness } from '@/contexts/BusinessContext';
+import { applyColorPalette, applyFont } from '@/utils/appearance';
 
 type Theme = 'light' | 'dark';
 
@@ -28,6 +30,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
     localStorage.setItem('bizsuite-theme', theme);
+    
+    // Re-apply current color palette and font when theme changes
+    const applyCurrentSettings = () => {
+      const storedData = localStorage.getItem('bizsuite-data');
+      if (storedData) {
+        try {
+          const data = JSON.parse(storedData);
+          if (data.userSettings?.colorPalette) {
+            applyColorPalette(data.userSettings.colorPalette, theme === 'dark');
+          }
+          if (data.userSettings?.fontFamily) {
+            applyFont(data.userSettings.fontFamily);
+          }
+        } catch (error) {
+          console.error('Error applying theme settings:', error);
+        }
+      }
+    };
+
+    // Apply settings after a short delay to ensure DOM is ready
+    setTimeout(applyCurrentSettings, 100);
   }, [theme]);
 
   const toggleTheme = () => {
