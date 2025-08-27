@@ -9,6 +9,7 @@ import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
 import { AppSidebar } from './AppSidebar';
 import { SalariesPage } from './SalariesPage';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -70,16 +71,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <AppSidebar 
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-        onLogout={onLogout}
-        onCreateBusiness={onCreateBusiness}
-      />
-      <div className="flex-1 p-6 overflow-y-auto">
-        {renderPage()}
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar 
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+          onLogout={onLogout}
+          onCreateBusiness={onCreateBusiness}
+        />
+        <SidebarInset>
+          <div className="p-6 overflow-y-auto">
+            {renderPage()}
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
