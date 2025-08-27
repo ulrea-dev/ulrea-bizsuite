@@ -28,13 +28,15 @@ export const AllPaymentsView: React.FC = () => {
     );
   }
 
-  // Get all payments (including salary payments as regular payments)
+  // Get all payments (including salary payments as regular payments) - excluding incoming payments
   const allPayments: (Payment & { displayName?: string; source?: string })[] = [
-    // Regular payments
+    // Regular payments (outgoing only)
     ...data.payments.filter(payment => {
       // Filter by business through projects or direct business relationship
       const project = payment.projectId ? data.projects.find(p => p.id === payment.projectId) : null;
-      return project?.businessId === currentBusiness.id || !payment.projectId;
+      const isBusinessRelated = project?.businessId === currentBusiness.id || !payment.projectId;
+      // Only include outgoing payments
+      return isBusinessRelated && payment.type === 'outgoing';
     }).map(payment => {
       const member = payment.memberId ? data.teamMembers.find(m => m.id === payment.memberId) : null;
       const partner = payment.partnerId ? data.partners.find(p => p.id === payment.partnerId) : null;

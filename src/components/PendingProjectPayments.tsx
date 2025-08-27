@@ -41,11 +41,23 @@ export const PendingProjectPayments: React.FC = () => {
   businessProjects.forEach(project => {
     // Check team allocations
     project.allocationTeamAllocations?.forEach(teamAlloc => {
-      if (teamAlloc.outstanding > 0) {
-        const member = data.teamMembers.find(m => m.id === teamAlloc.memberId);
-        const allocation = project.allocations?.find(a => a.id === teamAlloc.allocationId);
+      const member = data.teamMembers.find(m => m.id === teamAlloc.memberId);
+      const allocation = project.allocations?.find(a => a.id === teamAlloc.allocationId);
+      
+      if (member && allocation) {
+        // Calculate actual paid amount from payments data to ensure accuracy
+        const allocationPayments = data.payments.filter(payment => 
+          payment.projectId === project.id && 
+          payment.memberId === teamAlloc.memberId && 
+          payment.allocationId === teamAlloc.allocationId &&
+          payment.status === 'completed'
+        );
         
-        if (member && allocation) {
+        const actualPaidAmount = allocationPayments.reduce((sum, payment) => sum + payment.amount, 0);
+        const actualOutstanding = Math.max(0, teamAlloc.totalAllocated - actualPaidAmount);
+        
+        // Only include if there's actually an outstanding amount
+        if (actualOutstanding > 0) {
           pendingPayments.push({
             teamMemberId: teamAlloc.memberId,
             memberName: member.name,
@@ -53,9 +65,9 @@ export const PendingProjectPayments: React.FC = () => {
             projectName: project.name,
             allocationId: teamAlloc.allocationId,
             allocationTitle: allocation.title,
-            outstandingAmount: teamAlloc.outstanding,
+            outstandingAmount: actualOutstanding,
             totalAllocated: teamAlloc.totalAllocated,
-            paidAmount: teamAlloc.paidAmount,
+            paidAmount: actualPaidAmount,
           });
         }
       }
