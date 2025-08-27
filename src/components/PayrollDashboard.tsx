@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Users, CheckCircle, AlertCircle, Clock, DollarSign, FileText, Download } from 'lucide-react';
+import { Calendar, Users, CheckCircle, AlertCircle, Clock, DollarSign, FileText, Download, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
 import { PayrollPeriod, SalaryRecord, SalaryPayment } from '@/types/business';
 import { SUPPORTED_CURRENCIES } from '@/types/business';
+import { PaymentHistoryModal } from './PaymentHistoryModal';
 
 interface PayrollEmployee {
   id: string;
@@ -30,6 +31,8 @@ export const PayrollDashboard: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [processingPayroll, setProcessingPayroll] = useState(false);
+  const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
+  const [selectedEmployeeForHistory, setSelectedEmployeeForHistory] = useState<string | undefined>();
 
   if (!currentBusiness) {
     return (
@@ -156,7 +159,11 @@ export const PayrollDashboard: React.FC = () => {
         lastPayment = paymentsInPeriod[paymentsInPeriod.length - 1].paymentDate;
       } else {
         const now = new Date();
-        const isOverdue = now > periodEnd;
+        // Only mark as overdue if:
+        // 1. The selected period is in the past
+        // 2. The employee's salary started before or during the selected period
+        const salaryStartDate = new Date(record.startDate);
+        const isOverdue = now > periodEnd && salaryStartDate <= periodEnd;
         status = isOverdue ? 'overdue' : 'pending';
       }
 
@@ -309,14 +316,25 @@ export const PayrollDashboard: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button 
-            onClick={handleBulkMarkAsPaid}
-            disabled={processingPayroll || stats.pendingEmployees === 0}
-            className="gap-2"
-          >
-            <CheckCircle className="h-4 w-4" />
-            Pay All Pending
-          </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedEmployeeForHistory(undefined);
+                setPaymentHistoryOpen(true);
+              }}
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              Payment History
+            </Button>
+            <Button 
+              onClick={handleBulkMarkAsPaid}
+              disabled={processingPayroll || stats.pendingEmployees === 0}
+              className="gap-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Pay All Pending
+            </Button>
         </div>
       </div>
 
@@ -409,16 +427,30 @@ export const PayrollDashboard: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    {employee.status !== 'paid' && (
+                    <div className="flex gap-2">
                       <Button
+                        variant="outline"
                         size="sm"
-                        onClick={() => handleMarkAsPaid(employee)}
+                        onClick={() => {
+                          setSelectedEmployeeForHistory(employee.teamMemberId);
+                          setPaymentHistoryOpen(true);
+                        }}
                         className="gap-2"
                       >
-                        <DollarSign className="h-3 w-3" />
-                        Mark Paid
+                        <History className="h-3 w-3" />
+                        History
                       </Button>
-                    )}
+                      {employee.status !== 'paid' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleMarkAsPaid(employee)}
+                          className="gap-2"
+                        >
+                          <DollarSign className="h-3 w-3" />
+                          Mark Paid
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -426,6 +458,16 @@ export const PayrollDashboard: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment History Modal */}
+      <PaymentHistoryModal
+        isOpen={paymentHistoryOpen}
+        onClose={() => {
+          setPaymentHistoryOpen(false);
+          setSelectedEmployeeForHistory(undefined);
+        }}
+        teamMemberId={selectedEmployeeForHistory}
+      />
     </div>
   );
 };
