@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { Payment } from '@/types/business';
-import { Search, Calendar, User, Briefcase, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import { Search, Calendar, User, Briefcase, CheckCircle, Clock, DollarSign, Trash2, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 export const AllPaymentsView: React.FC = () => {
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -102,6 +107,30 @@ export const AllPaymentsView: React.FC = () => {
       case 'project': return <Briefcase className="h-3 w-3" />;
       case 'task': return <CheckCircle className="h-3 w-3" />;
       default: return <DollarSign className="h-3 w-3" />;
+    }
+  };
+
+  const handleDeletePayment = (payment: Payment & { displayName?: string; source?: string }) => {
+    if (payment.source === 'salary') {
+      // For salary payments, delete the salary payment record
+      dispatch({
+        type: 'DELETE_SALARY_PAYMENT',
+        payload: payment.id
+      });
+      toast({
+        title: "Payment Deleted",
+        description: `Salary payment for ${payment.displayName} has been deleted.`,
+      });
+    } else {
+      // For regular payments, delete the payment record
+      dispatch({
+        type: 'DELETE_PAYMENT',
+        payload: payment.id
+      });
+      toast({
+        title: "Payment Deleted",
+        description: `Payment for ${payment.displayName} has been deleted.`,
+      });
     }
   };
 
@@ -259,6 +288,43 @@ export const AllPaymentsView: React.FC = () => {
                         {format(new Date(payment.date), 'MMM dd, yyyy')}
                       </div>
                     </div>
+                    
+                    {/* Actions Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive cursor-pointer">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Payment
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this payment for {payment.displayName}? 
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeletePayment(payment)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))
