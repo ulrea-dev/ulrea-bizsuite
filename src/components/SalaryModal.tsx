@@ -142,6 +142,42 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     }
   }, [isOpen, teamMemberId, currentBusiness?.id]); // Fixed dependencies
 
+  // Helper function to calculate individual converted amounts
+  const calculateConvertedAmount = (amount: string, currency: string, frequency: string) => {
+    if (!amount || !currency) return null;
+    
+    const sourceCurrency = allCurrencies.find(c => c.code === currency) || data.userSettings.defaultCurrency;
+    const defaultCurrency = data.userSettings.defaultCurrency;
+    
+    // Don't show conversion if same currency
+    if (sourceCurrency.code === defaultCurrency.code) return null;
+    
+    let monthlyAmount = parseFloat(amount);
+    
+    // Convert to monthly equivalent
+    switch (frequency) {
+      case 'weekly':
+        monthlyAmount = monthlyAmount * 4.33;
+        break;
+      case 'bi-weekly':
+        monthlyAmount = monthlyAmount * 2.17;
+        break;
+      case 'quarterly':
+        monthlyAmount = monthlyAmount / 3;
+        break;
+      case 'annually':
+        monthlyAmount = monthlyAmount / 12;
+        break;
+    }
+
+    const converted = convertCurrency(monthlyAmount, sourceCurrency, defaultCurrency, data.exchangeRates || []);
+    return {
+      amount: converted,
+      currency: defaultCurrency,
+      isMonthlyEquivalent: frequency !== 'monthly'
+    };
+  };
+
   // Calculate total salary in default currency
   const calculateTotal = () => {
     let total = 0;
@@ -422,6 +458,19 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                       onChange={(e) => setPrimaryAmount(e.target.value)}
                       placeholder="50000"
                     />
+                    {/* Currency conversion display */}
+                    {(() => {
+                      const conversion = calculateConvertedAmount(primaryAmount, primaryCurrency, primaryFrequency);
+                      if (conversion) {
+                        return (
+                          <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 rounded">
+                            = {formatCurrency(conversion.amount, conversion.currency)}
+                            {conversion.isMonthlyEquivalent && ' (monthly equivalent)'}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="primaryCurrency">Currency</Label>
@@ -527,6 +576,19 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                       onChange={(e) => setSecondaryAmount(e.target.value)}
                       placeholder="30000"
                     />
+                    {/* Currency conversion display */}
+                    {(() => {
+                      const conversion = calculateConvertedAmount(secondaryAmount, secondaryCurrency, secondaryFrequency);
+                      if (conversion) {
+                        return (
+                          <div className="text-xs text-muted-foreground mt-1 p-2 bg-muted/50 rounded">
+                            = {formatCurrency(conversion.amount, conversion.currency)}
+                            {conversion.isMonthlyEquivalent && ' (monthly equivalent)'}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="secondaryCurrency">Currency</Label>
