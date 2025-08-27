@@ -49,19 +49,21 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   const [secondaryProjectId, setSecondaryProjectId] = useState('');
   const [contractDuration, setContractDuration] = useState('');
 
-  // Get available data - filter team members by current business through salary records
+  // Get available data - show ALL team members for this business
   const businessSalaryRecords = data.salaryRecords.filter(record => record.businessId === currentBusiness?.id);
-  const businessTeamMemberIds = [...new Set(businessSalaryRecords.map(record => record.teamMemberId))];
   const businessTeamMembers = data.teamMembers.filter(member => 
-    businessTeamMemberIds.includes(member.id) || !businessTeamMemberIds.length
+    data.salaryRecords.some(record => record.businessId === currentBusiness?.id && record.teamMemberId === member.id) ||
+    data.teamMembers.length > 0 // Show all team members if no salary records exist yet
   );
   
   const businessProjects = data.projects.filter(project => project.businessId === currentBusiness?.id);
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
-  // Load existing salary data when editing
+  // Load existing salary data when editing - fix useEffect dependencies
   useEffect(() => {
-    if (isOpen && teamMemberId && currentBusiness) {
+    if (!isOpen || !currentBusiness) return;
+
+    if (teamMemberId) {
       // Find existing salary records for this team member
       const memberSalaryRecords = businessSalaryRecords.filter(record => record.teamMemberId === teamMemberId);
       const primaryRecord = memberSalaryRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
@@ -114,7 +116,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryProjectId('no-project');
         setContractDuration('');
       }
-    } else if (isOpen && !teamMemberId) {
+    } else {
       console.log('New salary record, resetting all forms');
       // Reset all form data for new salary
       setSelectedTeamMemberId('');
@@ -138,7 +140,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       setSecondaryProjectId('no-project');
       setContractDuration('');
     }
-  }, [isOpen, teamMemberId, currentBusiness, businessSalaryRecords]);
+  }, [isOpen, teamMemberId, currentBusiness?.id]); // Fixed dependencies
 
   // Calculate total salary in default currency
   const calculateTotal = () => {
@@ -193,18 +195,6 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     }
 
     return total;
-  };
-
-  // Handle primary switch change
-  const handlePrimaryToggle = (checked: boolean) => {
-    console.log('Primary toggle clicked, new state:', checked);
-    setPrimaryEnabled(checked);
-  };
-
-  // Handle secondary switch change
-  const handleSecondaryToggle = (checked: boolean) => {
-    console.log('Secondary toggle clicked, new state:', checked);
-    setSecondaryEnabled(checked);
   };
 
   const handleSave = () => {
@@ -388,7 +378,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 </div>
                 <Switch
                   checked={primaryEnabled}
-                  onCheckedChange={handlePrimaryToggle}
+                  onCheckedChange={setPrimaryEnabled}
                 />
               </div>
             </CardHeader>
@@ -493,7 +483,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 </div>
                 <Switch
                   checked={secondaryEnabled}
-                  onCheckedChange={handleSecondaryToggle}
+                  onCheckedChange={setSecondaryEnabled}
                 />
               </div>
             </CardHeader>
