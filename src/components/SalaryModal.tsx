@@ -23,9 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Switch } from '@/components/ui/switch';
 
 interface SalaryModalProps {
   isOpen: boolean;
@@ -48,32 +46,12 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     frequency: 'monthly' as 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually',
     startDate: new Date().toISOString().split('T')[0],
     description: '',
-    isProjectBased: false,
-    projectId: '',
-    clientId: '',
   });
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
 
   const existingRecord = salaryRecordId 
     ? (data.salaryRecords || []).find(r => r.id === salaryRecordId)
     : null;
-
-  // Get all available currencies (supported + custom)
-  const allCurrencies = [
-    ...SUPPORTED_CURRENCIES,
-    ...(data.customCurrencies || [])
-  ];
-
-  // Get current business projects and clients
-  const currentBusinessProjects = data.projects.filter(
-    project => !currentBusiness || project.businessId === currentBusiness.id
-  );
-
-  const currentBusinessClients = data.clients.filter(
-    client => !currentBusiness || client.projects.some(projectId => 
-      currentBusinessProjects.some(project => project.id === projectId)
-    )
-  );
 
   useEffect(() => {
     if (existingRecord) {
@@ -85,9 +63,6 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         frequency: existingRecord.frequency,
         startDate: existingRecord.startDate.split('T')[0],
         description: existingRecord.description || '',
-        isProjectBased: !!(existingRecord as any).projectId,
-        projectId: (existingRecord as any).projectId || '',
-        clientId: (existingRecord as any).clientId || '',
       });
     } else {
       setFormData({
@@ -98,9 +73,6 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         frequency: 'monthly',
         startDate: new Date().toISOString().split('T')[0],
         description: '',
-        isProjectBased: false,
-        projectId: '',
-        clientId: '',
       });
     }
   }, [existingRecord, data.userSettings.defaultCurrency.code]);
@@ -110,7 +82,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     if (formData.amount && formData.currency !== data.userSettings.defaultCurrency.code) {
       const amount = parseFloat(formData.amount);
       if (!isNaN(amount)) {
-        const fromCurrency = allCurrencies.find(c => c.code === formData.currency);
+        const fromCurrency = SUPPORTED_CURRENCIES.find(c => c.code === formData.currency);
         if (fromCurrency) {
           const converted = convertCurrency(
             amount,
@@ -124,7 +96,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     } else {
       setConvertedAmount(null);
     }
-  }, [formData.amount, formData.currency, data.userSettings.defaultCurrency, data.exchangeRates, allCurrencies]);
+  }, [formData.amount, formData.currency, data.userSettings.defaultCurrency, data.exchangeRates]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,15 +114,6 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.isProjectBased && !formData.projectId) {
-      toast({
-        title: "Error",
-        description: "Please select a project for project-based salary.",
         variant: "destructive",
       });
       return;
@@ -176,9 +139,6 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       frequency: formData.frequency,
       startDate: new Date(formData.startDate).toISOString(),
       description: formData.description,
-      projectId: formData.isProjectBased ? formData.projectId : undefined,
-      clientId: formData.isProjectBased ? formData.clientId : undefined,
-      isProjectBased: formData.isProjectBased,
       createdAt: existingRecord?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -207,14 +167,12 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   };
 
   const currentBusinessTeamMembers = data.teamMembers.filter(
-    member => !currentBusiness || member.id
+    member => !currentBusiness || member.id // Show all if no business selected, or filter by business if needed
   );
-
-  const selectedProject = currentBusinessProjects.find(p => p.id === formData.projectId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {existingRecord ? 'Edit Salary Record' : 'Add Salary Record'}
@@ -222,7 +180,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           <DialogDescription>
             {existingRecord 
               ? 'Update the salary information for this team member.'
-              : 'Create a new salary record for a team member.'
+              : 'Add a new salary record for a team member.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -253,75 +211,10 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
               id="position"
               value={formData.position}
               onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              placeholder="e.g., Senior Developer"
+              placeholder="e.g., Software Developer"
               required
             />
           </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="project-based"
-              checked={formData.isProjectBased}
-              onCheckedChange={(checked) => setFormData({ 
-                ...formData, 
-                isProjectBased: checked,
-                projectId: checked ? formData.projectId : '',
-                clientId: checked ? formData.clientId : '',
-              })}
-            />
-            <Label htmlFor="project-based">Project-based salary</Label>
-          </div>
-
-          {formData.isProjectBased && (
-            <>
-              <div>
-                <Label htmlFor="project">Project *</Label>
-                <Select
-                  value={formData.projectId}
-                  onValueChange={(value) => {
-                    const project = currentBusinessProjects.find(p => p.id === value);
-                    setFormData({ 
-                      ...formData, 
-                      projectId: value,
-                      clientId: project?.clientId || '',
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentBusinessProjects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedProject?.clientId && (
-                <div>
-                  <Label htmlFor="client">Client</Label>
-                  <Select
-                    value={formData.clientId}
-                    onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentBusinessClients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name} ({client.company})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </>
-          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -350,7 +243,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {allCurrencies.map((currency) => (
+                  {SUPPORTED_CURRENCIES.map((currency) => (
                     <SelectItem key={currency.code} value={currency.code}>
                       {currency.symbol} {currency.name}
                     </SelectItem>
@@ -393,12 +286,11 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
           <div>
             <Label htmlFor="description">Description</Label>
-            <Textarea
+            <Input
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Additional notes about this salary record (optional)"
-              rows={3}
+              placeholder="Additional notes (optional)"
             />
           </div>
 
@@ -407,7 +299,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
               Cancel
             </Button>
             <Button type="submit">
-              {existingRecord ? 'Update' : 'Create'} Record
+              {existingRecord ? 'Update' : 'Add'} Salary Record
             </Button>
           </DialogFooter>
         </form>
