@@ -28,12 +28,15 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
   payment, 
   mode 
 }) => {
-  const { dispatch } = useBusiness();
+  const { data, dispatch } = useBusiness();
   const [formData, setFormData] = useState({
     amount: payment?.amount?.toString() || '',
     date: payment?.date || new Date().toISOString().split('T')[0],
     description: payment?.description || ''
   });
+
+  const currentProject = data.projects.find(p => p.id === projectId);
+  const currentClientPayments = currentProject?.clientPayments || 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +67,7 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
         type: 'UPDATE_CLIENT_PAYMENTS',
         payload: { 
           projectId, 
-          amount: amount 
+          clientPayments: currentClientPayments + amount 
         }
       });
     } else if (mode === 'edit' && payment) {
@@ -89,7 +92,7 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
         type: 'UPDATE_CLIENT_PAYMENTS',
         payload: { 
           projectId, 
-          amount: difference 
+          clientPayments: currentClientPayments + difference 
         }
       });
     }
@@ -103,6 +106,16 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
         type: 'DELETE_PAYMENT',
         payload: payment.id
       });
+
+      // Update the project's client payments total by subtracting the payment amount
+      dispatch({
+        type: 'UPDATE_CLIENT_PAYMENTS',
+        payload: { 
+          projectId, 
+          clientPayments: currentClientPayments - payment.amount 
+        }
+      });
+
       onClose();
     }
   };

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import {
   AppData,
@@ -18,6 +17,8 @@ import {
   AllocationTeamAllocation,
   AllocationPartnerAllocation,
   AllocationCompanyAllocation,
+  Partner,
+  Expense,
 } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 
@@ -34,6 +35,8 @@ interface BusinessContextProps {
     currency: Currency;
   }) => void;
   switchBusiness: (id: string | null) => void;
+  addProject: (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateProject: (id: string, updates: Partial<Project>) => void;
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
@@ -80,6 +83,14 @@ export type BusinessAction =
   | { type: 'SET_DEFAULT_CURRENCY'; payload: Currency }
   | { type: 'ADD_CUSTOM_CURRENCY'; payload: Currency }
   | { type: 'DELETE_CUSTOM_CURRENCY'; payload: string }
+  // Partner actions
+  | { type: 'ADD_PARTNER'; payload: Partner }
+  | { type: 'UPDATE_PARTNER'; payload: { id: string; updates: Partial<Partner> } }
+  | { type: 'DELETE_PARTNER'; payload: string }
+  // Expense actions
+  | { type: 'ADD_EXPENSE'; payload: Expense }
+  | { type: 'UPDATE_EXPENSE'; payload: { id: string; updates: Partial<Expense> } }
+  | { type: 'DELETE_EXPENSE'; payload: string }
   // Added actions for allocations and client payments
   | { type: 'ADD_ALLOCATION'; payload: { projectId: string; allocation: ProjectAllocation } }
   | { type: 'UPDATE_ALLOCATION'; payload: { projectId: string; allocationId: string; updates: Partial<ProjectAllocation> } }
@@ -260,6 +271,53 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
       saveData(stateWithoutCurrency);
       return stateWithoutCurrency;
     }
+
+    // Partner actions
+    case 'ADD_PARTNER':
+      return { ...state, partners: [...(state.partners || []), action.payload] };
+    case 'UPDATE_PARTNER':
+      return {
+        ...state,
+        partners: (state.partners || []).map(partner =>
+          partner.id === action.payload.id ? { ...partner, ...action.payload.updates } : partner
+        ),
+      };
+    case 'DELETE_PARTNER':
+      return {
+        ...state,
+        partners: (state.partners || []).filter(partner => partner.id !== action.payload),
+      };
+
+    // Expense actions
+    case 'ADD_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, expenses: [...(p.expenses || []), action.payload], updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
+    case 'UPDATE_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(p => ({
+          ...p,
+          expenses: (p.expenses || []).map(expense =>
+            expense.id === action.payload.id ? { ...expense, ...action.payload.updates, updatedAt: new Date().toISOString() } : expense
+          ),
+          updatedAt: new Date().toISOString(),
+        })),
+      };
+    case 'DELETE_EXPENSE':
+      return {
+        ...state,
+        projects: state.projects.map(p => ({
+          ...p,
+          expenses: (p.expenses || []).filter(expense => expense.id !== action.payload),
+          updatedAt: new Date().toISOString(),
+        })),
+      };
 
     // Allocations per project (phases)
     case 'ADD_ALLOCATION':
@@ -466,8 +524,25 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
     dispatch({ type: 'SET_CURRENT_BUSINESS', payload: id });
   };
 
+  // Helper: addProject
+  const addProject: BusinessContextProps['addProject'] = (projectData) => {
+    const now = new Date().toISOString();
+    const project: Project = {
+      ...projectData,
+      id: generateId(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({ type: 'ADD_PROJECT', payload: project });
+  };
+
+  // Helper: updateProject
+  const updateProject: BusinessContextProps['updateProject'] = (id, updates) => {
+    dispatch({ type: 'UPDATE_PROJECT', payload: { id, updates } });
+  };
+
   return (
-    <BusinessContext.Provider value={{ data, currentBusiness, dispatch, addBusiness, switchBusiness }}>
+    <BusinessContext.Provider value={{ data, currentBusiness, dispatch, addBusiness, switchBusiness, addProject, updateProject }}>
       {children}
     </BusinessContext.Provider>
   );
