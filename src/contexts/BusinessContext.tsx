@@ -1,11 +1,39 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { AppData, Business, Project, TeamMember, Client, Payment, SalaryRecord, SalaryPayment, ExchangeRate, Currency } from '@/types/business';
-import { loadData, saveData } from '@/utils/storage';
+import {
+  AppData,
+  Business,
+  Project,
+  TeamMember,
+  Client,
+  Payment,
+  SalaryRecord,
+  SalaryPayment,
+  ExchangeRate,
+  Currency,
+  ProjectAllocation,
+  TeamAllocation,
+  PartnerAllocation,
+  CompanyAllocation,
+  AllocationTeamAllocation,
+  AllocationPartnerAllocation,
+  AllocationCompanyAllocation,
+} from '@/types/business';
+import { loadData, saveData, generateId } from '@/utils/storage';
 
 interface BusinessContextProps {
   data: AppData;
   currentBusiness: Business | null;
   dispatch: React.Dispatch<BusinessAction>;
+  // Added helpers used by components
+  addBusiness: (input: {
+    name: string;
+    type: string;
+    currentBalance: number;
+    minimumBalance: number;
+    currency: Currency;
+  }) => void;
+  switchBusiness: (id: string | null) => void;
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
@@ -51,7 +79,20 @@ export type BusinessAction =
   | { type: 'SET_COLOR_PALETTE'; payload: any }
   | { type: 'SET_DEFAULT_CURRENCY'; payload: Currency }
   | { type: 'ADD_CUSTOM_CURRENCY'; payload: Currency }
-  | { type: 'DELETE_CUSTOM_CURRENCY'; payload: string };
+  | { type: 'DELETE_CUSTOM_CURRENCY'; payload: string }
+  // Added actions for allocations and client payments
+  | { type: 'ADD_ALLOCATION'; payload: { projectId: string; allocation: ProjectAllocation } }
+  | { type: 'UPDATE_ALLOCATION'; payload: { projectId: string; allocationId: string; updates: Partial<ProjectAllocation> } }
+  | { type: 'DELETE_ALLOCATION'; payload: { projectId: string; allocationId: string } }
+  | { type: 'ADD_TEAM_ALLOCATION'; payload: { projectId: string; allocation: TeamAllocation } } // legacy per-project
+  | { type: 'ADD_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: PartnerAllocation } } // legacy per-project
+  | { type: 'SET_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: CompanyAllocation } } // legacy per-project
+  | { type: 'ADD_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocation: AllocationTeamAllocation } }
+  | { type: 'REMOVE_ALLOCATION_TEAM_ALLOCATION'; payload: { projectId: string; allocationId: string; memberId: string } }
+  | { type: 'ADD_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: AllocationPartnerAllocation } }
+  | { type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocationId: string; partnerId: string } }
+  | { type: 'SET_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: AllocationCompanyAllocation } }
+  | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; clientPayments: number } };
 
 const businessReducer = (state: AppData, action: BusinessAction): AppData => {
   switch (action.type) {
@@ -63,7 +104,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
       return {
         ...state,
         businesses: state.businesses.map(business =>
-          business.id === action.payload.id ? { ...business, ...action.payload.updates } : business
+          business.id === action.payload.id ? { ...business, ...action.payload.updates, updatedAt: new Date().toISOString() } : business
         ),
       };
     case 'DELETE_BUSINESS':
@@ -79,7 +120,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
       return {
         ...state,
         projects: state.projects.map(project =>
-          project.id === action.payload.id ? { ...project, ...action.payload.updates } : project
+          project.id === action.payload.id ? { ...project, ...action.payload.updates, updatedAt: new Date().toISOString() } : project
         ),
       };
     case 'DELETE_PROJECT':
@@ -191,7 +232,7 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
         ...state,
         userSettings: { ...state.userSettings, colorPalette: action.payload },
       };
-    case 'SET_DEFAULT_CURRENCY':
+    case 'SET_DEFAULT_CURRENCY': {
       const updatedSettings = {
         ...state.userSettings,
         defaultCurrency: action.payload,
@@ -202,22 +243,187 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
       };
       saveData(updatedState);
       return updatedState;
-
-    case 'ADD_CUSTOM_CURRENCY':
+    }
+    case 'ADD_CUSTOM_CURRENCY': {
       const stateWithNewCurrency = {
         ...state,
         customCurrencies: [...(state.customCurrencies || []), action.payload],
       };
       saveData(stateWithNewCurrency);
       return stateWithNewCurrency;
-
-    case 'DELETE_CUSTOM_CURRENCY':
+    }
+    case 'DELETE_CUSTOM_CURRENCY': {
       const stateWithoutCurrency = {
         ...state,
         customCurrencies: (state.customCurrencies || []).filter(c => c.code !== action.payload),
       };
       saveData(stateWithoutCurrency);
       return stateWithoutCurrency;
+    }
+
+    // Allocations per project (phases)
+    case 'ADD_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, allocations: [...(p.allocations || []), action.payload.allocation], updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
+    case 'UPDATE_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocations: (p.allocations || []).map(a =>
+                  a.id === action.payload.allocationId ? { ...a, ...action.payload.updates, updatedAt: new Date().toISOString() } : a
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'DELETE_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocations: (p.allocations || []).filter(a => a.id !== action.payload.allocationId),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+
+    // Legacy per-project allocations (still referenced)
+    case 'ADD_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, teamAllocations: [...(p.teamAllocations || []), action.payload.allocation], updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
+    case 'ADD_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, partnerAllocations: [...(p.partnerAllocations || []), action.payload.allocation], updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
+    case 'SET_COMPANY_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, companyAllocation: action.payload.allocation, updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
+
+    // Allocation-specific allocations
+    case 'ADD_ALLOCATION_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationTeamAllocations: [
+                  ...(p.allocationTeamAllocations || []).filter(
+                    a => !(a.allocationId === action.payload.allocation.allocationId && a.memberId === action.payload.allocation.memberId)
+                  ),
+                  action.payload.allocation,
+                ],
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'REMOVE_ALLOCATION_TEAM_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationTeamAllocations: (p.allocationTeamAllocations || []).filter(
+                  a => !(a.allocationId === action.payload.allocationId && a.memberId === action.payload.memberId)
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'ADD_ALLOCATION_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationPartnerAllocations: [
+                  ...(p.allocationPartnerAllocations || []).filter(
+                    a => !(a.allocationId === action.payload.allocation.allocationId && a.partnerId === action.payload.allocation.partnerId)
+                  ),
+                  action.payload.allocation,
+                ],
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'REMOVE_ALLOCATION_PARTNER_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationPartnerAllocations: (p.allocationPartnerAllocations || []).filter(
+                  a => !(a.allocationId === action.payload.allocationId && a.partnerId === action.payload.partnerId)
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+    case 'SET_ALLOCATION_COMPANY_ALLOCATION':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? {
+                ...p,
+                allocationCompanyAllocations: [
+                  ...(p.allocationCompanyAllocations || []).filter(
+                    a => a.allocationId !== action.payload.allocation.allocationId
+                  ),
+                  action.payload.allocation,
+                ],
+                updatedAt: new Date().toISOString(),
+              }
+            : p
+        ),
+      };
+
+    case 'UPDATE_CLIENT_PAYMENTS':
+      return {
+        ...state,
+        projects: state.projects.map(p =>
+          p.id === action.payload.projectId
+            ? { ...p, clientPayments: action.payload.clientPayments, updatedAt: new Date().toISOString() }
+            : p
+        ),
+      };
 
     default:
       return state;
@@ -237,8 +443,31 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
 
   const currentBusiness = data.businesses.find(business => business.id === data.currentBusinessId) || null;
 
+  // Helper: addBusiness used by BusinessSetup
+  const addBusiness: BusinessContextProps['addBusiness'] = (input) => {
+    const now = new Date().toISOString();
+    const business: Business = {
+      id: generateId(),
+      name: input.name,
+      type: input.type,
+      currency: input.currency,
+      currentBalance: input.currentBalance,
+      minimumBalance: input.minimumBalance,
+      createdAt: now,
+      updatedAt: now,
+    };
+    dispatch({ type: 'ADD_BUSINESS', payload: business });
+    // Set as current after creation
+    dispatch({ type: 'SET_CURRENT_BUSINESS', payload: business.id });
+  };
+
+  // Helper: switchBusiness used by Sidebar and management pages
+  const switchBusiness: BusinessContextProps['switchBusiness'] = (id) => {
+    dispatch({ type: 'SET_CURRENT_BUSINESS', payload: id });
+  };
+
   return (
-    <BusinessContext.Provider value={{ data, currentBusiness, dispatch }}>
+    <BusinessContext.Provider value={{ data, currentBusiness, dispatch, addBusiness, switchBusiness }}>
       {children}
     </BusinessContext.Provider>
   );
