@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Payment, QuickTask } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ListChecks, Calendar, User, ArrowRight } from 'lucide-react';
+import { ListChecks, Calendar, User, ArrowRight, CheckCircle2, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface QuickTaskPaymentModalProps {
@@ -36,8 +37,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
 }) => {
   const { data, dispatch, currentBusiness } = useBusiness();
   const { toast } = useToast();
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [manualMode, setManualMode] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
   const [formData, setFormData] = useState({
     teamMemberId: '',
     amount: '',
@@ -54,8 +56,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   useEffect(() => {
     // Reset form when modal opens
     if (isOpen) {
-      setSelectedTaskId('');
+      setSelectedTaskIds([]);
       setManualMode(false);
+      setBulkMode(false);
       setFormData({
         teamMemberId: '',
         amount: '',
@@ -68,9 +71,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    // Auto-fill form when a task is selected
-    if (selectedTaskId && !manualMode) {
-      const selectedTask = availableTasks.find(task => task.id === selectedTaskId);
+    // Auto-fill form when a single task is selected in non-bulk mode
+    if (selectedTaskIds.length === 1 && !manualMode && !bulkMode) {
+      const selectedTask = availableTasks.find(task => task.id === selectedTaskIds[0]);
       if (selectedTask) {
         setFormData({
           teamMemberId: selectedTask.assignedToId,
@@ -82,7 +85,33 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
         });
       }
     }
-  }, [selectedTaskId, availableTasks, manualMode]);
+  }, [selectedTaskIds, availableTasks, manualMode, bulkMode]);
+
+  const handleTaskSelection = (taskId: string, checked: boolean) => {
+    if (bulkMode) {
+      setSelectedTaskIds(prev => 
+        checked ? [...prev, taskId] : prev.filter(id => id !== taskId)
+      );
+    } else {
+      setSelectedTaskIds(checked ? [taskId] : []);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTaskIds.length === availableTasks.length) {
+      setSelectedTaskIds([]);
+    } else {
+      setSelectedTaskIds(availableTasks.map(task => task.id));
+    }
+  };
+
+  const getSelectedTasks = () => {
+    return availableTasks.filter(task => selectedTaskIds.includes(task.id));
+  };
+
+  const getTotalAmount = () => {
+    return getSelectedTasks().reduce((sum, task) => sum + task.amount, 0);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,63 +125,125 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
       return;
     }
 
-    if (!manualMode && !selectedTaskId) {
+    if (!manualMode && selectedTaskIds.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a quick task to pay for.",
+        description: "Please select at least one quick task to pay for.",
         variant: "destructive",
       });
       return;
     }
 
-    const selectedMember = data.teamMembers.find(m => m.id === formData.teamMemberId);
-    if (!selectedMember) {
-      toast({
-        title: "Error",
-        description: "Please select a team member.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newPayment: Payment = {
-      id: `task_payment_${Date.now()}`,
-      amount: parseFloat(formData.amount),
-      date: formData.date,
-      type: 'outgoing',
-      recipientType: 'team',
-      status: 'completed',
-      memberId: formData.teamMemberId,
-      paymentSource: 'task',
-      taskType: formData.taskType,
-      taskDescription: formData.taskDescription,
-      description: formData.description,
-      taskId: selectedTaskId || undefined,
-    };
-
-    dispatch({
-      type: 'ADD_PAYMENT',
-      payload: newPayment
-    });
-
-    // If paying for a specific task, mark it as paid
-    if (selectedTaskId && !manualMode) {
-      dispatch({
-        type: 'UPDATE_QUICK_TASK',
-        payload: { 
-          id: selectedTaskId, 
-          updates: { 
-            paidAt: formData.date,
-            updatedAt: new Date().toISOString()
-          }
+    if (bulkMode && selectedTaskIds.length > 0) {
+      // Handle bulk payment
+      const selectedTasks = getSelectedTasks();
+      const totalAmount = getTotalAmount();
+      
+      // Group tasks by team member for bulk payments
+      const tasksByMember = selectedTasks.reduce((acc, task) => {
+        if (!acc[task.assignedToId]) {
+          acc[task.assignedToId] = [];
         }
+        acc[task.assignedToId].push(task);
+        return acc;
+      }, {} as Record<string, QuickTask[]>);
+
+      // Create payment for each team member
+      Object.entries(tasksByMember).forEach(([memberId, memberTasks]) => {
+        const memberAmount = memberTasks.reduce((sum, task) => sum + task.amount, 0);
+        const member = data.teamMembers.find(m => m.id === memberId);
+        
+        const newPayment: Payment = {
+          id: `bulk_task_payment_${Date.now()}_${memberId}`,
+          amount: memberAmount,
+          date: formData.date,
+          type: 'outgoing',
+          recipientType: 'team',
+          status: 'completed',
+          memberId: memberId,
+          paymentSource: 'task',
+          taskType: 'bulk',
+          taskDescription: `Bulk payment for ${memberTasks.length} tasks`,
+          description: `Bulk payment for: ${memberTasks.map(t => t.title).join(', ')}`,
+          taskId: undefined,
+        };
+
+        dispatch({
+          type: 'ADD_PAYMENT',
+          payload: newPayment
+        });
+
+        // Mark all tasks as paid
+        memberTasks.forEach(task => {
+          dispatch({
+            type: 'UPDATE_QUICK_TASK',
+            payload: { 
+              id: task.id, 
+              updates: { 
+                paidAt: formData.date,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          });
+        });
+      });
+
+      toast({
+        title: "Bulk Payment Recorded",
+        description: `${selectedTaskIds.length} tasks paid for total of ${currentBusiness.currency.symbol}${totalAmount.toFixed(2)}.`,
+      });
+
+    } else {
+      // Handle single payment or manual payment
+      const selectedMember = data.teamMembers.find(m => m.id === formData.teamMemberId);
+      if (!selectedMember) {
+        toast({
+          title: "Error",
+          description: "Please select a team member.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newPayment: Payment = {
+        id: `task_payment_${Date.now()}`,
+        amount: parseFloat(formData.amount),
+        date: formData.date,
+        type: 'outgoing',
+        recipientType: 'team',
+        status: 'completed',
+        memberId: formData.teamMemberId,
+        paymentSource: 'task',
+        taskType: formData.taskType,
+        taskDescription: formData.taskDescription,
+        description: formData.description,
+        taskId: selectedTaskIds[0] || undefined,
+      };
+
+      dispatch({
+        type: 'ADD_PAYMENT',
+        payload: newPayment
+      });
+
+      // If paying for a specific task, mark it as paid
+      if (selectedTaskIds.length === 1 && !manualMode) {
+        dispatch({
+          type: 'UPDATE_QUICK_TASK',
+          payload: { 
+            id: selectedTaskIds[0], 
+            updates: { 
+              paidAt: formData.date,
+              updatedAt: new Date().toISOString()
+            }
+          }
+        });
+      }
+
+      toast({
+        title: "Payment Recorded",
+        description: `Task payment of ${currentBusiness.currency.symbol}${formData.amount} recorded for ${selectedMember.name}.`,
       });
     }
-
-    toast({
-      title: "Payment Recorded",
-      description: `Task payment of ${currentBusiness.currency.symbol}${formData.amount} recorded for ${selectedMember.name}.`,
-    });
 
     onClose();
   };
@@ -168,221 +259,333 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Record Quick Task Payment</DialogTitle>
           <DialogDescription>
-            Record a one-time payment for a specific task or quick work completed by a team member.
+            Record payment for completed tasks or create manual payments for team members.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Quick Task Selection */}
-          {!manualMode && (
-            <div className="space-y-2">
-              <Label>Select Quick Task to Pay</Label>
-              
-              {availableTasks.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center">
-                      <ListChecks className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground mb-3">
-                        No pending quick tasks found. Create tasks in the Quick Tasks section first.
-                      </p>
-                      <Button variant="outline" size="sm" onClick={() => setManualMode(true)}>
-                        Switch to Manual Payment
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {availableTasks.map((task) => {
-                    const isSelected = selectedTaskId === task.id;
-                    return (
-                      <Card 
-                        key={task.id} 
-                        className={`cursor-pointer transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
-                        onClick={() => setSelectedTaskId(task.id)}
-                      >
-                        <CardContent className="pt-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium">{task.title}</h4>
-                                <Badge variant="outline" className="text-xs">
-                                  {task.taskType || 'Task'}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <User className="h-3 w-3" />
-                                  {getAssigneeName(task.assignedToId)}
-                                </div>
-                                {task.dueDate && (
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Due: {format(new Date(task.dueDate), 'MMM dd')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">
-                                {currentBusiness.currency.symbol}{task.amount.toFixed(2)}
-                              </div>
-                            </div>
+        <div className="flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Mode Selection */}
+            {!manualMode && availableTasks.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={!bulkMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setBulkMode(false);
+                    setSelectedTaskIds(selectedTaskIds.slice(0, 1));
+                  }}
+                >
+                  Single Payment
+                </Button>
+                <Button
+                  type="button"
+                  variant={bulkMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setBulkMode(true)}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Bulk Payment
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setManualMode(true)}
+                >
+                  Manual Payment
+                </Button>
+              </div>
+            )}
+
+            {/* Quick Task Selection */}
+            {!manualMode && (
+              <div className="space-y-4">
+                {availableTasks.length === 0 ? (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <ListChecks className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-3">
+                          No pending quick tasks found. Create tasks in the Quick Tasks section first.
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => setManualMode(true)}>
+                          Switch to Manual Payment
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Bulk Selection Controls */}
+                    {bulkMode && (
+                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={selectedTaskIds.length === availableTasks.length}
+                            onCheckedChange={handleSelectAll}
+                          />
+                          <div>
+                            <p className="text-sm font-medium">
+                              {selectedTaskIds.length} of {availableTasks.length} tasks selected
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Total: {currentBusiness.currency.symbol}{getTotalAmount().toFixed(2)}
+                            </p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                        >
+                          {selectedTaskIds.length === availableTasks.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Task List */}
+                    <div className="grid gap-3 max-h-96 overflow-y-auto">
+                      {availableTasks.map((task) => {
+                        const isSelected = selectedTaskIds.includes(task.id);
+                        return (
+                          <Card 
+                            key={task.id} 
+                            className={`cursor-pointer transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
+                            onClick={() => handleTaskSelection(task.id, !isSelected)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => handleTaskSelection(task.id, checked as boolean)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-medium truncate">{task.title}</h4>
+                                        <Badge variant="outline" className="text-xs shrink-0">
+                                          {task.taskType || 'Task'}
+                                        </Badge>
+                                        {task.status === 'completed' && (
+                                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                            Completed
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-1">
+                                          <User className="h-3 w-3" />
+                                          <span className="truncate">{getAssigneeName(task.assignedToId)}</span>
+                                        </div>
+                                        {task.dueDate && (
+                                          <div className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            <span>Due: {format(new Date(task.dueDate), 'MMM dd')}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="text-right shrink-0">
+                                      <div className="font-medium">
+                                        {currentBusiness.currency.symbol}{task.amount.toFixed(2)}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Manual Mode */}
+            {manualMode && (
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Manual Payment Mode</p>
+                  <p className="text-xs text-muted-foreground">Creating a one-time payment not linked to a specific task</p>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setManualMode(false)}
+                >
+                  <ArrowRight className="h-3 w-3 mr-1" />
+                  Use Quick Tasks
+                </Button>
+              </div>
+            )}
+
+            {/* Form Fields */}
+            {(manualMode || selectedTaskIds.length > 0) && !bulkMode && (
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="teamMember">Team Member</Label>
+                  <Select 
+                    value={formData.teamMemberId} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, teamMemberId: value }))}
+                    required
+                    disabled={!manualMode && selectedTaskIds.length === 1}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {data.teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name} - {member.role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount ({currentBusiness.currency.symbol})</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                      placeholder="0.00"
+                      required
+                      disabled={!manualMode && selectedTaskIds.length === 1}
+                    />
+                  </div>
                   
-                  <div className="flex justify-center pt-2">
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setManualMode(true)}
-                    >
-                      Switch to Manual Payment Instead
-                    </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Payment Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      required
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-          )}
 
-          {/* Manual Mode Toggle */}
-          {manualMode && (
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium">Manual Payment Mode</p>
-                <p className="text-xs text-muted-foreground">Creating a one-time payment not linked to a specific task</p>
-              </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => setManualMode(false)}
-              >
-                <ArrowRight className="h-3 w-3 mr-1" />
-                Use Quick Tasks
-              </Button>
-            </div>
-          )}
-
-          {/* Form Fields */}
-          {(manualMode || selectedTaskId) && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="teamMember">Team Member</Label>
-                <Select 
-                  value={formData.teamMemberId} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, teamMemberId: value }))}
-                  required
-                  disabled={!manualMode && selectedTaskId !== ''}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name} - {member.role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount ({currentBusiness.currency.symbol})</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
-                    placeholder="0.00"
+                  <Label htmlFor="taskType">Task Type</Label>
+                  <Select 
+                    value={formData.taskType} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, taskType: value }))}
+                    required={manualMode}
+                    disabled={!manualMode && selectedTaskIds.length === 1}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select task type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TASK_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="taskDescription">Task Description</Label>
+                  <Textarea
+                    id="taskDescription"
+                    value={formData.taskDescription}
+                    onChange={(e) => setFormData(prev => ({ ...prev, taskDescription: e.target.value }))}
+                    placeholder="Describe the task completed..."
+                    rows={2}
                     required
-                    disabled={!manualMode && selectedTaskId !== ''}
+                    disabled={!manualMode && selectedTaskIds.length === 1}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="date">Payment Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
+                  <Label htmlFor="description">Additional Notes (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Any additional notes about this payment..."
+                    rows={2}
                   />
                 </div>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="taskType">Task Type</Label>
-                <Select 
-                  value={formData.taskType} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, taskType: value }))}
-                  required={manualMode}
-                  disabled={!manualMode && selectedTaskId !== ''}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select task type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TASK_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Bulk Payment Summary */}
+            {bulkMode && selectedTaskIds.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Bulk Payment Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span>Selected Tasks:</span>
+                      <span className="font-medium">{selectedTaskIds.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Total Amount:</span>
+                      <span className="font-medium text-lg">
+                        {currentBusiness.currency.symbol}{getTotalAmount().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bulkDate">Payment Date</Label>
+                      <Input
+                        id="bulkDate"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </form>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="taskDescription">Task Description</Label>
-                <Textarea
-                  id="taskDescription"
-                  value={formData.taskDescription}
-                  onChange={(e) => setFormData(prev => ({ ...prev, taskDescription: e.target.value }))}
-                  placeholder="Describe the task completed..."
-                  rows={2}
-                  required
-                  disabled={!manualMode && selectedTaskId !== ''}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Additional Notes (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Any additional notes about this payment..."
-                  rows={2}
-                />
-              </div>
-            </>
-          )}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={!manualMode && !selectedTaskId}
-            >
-              Record Payment
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter className="border-t pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={!manualMode && selectedTaskIds.length === 0}
+            onClick={handleSubmit}
+          >
+            {bulkMode && selectedTaskIds.length > 0 
+              ? `Pay ${selectedTaskIds.length} Tasks (${currentBusiness.currency.symbol}${getTotalAmount().toFixed(2)})`
+              : 'Record Payment'
+            }
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
