@@ -13,6 +13,8 @@ const getInitialData = (): AppData => ({
   payments: [],
   salaryRecords: [],
   salaryPayments: [],
+  payrollPeriods: [],
+  payslips: [],
   exchangeRates: [],
   customCurrencies: [],
   currentBusinessId: null,
@@ -40,6 +42,8 @@ export const loadData = (): AppData => {
       partners: data.partners || [],
       salaryRecords: data.salaryRecords || [],
       salaryPayments: data.salaryPayments || [],
+      payrollPeriods: data.payrollPeriods || [],
+      payslips: data.payslips || [],
       exchangeRates: data.exchangeRates || [],
       customCurrencies: data.customCurrencies || [],
       // Ensure projects have clientPayments field (for backward compatibility)

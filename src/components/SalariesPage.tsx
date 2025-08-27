@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Plus, Users, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Users, DollarSign, TrendingUp, Calendar, Calendar as CalendarIcon, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { SalaryPaymentModal } from '@/components/SalaryPaymentModal';
 import { SalaryModal } from '@/components/SalaryModal';
@@ -15,6 +16,7 @@ import { SUPPORTED_CURRENCIES } from '@/types/business';
 // Import components
 import { DataTable } from './ui/data-table';
 import { createSalaryRecordColumns } from './SalaryRecordColumns';
+import { PayrollDashboard } from './PayrollDashboard';
 
 // Combined salary record interface for display
 interface CombinedSalaryRecord {
@@ -39,6 +41,7 @@ export const SalariesPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentRecordId, setSelectedPaymentRecordId] = useState<string | null>(null);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'payroll' | 'management'>('payroll');
 
   // Helper functions moved to the top
   const getTeamMemberName = (memberId: string) => {
@@ -244,9 +247,9 @@ export const SalariesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Salaries</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Payroll Management</h1>
           <p className="text-muted-foreground">
-            Manage employee salaries and payments for {currentBusiness.name}
+            Complete payroll system for {currentBusiness.name}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             Default Currency: {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})
@@ -254,9 +257,28 @@ export const SalariesPage: React.FC = () => {
         </div>
         <Button onClick={handleCreateSalary}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Salary Record
+          Add Employee
         </Button>
       </div>
+
+      {/* Tabs for different views */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'payroll' | 'management')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="payroll" className="gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            Monthly Payroll
+          </TabsTrigger>
+          <TabsTrigger value="management" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Salary Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="payroll" className="space-y-6">
+          <PayrollDashboard />
+        </TabsContent>
+
+        <TabsContent value="management" className="space-y-6">
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -314,6 +336,8 @@ export const SalariesPage: React.FC = () => {
           <DataTable columns={columns} data={combinedSalaryRecords} />
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Enhanced Salary Modal */}
       <SalaryModal

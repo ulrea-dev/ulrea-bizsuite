@@ -49,11 +49,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   const [secondaryProjectId, setSecondaryProjectId] = useState('');
   const [contractDuration, setContractDuration] = useState('');
 
-  // Get available data - show ALL team members for this business
+  // Get available data - prevent duplicate team members
   const businessSalaryRecords = data.salaryRecords.filter(record => record.businessId === currentBusiness?.id);
+  
+  // Filter out team members who already have salary records, unless we're editing an existing one
+  const existingTeamMemberIds = businessSalaryRecords.map(record => record.teamMemberId);
   const businessTeamMembers = data.teamMembers.filter(member => 
-    data.salaryRecords.some(record => record.businessId === currentBusiness?.id && record.teamMemberId === member.id) ||
-    data.teamMembers.length > 0 // Show all team members if no salary records exist yet
+    !existingTeamMemberIds.includes(member.id) || (teamMemberId && member.id === teamMemberId)
   );
   
   const businessProjects = data.projects.filter(project => project.businessId === currentBusiness?.id);

@@ -8,6 +8,8 @@ import {
   Payment,
   SalaryRecord,
   SalaryPayment,
+  PayrollPeriod,
+  Payslip,
   ExchangeRate,
   Currency,
   ProjectAllocation,
@@ -73,6 +75,9 @@ export type BusinessAction =
   | { type: 'ADD_SALARY_PAYMENT'; payload: SalaryPayment }
   | { type: 'UPDATE_SALARY_PAYMENT'; payload: { id: string; updates: Partial<SalaryPayment> } }
   | { type: 'DELETE_SALARY_PAYMENT'; payload: string }
+  | { type: 'ADD_PAYROLL_PERIOD'; payload: PayrollPeriod }
+  | { type: 'UPDATE_PAYROLL_PERIOD'; payload: { id: string; updates: Partial<PayrollPeriod> } }
+  | { type: 'ADD_PAYSLIP'; payload: Payslip }
   | { type: 'ADD_EXCHANGE_RATE'; payload: ExchangeRate }
   | { type: 'UPDATE_EXCHANGE_RATE'; payload: { id: string; updates: Partial<ExchangeRate> } }
   | { type: 'DELETE_EXCHANGE_RATE'; payload: string }
@@ -209,6 +214,17 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
         ...state,
         salaryPayments: state.salaryPayments.filter(payment => payment.id !== action.payload),
       };
+    case 'ADD_PAYROLL_PERIOD':
+      return { ...state, payrollPeriods: [...(state.payrollPeriods || []), action.payload] };
+    case 'UPDATE_PAYROLL_PERIOD':
+      return {
+        ...state,
+        payrollPeriods: (state.payrollPeriods || []).map(period =>
+          period.id === action.payload.id ? { ...period, ...action.payload.updates } : period
+        ),
+      };
+    case 'ADD_PAYSLIP':
+      return { ...state, payslips: [...(state.payslips || []), action.payload] };
     case 'ADD_EXCHANGE_RATE':
       return { ...state, exchangeRates: [...state.exchangeRates, action.payload] };
     case 'UPDATE_EXCHANGE_RATE':

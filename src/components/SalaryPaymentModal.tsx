@@ -138,6 +138,7 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       period: `${new Date(paymentDate).toLocaleDateString()} Payment`,
       method: paymentMethod || undefined,
       description: notes || undefined,
+      status: 'paid',
       createdAt: new Date().toISOString(),
     };
 

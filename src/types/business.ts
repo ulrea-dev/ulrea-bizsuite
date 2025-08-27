@@ -171,7 +171,52 @@ export interface SalaryPayment {
   period: string;
   method?: string;
   description?: string;
+  status: 'pending' | 'paid' | 'overdue';
   createdAt: string;
+}
+
+export interface PayrollPeriod {
+  id: string;
+  businessId: string;
+  year: number;
+  month: number;
+  status: 'open' | 'processing' | 'closed';
+  totalEmployees: number;
+  totalAmount: number;
+  paidEmployees: number;
+  pendingEmployees: number;
+  overdueEmployees: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payslip {
+  id: string;
+  businessId: string;
+  teamMemberId: string;
+  salaryRecordId: string;
+  payrollPeriodId: string;
+  grossSalary: number;
+  deductions: PayrollDeduction[];
+  bonuses: PayrollBonus[];
+  netSalary: number;
+  currency: string;
+  generatedAt: string;
+}
+
+export interface PayrollDeduction {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'tax' | 'insurance' | 'retirement' | 'other';
+  isPercentage: boolean;
+}
+
+export interface PayrollBonus {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'performance' | 'commission' | 'overtime' | 'other';
 }
 
 export interface ExchangeRate {
@@ -251,6 +296,8 @@ export interface AppData {
   payments: Payment[];
   salaryRecords: SalaryRecord[];
   salaryPayments: SalaryPayment[];
+  payrollPeriods: PayrollPeriod[];
+  payslips: Payslip[];
   exchangeRates: ExchangeRate[];
   customCurrencies: Currency[];
   currentBusinessId: string | null;
