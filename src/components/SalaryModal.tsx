@@ -43,7 +43,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     position: '',
     amount: '',
     currency: data.userSettings.defaultCurrency.code,
-    frequency: 'monthly' as const,
+    frequency: 'monthly' as 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually',
     startDate: new Date().toISOString().split('T')[0],
     description: '',
   });

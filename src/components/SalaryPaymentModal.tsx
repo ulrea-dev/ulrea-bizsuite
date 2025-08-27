@@ -92,12 +92,16 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       return;
     }
 
+    const paymentDate = new Date(formData.paymentDate);
+    const period = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+
     const salaryPayment = {
       id: generateId(),
       salaryRecordId: salaryRecord.id,
       amount,
       paymentDate: new Date(formData.paymentDate).toISOString(),
-      paymentMethod: formData.paymentMethod,
+      period,
+      method: formData.paymentMethod,
       description: formData.description,
       createdAt: new Date().toISOString(),
     };

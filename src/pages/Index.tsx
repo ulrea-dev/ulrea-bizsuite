@@ -26,11 +26,16 @@ const AppContent: React.FC = () => {
     // Note: We don't clear the username so they can return easily
   };
 
+  const handleCreateBusiness = () => {
+    // This could be enhanced for business creation functionality
+    console.log('Create business triggered');
+  };
+
   if (!isAuthenticated) {
     return <Auth onLogin={handleLogin} />;
   }
 
-  return <Dashboard onLogout={handleLogout} />;
+  return <Dashboard onLogout={handleLogout} onCreateBusiness={handleCreateBusiness} />;
 };
 
 const Index: React.FC = () => {
