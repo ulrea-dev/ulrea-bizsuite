@@ -1,20 +1,12 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Users, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { SalaryPaymentModal } from '@/components/SalaryPaymentModal';
-import { generateId, formatCurrency } from '@/utils/storage';
-import { convertCurrency } from '@/utils/currencyConversion';
-import { SalaryRecord, SUPPORTED_CURRENCIES } from '@/types/business';
+import { SalaryModal } from '@/components/SalaryModal';
+import { formatCurrency } from '@/utils/storage';
+import { SalaryRecord } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 
 // Import components
@@ -22,73 +14,12 @@ import { DataTable } from './ui/data-table';
 import { createSalaryRecordColumns } from './SalaryRecordColumns';
 
 export const SalariesPage: React.FC = () => {
-  const { data, currentBusiness, dispatch } = useBusiness();
+  const { data, currentBusiness } = useBusiness();
   const { toast } = useToast();
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedSalaryRecord, setSelectedSalaryRecord] = useState<SalaryRecord | null>(null);
   const [selectedPaymentRecordId, setSelectedPaymentRecordId] = useState<string | null>(null);
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
-  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    teamMemberId: '',
-    position: '',
-    amount: '',
-    currency: data.userSettings.defaultCurrency.code,
-    frequency: 'monthly' as SalaryRecord['frequency'],
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: '',
-    description: '',
-    salaryType: 'primary' as 'primary' | 'secondary',
-    contractDuration: '',
-  });
-
-  // Get all available currencies
-  const allCurrencies = [
-    ...SUPPORTED_CURRENCIES,
-    ...(data.customCurrencies || [])
-  ];
-
-  // Calculate end date automatically for secondary salaries
-  useEffect(() => {
-    if (formData.salaryType === 'secondary' && formData.contractDuration && formData.startDate) {
-      const startDate = new Date(formData.startDate);
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + parseInt(formData.contractDuration));
-      setFormData(prev => ({
-        ...prev,
-        endDate: endDate.toISOString().split('T')[0]
-      }));
-    } else if (formData.salaryType === 'primary') {
-      setFormData(prev => ({
-        ...prev,
-        endDate: ''
-      }));
-    }
-  }, [formData.salaryType, formData.contractDuration, formData.startDate]);
-
-  // Calculate converted amount when amount or currency changes
-  useEffect(() => {
-    if (formData.amount && formData.currency !== data.userSettings.defaultCurrency.code) {
-      const amount = parseFloat(formData.amount);
-      if (!isNaN(amount)) {
-        const fromCurrency = allCurrencies.find(c => c.code === formData.currency);
-        if (fromCurrency) {
-          const converted = convertCurrency(
-            amount,
-            fromCurrency,
-            data.userSettings.defaultCurrency,
-            data.exchangeRates || []
-          );
-          setConvertedAmount(converted);
-        }
-      }
-    } else {
-      setConvertedAmount(null);
-    }
-  }, [formData.amount, formData.currency, data.userSettings.defaultCurrency, data.exchangeRates, allCurrencies]);
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
 
   if (!currentBusiness) {
     return (
@@ -155,56 +86,12 @@ export const SalariesPage: React.FC = () => {
   };
 
   const handleCreateSalary = () => {
-    setSelectedSalaryRecord(null);
-    setModalMode('create');
-    setFormData({
-      teamMemberId: '',
-      position: '',
-      amount: '',
-      currency: data.userSettings.defaultCurrency.code,
-      frequency: 'monthly',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: '',
-      description: '',
-      salaryType: 'primary',
-      contractDuration: '',
-    });
-    setShowSalaryModal(true);
-  };
-
-  const handleViewSalary = (record: SalaryRecord) => {
-    setSelectedSalaryRecord(record);
-    setModalMode('view');
-    setFormData({
-      teamMemberId: record.teamMemberId,
-      position: record.position,
-      amount: record.amount.toString(),
-      currency: record.currency,
-      frequency: record.frequency,
-      startDate: record.startDate,
-      endDate: record.endDate || '',
-      description: record.description || '',
-      salaryType: record.salaryType || 'primary',
-      contractDuration: record.contractDuration?.toString() || '',
-    });
+    setSelectedTeamMemberId(null);
     setShowSalaryModal(true);
   };
 
   const handleEditSalary = (record: SalaryRecord) => {
-    setSelectedSalaryRecord(record);
-    setModalMode('edit');
-    setFormData({
-      teamMemberId: record.teamMemberId,
-      position: record.position,
-      amount: record.amount.toString(),
-      currency: record.currency,
-      frequency: record.frequency,
-      startDate: record.startDate,
-      endDate: record.endDate || '',
-      description: record.description || '',
-      salaryType: record.salaryType || 'primary',
-      contractDuration: record.contractDuration?.toString() || '',
-    });
+    setSelectedTeamMemberId(record.teamMemberId);
     setShowSalaryModal(true);
   };
 
@@ -213,125 +100,15 @@ export const SalariesPage: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handleSalarySubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.teamMemberId || !formData.position || !formData.amount) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.salaryType === 'secondary' && !formData.contractDuration) {
-      toast({
-        title: "Error",
-        description: "Please specify contract duration for secondary salary.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const now = new Date().toISOString();
-
-    if (modalMode === 'create') {
-      const salaryRecord: SalaryRecord = {
-        id: generateId(),
-        businessId: currentBusiness.id,
-        teamMemberId: formData.teamMemberId,
-        position: formData.position,
-        amount,
-        currency: formData.currency,
-        frequency: formData.frequency,
-        startDate: formData.startDate,
-        endDate: formData.endDate || undefined,
-        description: formData.description,
-        salaryType: formData.salaryType,
-        contractDuration: formData.salaryType === 'secondary' && formData.contractDuration ? 
-          parseInt(formData.contractDuration) : undefined,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      dispatch({
-        type: 'ADD_SALARY_RECORD',
-        payload: salaryRecord,
-      });
-
-      toast({
-        title: "Success",
-        description: "Salary record created successfully.",
-      });
-    } else if (modalMode === 'edit' && selectedSalaryRecord) {
-      dispatch({
-        type: 'UPDATE_SALARY_RECORD',
-        payload: {
-          id: selectedSalaryRecord.id,
-          updates: {
-            teamMemberId: formData.teamMemberId,
-            position: formData.position,
-            amount,
-            currency: formData.currency,
-            frequency: formData.frequency,
-            startDate: formData.startDate,
-            endDate: formData.endDate || undefined,
-            description: formData.description,
-            salaryType: formData.salaryType,
-            contractDuration: formData.salaryType === 'secondary' && formData.contractDuration ? 
-              parseInt(formData.contractDuration) : undefined,
-            updatedAt: now,
-          },
-        },
-      });
-
-      toast({
-        title: "Success",
-        description: "Salary record updated successfully.",
-      });
-    }
-
-    setShowSalaryModal(false);
-  };
-
-  const handleDeleteSalary = () => {
-    if (selectedSalaryRecord) {
-      dispatch({
-        type: 'DELETE_SALARY_RECORD',
-        payload: selectedSalaryRecord.id,
-      });
-
-      toast({
-        title: "Success",
-        description: "Salary record deleted successfully.",
-      });
-
-      setShowSalaryModal(false);
-    }
-  };
-
   const columns = createSalaryRecordColumns({
-    onView: handleViewSalary,
+    onView: handleEditSalary, // Use edit for view since the new modal handles both
     onEdit: handleEditSalary,
     onRecordPayment: handleRecordPayment,
     getTeamMemberName,
     getProjectName,
     getClientName,
-    allCurrencies,
+    allCurrencies: [...data.customCurrencies || []],
   });
-
-  const isReadOnly = modalMode === 'view';
 
   return (
     <div className="space-y-8">
@@ -401,7 +178,7 @@ export const SalariesPage: React.FC = () => {
         <CardHeader>
           <CardTitle>Salary Records</CardTitle>
           <CardDescription>
-            Manage salary information for your team members
+            Manage salary information for your team members. Each team member can have both primary and secondary salaries.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -409,224 +186,12 @@ export const SalariesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Salary Modal */}
-      <Dialog open={showSalaryModal} onOpenChange={setShowSalaryModal}>
-        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {modalMode === 'create' && 'Add Salary Record'}
-              {modalMode === 'edit' && 'Edit Salary Record'}
-              {modalMode === 'view' && 'Salary Record Details'}
-            </DialogTitle>
-            <DialogDescription>
-              {modalMode === 'create' && 'Create a new salary record for a team member'}
-              {modalMode === 'edit' && 'Update salary record information'}
-              {modalMode === 'view' && 'View salary record information'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSalarySubmit} className="space-y-4">
-            <div>
-              <Label>Salary Type *</Label>
-              <RadioGroup
-                value={formData.salaryType}
-                onValueChange={(value: 'primary' | 'secondary') => setFormData({ ...formData, salaryType: value })}
-                className="flex space-x-6 mt-2"
-                disabled={isReadOnly}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="primary" id="primary" />
-                  <Label htmlFor="primary">Primary Salary</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="secondary" id="secondary" />
-                  <Label htmlFor="secondary">Secondary/Contract Salary</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="teamMember">Team Member *</Label>
-                <Select
-                  value={formData.teamMemberId}
-                  onValueChange={(value) => setFormData({ ...formData, teamMemberId: value })}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team member" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.teamMembers.map(member => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="position">Position *</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  placeholder="e.g., Senior Developer"
-                  disabled={isReadOnly}
-                  required
-                />
-              </div>
-            </div>
-
-            {formData.salaryType === 'secondary' && (
-              <div>
-                <Label htmlFor="contractDuration">Contract Duration (months) *</Label>
-                <Input
-                  id="contractDuration"
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={formData.contractDuration}
-                  onChange={(e) => setFormData({ ...formData, contractDuration: e.target.value })}
-                  placeholder="e.g., 6 for 6 months"
-                  disabled={isReadOnly}
-                  required
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="amount">Amount *</Label>
-                <CurrencyInput
-                  id="amount"
-                  value={formData.amount}
-                  onChange={(value) => setFormData({ ...formData, amount: value })}
-                  placeholder="0.00"
-                  disabled={isReadOnly}
-                  required
-                />
-                {convertedAmount !== null && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ≈ {data.userSettings.defaultCurrency.symbol}{convertedAmount.toLocaleString()}
-                  </p>
-                )}
-              </div>
-
-              <div>  
-                <Label htmlFor="currency">Currency</Label>
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allCurrencies.map(currency => (
-                      <SelectItem key={currency.code} value={currency.code}>
-                        {currency.symbol} {currency.code}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="frequency">Frequency *</Label>
-                <Select
-                  value={formData.frequency}
-                  onValueChange={(value: SalaryRecord['frequency']) => setFormData({ ...formData, frequency: value })}
-                  disabled={isReadOnly}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="annually">Annually</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate">Start Date *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  disabled={isReadOnly}
-                  required
-                />
-              </div>
-
-              {formData.salaryType === 'secondary' && (
-                <div>
-                  <Label htmlFor="endDate">Contract End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={formData.endDate}
-                    readOnly
-                    className="bg-muted"
-                    disabled
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Auto-calculated based on contract duration
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder={formData.salaryType === 'secondary' 
-                  ? "Details about the contract work, specific project, or additional responsibilities"
-                  : "Additional notes about this salary record (optional)"
-                }
-                disabled={isReadOnly}
-                rows={3}
-              />
-            </div>
-
-            <DialogFooter className="flex justify-between">
-              <div>
-                {modalMode === 'view' && selectedSalaryRecord && (
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    onClick={handleDeleteSalary}
-                  >
-                    Delete Record
-                  </Button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowSalaryModal(false)}>
-                  {isReadOnly ? 'Close' : 'Cancel'}
-                </Button>
-                {!isReadOnly && (
-                  <Button type="submit">
-                    {modalMode === 'create' ? 'Create Record' : 'Update Record'}
-                  </Button>
-                )}
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Enhanced Salary Modal */}
+      <SalaryModal
+        isOpen={showSalaryModal}
+        onClose={() => setShowSalaryModal(false)}
+        teamMemberId={selectedTeamMemberId}
+      />
 
       {/* Payment Modal */}
       <SalaryPaymentModal

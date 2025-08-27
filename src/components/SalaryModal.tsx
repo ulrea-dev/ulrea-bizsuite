@@ -25,41 +25,67 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SalaryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  salaryRecordId?: string | null;
+  teamMemberId?: string | null;
+}
+
+interface SalaryFormData {
+  position: string;
+  amount: string;
+  currency: string;
+  frequency: 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually';
+  startDate: string;
+  endDate: string;
+  description: string;
+  contractDuration: string;
+  isProjectBased: boolean;
+  projectId: string;
+  clientId: string;
 }
 
 export const SalaryModal: React.FC<SalaryModalProps> = ({
   isOpen,
   onClose,
-  salaryRecordId,
+  teamMemberId,
 }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    teamMemberId: '',
+  
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState(teamMemberId || '');
+  const [hasPrimarySalary, setHasPrimarySalary] = useState(false);
+  const [hasSecondarySalary, setHasSecondarySalary] = useState(false);
+  
+  const [primarySalary, setPrimarySalary] = useState<SalaryFormData>({
     position: '',
     amount: '',
     currency: data.userSettings.defaultCurrency.code,
-    frequency: 'monthly' as 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'annually',
+    frequency: 'monthly',
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
     description: '',
+    contractDuration: '',
     isProjectBased: false,
     projectId: '',
     clientId: '',
-    salaryType: 'primary' as 'primary' | 'secondary',
-    contractDuration: '',
   });
-  const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
 
-  const existingRecord = salaryRecordId 
-    ? (data.salaryRecords || []).find(r => r.id === salaryRecordId)
-    : null;
+  const [secondarySalary, setSecondarySalary] = useState<SalaryFormData>({
+    position: '',
+    amount: '',
+    currency: data.userSettings.defaultCurrency.code,
+    frequency: 'monthly',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    description: '',
+    contractDuration: '6',
+    isProjectBased: false,
+    projectId: '',
+    clientId: '',
+  });
 
   // Get all available currencies (supported + custom)
   const allCurrencies = [
@@ -78,75 +104,170 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
     )
   );
 
-  useEffect(() => {
-    if (existingRecord) {
-      setFormData({
-        teamMemberId: existingRecord.teamMemberId,
-        position: existingRecord.position,
-        amount: existingRecord.amount.toString(),
-        currency: existingRecord.currency,
-        frequency: existingRecord.frequency,
-        startDate: existingRecord.startDate.split('T')[0],
-        endDate: existingRecord.endDate ? existingRecord.endDate.split('T')[0] : '',
-        description: existingRecord.description || '',
-        isProjectBased: !!(existingRecord as any).projectId,
-        projectId: (existingRecord as any).projectId || '',
-        clientId: (existingRecord as any).clientId || '',
-        salaryType: (existingRecord as any).salaryType || 'primary',
-        contractDuration: (existingRecord as any).contractDuration?.toString() || '',
-      });
-    } else {
-      setFormData({
-        teamMemberId: '',
-        position: '',
-        amount: '',
-        currency: data.userSettings.defaultCurrency.code,
-        frequency: 'monthly',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        description: '',
-        isProjectBased: false,
-        projectId: '',
-        clientId: '',
-        salaryType: 'primary',
-        contractDuration: '',
-      });
-    }
-  }, [existingRecord, data.userSettings.defaultCurrency.code]);
+  const currentBusinessTeamMembers = data.teamMembers.filter(
+    member => !currentBusiness || member.id
+  );
 
-  // Calculate end date automatically for secondary salaries
+  // Load existing salary records for the selected team member
   useEffect(() => {
-    if (formData.salaryType === 'secondary' && formData.contractDuration && formData.startDate) {
-      const startDate = new Date(formData.startDate);
+    if (selectedTeamMemberId) {
+      const existingRecords = (data.salaryRecords || []).filter(
+        record => record.teamMemberId === selectedTeamMemberId && 
+        (!currentBusiness || record.businessId === currentBusiness.id)
+      );
+
+      const primaryRecord = existingRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
+      const secondaryRecord = existingRecords.find(r => (r as any).salaryType === 'secondary');
+
+      if (primaryRecord) {
+        setHasPrimarySalary(true);
+        setPrimarySalary({
+          position: primaryRecord.position,
+          amount: primaryRecord.amount.toString(),
+          currency: primaryRecord.currency,
+          frequency: primaryRecord.frequency,
+          startDate: primaryRecord.startDate.split('T')[0],
+          endDate: primaryRecord.endDate ? primaryRecord.endDate.split('T')[0] : '',
+          description: primaryRecord.description || '',
+          contractDuration: '',
+          isProjectBased: !!(primaryRecord as any).projectId,
+          projectId: (primaryRecord as any).projectId || '',
+          clientId: (primaryRecord as any).clientId || '',
+        });
+      } else {
+        setHasPrimarySalary(false);
+        setPrimarySalary({
+          position: '',
+          amount: '',
+          currency: data.userSettings.defaultCurrency.code,
+          frequency: 'monthly',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: '',
+          description: '',
+          contractDuration: '',
+          isProjectBased: false,
+          projectId: '',
+          clientId: '',
+        });
+      }
+
+      if (secondaryRecord) {
+        setHasSecondarySalary(true);
+        setSecondarySalary({
+          position: secondaryRecord.position,
+          amount: secondaryRecord.amount.toString(),
+          currency: secondaryRecord.currency,
+          frequency: secondaryRecord.frequency,
+          startDate: secondaryRecord.startDate.split('T')[0],
+          endDate: secondaryRecord.endDate ? secondaryRecord.endDate.split('T')[0] : '',
+          description: secondaryRecord.description || '',
+          contractDuration: (secondaryRecord as any).contractDuration?.toString() || '6',
+          isProjectBased: !!(secondaryRecord as any).projectId,
+          projectId: (secondaryRecord as any).projectId || '',
+          clientId: (secondaryRecord as any).clientId || '',
+        });
+      } else {
+        setHasSecondarySalary(false);
+        setSecondarySalary({
+          position: '',
+          amount: '',
+          currency: data.userSettings.defaultCurrency.code,
+          frequency: 'monthly',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: '',
+          description: '',
+          contractDuration: '6',
+          isProjectBased: false,
+          projectId: '',
+          clientId: '',
+        });
+      }
+    }
+  }, [selectedTeamMemberId, data.salaryRecords, data.userSettings.defaultCurrency.code, currentBusiness]);
+
+  // Auto-calculate end date for secondary salary
+  useEffect(() => {
+    if (hasSecondarySalary && secondarySalary.contractDuration && secondarySalary.startDate) {
+      const startDate = new Date(secondarySalary.startDate);
       const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + parseInt(formData.contractDuration));
-      setFormData(prev => ({
+      endDate.setMonth(endDate.getMonth() + parseInt(secondarySalary.contractDuration));
+      setSecondarySalary(prev => ({
         ...prev,
         endDate: endDate.toISOString().split('T')[0]
       }));
     }
-  }, [formData.salaryType, formData.contractDuration, formData.startDate]);
+  }, [hasSecondarySalary, secondarySalary.contractDuration, secondarySalary.startDate]);
 
-  useEffect(() => {
-    // Calculate converted amount when amount or currency changes
-    if (formData.amount && formData.currency !== data.userSettings.defaultCurrency.code) {
-      const amount = parseFloat(formData.amount);
+  // Calculate total salary in default currency
+  const calculateTotalSalary = () => {
+    let total = 0;
+
+    if (hasPrimarySalary && primarySalary.amount) {
+      const amount = parseFloat(primarySalary.amount);
       if (!isNaN(amount)) {
-        const fromCurrency = allCurrencies.find(c => c.code === formData.currency);
-        if (fromCurrency) {
-          const converted = convertCurrency(
+        const currency = allCurrencies.find(c => c.code === primarySalary.currency);
+        if (currency) {
+          const convertedAmount = convertCurrency(
             amount,
-            fromCurrency,
+            currency,
             data.userSettings.defaultCurrency,
             data.exchangeRates || []
           );
-          setConvertedAmount(converted);
+          // Convert to monthly equivalent
+          let monthlyAmount = convertedAmount;
+          switch (primarySalary.frequency) {
+            case 'weekly':
+              monthlyAmount = convertedAmount * 4.33;
+              break;
+            case 'bi-weekly':
+              monthlyAmount = convertedAmount * 2.17;
+              break;
+            case 'quarterly':
+              monthlyAmount = convertedAmount / 3;
+              break;
+            case 'annually':
+              monthlyAmount = convertedAmount / 12;
+              break;
+          }
+          total += monthlyAmount;
         }
       }
-    } else {
-      setConvertedAmount(null);
     }
-  }, [formData.amount, formData.currency, data.userSettings.defaultCurrency, data.exchangeRates, allCurrencies]);
+
+    if (hasSecondarySalary && secondarySalary.amount) {
+      const amount = parseFloat(secondarySalary.amount);
+      if (!isNaN(amount)) {
+        const currency = allCurrencies.find(c => c.code === secondarySalary.currency);
+        if (currency) {
+          const convertedAmount = convertCurrency(
+            amount,
+            currency,
+            data.userSettings.defaultCurrency,
+            data.exchangeRates || []
+          );
+          // Convert to monthly equivalent
+          let monthlyAmount = convertedAmount;
+          switch (secondarySalary.frequency) {
+            case 'weekly':
+              monthlyAmount = convertedAmount * 4.33;
+              break;
+            case 'bi-weekly':
+              monthlyAmount = convertedAmount * 2.17;
+              break;
+            case 'quarterly':
+              monthlyAmount = convertedAmount / 3;
+              break;
+            case 'annually':
+              monthlyAmount = convertedAmount / 12;
+              break;
+          }
+          total += monthlyAmount;
+        }
+      }
+    }
+
+    return total;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,114 +281,444 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       return;
     }
 
-    if (!formData.teamMemberId || !formData.position || !formData.amount) {
+    if (!selectedTeamMemberId) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please select a team member.",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.salaryType === 'secondary' && !formData.contractDuration) {
+    if (!hasPrimarySalary && !hasSecondarySalary) {
       toast({
         title: "Error",
-        description: "Please specify contract duration for secondary salary.",
+        description: "Please enable at least one salary type.",
         variant: "destructive",
       });
       return;
     }
 
-    if (formData.isProjectBased && !formData.projectId) {
-      toast({
-        title: "Error",
-        description: "Please select a project for project-based salary.",
-        variant: "destructive",
-      });
-      return;
+    // Validate primary salary
+    if (hasPrimarySalary) {
+      if (!primarySalary.position || !primarySalary.amount) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required primary salary fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const amount = parseFloat(primarySalary.amount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid primary salary amount.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (primarySalary.isProjectBased && !primarySalary.projectId) {
+        toast({
+          title: "Error",
+          description: "Please select a project for project-based primary salary.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid amount.",
-        variant: "destructive",
-      });
-      return;
+    // Validate secondary salary
+    if (hasSecondarySalary) {
+      if (!secondarySalary.position || !secondarySalary.amount || !secondarySalary.contractDuration) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required secondary salary fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const amount = parseFloat(secondarySalary.amount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid secondary salary amount.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (secondarySalary.isProjectBased && !secondarySalary.projectId) {
+        toast({
+          title: "Error",
+          description: "Please select a project for project-based secondary salary.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    const salaryRecord = {
-      id: existingRecord?.id || generateId(),
-      businessId: currentBusiness.id,
-      teamMemberId: formData.teamMemberId,
-      position: formData.position,
-      amount,
-      currency: formData.currency,
-      frequency: formData.frequency,
-      startDate: new Date(formData.startDate).toISOString(),
-      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
-      description: formData.description,
-      projectId: formData.isProjectBased ? formData.projectId : undefined,
-      clientId: formData.isProjectBased ? formData.clientId : undefined,
-      isProjectBased: formData.isProjectBased,
-      salaryType: formData.salaryType,
-      contractDuration: formData.salaryType === 'secondary' && formData.contractDuration ? 
-        parseInt(formData.contractDuration) : undefined,
-      createdAt: existingRecord?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    // Get existing records to update or create new ones
+    const existingRecords = (data.salaryRecords || []).filter(
+      record => record.teamMemberId === selectedTeamMemberId && 
+      (!currentBusiness || record.businessId === currentBusiness.id)
+    );
 
-    if (existingRecord) {
+    const existingPrimary = existingRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
+    const existingSecondary = existingRecords.find(r => (r as any).salaryType === 'secondary');
+
+    // Handle primary salary
+    if (hasPrimarySalary) {
+      const salaryRecord = {
+        id: existingPrimary?.id || generateId(),
+        businessId: currentBusiness.id,
+        teamMemberId: selectedTeamMemberId,
+        position: primarySalary.position,
+        amount: parseFloat(primarySalary.amount),
+        currency: primarySalary.currency,
+        frequency: primarySalary.frequency,
+        startDate: new Date(primarySalary.startDate).toISOString(),
+        endDate: primarySalary.endDate ? new Date(primarySalary.endDate).toISOString() : undefined,
+        description: primarySalary.description,
+        projectId: primarySalary.isProjectBased ? primarySalary.projectId : undefined,
+        clientId: primarySalary.isProjectBased ? primarySalary.clientId : undefined,
+        isProjectBased: primarySalary.isProjectBased,
+        salaryType: 'primary' as 'primary',
+        createdAt: existingPrimary?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingPrimary) {
+        dispatch({
+          type: 'UPDATE_SALARY_RECORD',
+          payload: { id: existingPrimary.id, updates: salaryRecord },
+        });
+      } else {
+        dispatch({
+          type: 'ADD_SALARY_RECORD',
+          payload: salaryRecord,
+        });
+      }
+    } else if (existingPrimary) {
+      // Remove primary salary if disabled
       dispatch({
-        type: 'UPDATE_SALARY_RECORD',
-        payload: { id: existingRecord.id, updates: salaryRecord },
-      });
-      toast({
-        title: "Success",
-        description: "Salary record updated successfully.",
-      });
-    } else {
-      dispatch({
-        type: 'ADD_SALARY_RECORD',
-        payload: salaryRecord,
-      });
-      toast({
-        title: "Success",
-        description: "Salary record added successfully.",
+        type: 'DELETE_SALARY_RECORD',
+        payload: existingPrimary.id,
       });
     }
+
+    // Handle secondary salary
+    if (hasSecondarySalary) {
+      const salaryRecord = {
+        id: existingSecondary?.id || generateId(),
+        businessId: currentBusiness.id,
+        teamMemberId: selectedTeamMemberId,
+        position: secondarySalary.position,
+        amount: parseFloat(secondarySalary.amount),
+        currency: secondarySalary.currency,
+        frequency: secondarySalary.frequency,
+        startDate: new Date(secondarySalary.startDate).toISOString(),
+        endDate: secondarySalary.endDate ? new Date(secondarySalary.endDate).toISOString() : undefined,
+        description: secondarySalary.description,
+        projectId: secondarySalary.isProjectBased ? secondarySalary.projectId : undefined,
+        clientId: secondarySalary.isProjectBased ? secondarySalary.clientId : undefined,
+        isProjectBased: secondarySalary.isProjectBased,
+        salaryType: 'secondary' as 'secondary',
+        contractDuration: parseInt(secondarySalary.contractDuration),
+        createdAt: existingSecondary?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingSecondary) {
+        dispatch({
+          type: 'UPDATE_SALARY_RECORD',
+          payload: { id: existingSecondary.id, updates: salaryRecord },
+        });
+      } else {
+        dispatch({
+          type: 'ADD_SALARY_RECORD',
+          payload: salaryRecord,
+        });
+      }
+    } else if (existingSecondary) {
+      // Remove secondary salary if disabled
+      dispatch({
+        type: 'DELETE_SALARY_RECORD',
+        payload: existingSecondary.id,
+      });
+    }
+
+    toast({
+      title: "Success",
+      description: "Salary information updated successfully.",
+    });
 
     onClose();
   };
 
-  const currentBusinessTeamMembers = data.teamMembers.filter(
-    member => !currentBusiness || member.id
-  );
+  const totalSalary = calculateTotalSalary();
 
-  const selectedProject = currentBusinessProjects.find(p => p.id === formData.projectId);
+  const renderSalarySection = (
+    title: string,
+    description: string,
+    isEnabled: boolean,
+    onToggle: (enabled: boolean) => void,
+    salaryData: SalaryFormData,
+    setSalaryData: React.Dispatch<React.SetStateAction<SalaryFormData>>,
+    isSecondary = false
+  ) => {
+    const convertedAmount = salaryData.amount && salaryData.currency !== data.userSettings.defaultCurrency.code
+      ? (() => {
+          const amount = parseFloat(salaryData.amount);
+          if (!isNaN(amount)) {
+            const currency = allCurrencies.find(c => c.code === salaryData.currency);
+            if (currency) {
+              return convertCurrency(
+                amount,
+                currency,
+                data.userSettings.defaultCurrency,
+                data.exchangeRates || []
+              );
+            }
+          }
+          return null;
+        })()
+      : null;
+
+    const selectedProject = currentBusinessProjects.find(p => p.id === salaryData.projectId);
+
+    return (
+      <Card className="space-y-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{title}</CardTitle>
+              <CardDescription>{description}</CardDescription>
+            </div>
+            <Switch
+              checked={isEnabled}
+              onCheckedChange={onToggle}
+            />
+          </div>
+        </CardHeader>
+        
+        {isEnabled && (
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-position`}>Position *</Label>
+              <Input
+                id={`${isSecondary ? 'secondary' : 'primary'}-position`}
+                value={salaryData.position}
+                onChange={(e) => setSalaryData({ ...salaryData, position: e.target.value })}
+                placeholder="e.g., Senior Developer"
+                required
+              />
+            </div>
+
+            {isSecondary && (
+              <div>
+                <Label htmlFor="secondary-duration">Contract Duration (months) *</Label>
+                <Input
+                  id="secondary-duration"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={salaryData.contractDuration}
+                  onChange={(e) => setSalaryData({ ...salaryData, contractDuration: e.target.value })}
+                  placeholder="e.g., 6 for 6 months"
+                  required
+                />
+              </div>
+            )}
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`${isSecondary ? 'secondary' : 'primary'}-project-based`}
+                checked={salaryData.isProjectBased}
+                onCheckedChange={(checked) => setSalaryData({ 
+                  ...salaryData, 
+                  isProjectBased: checked,
+                  projectId: checked ? salaryData.projectId : '',
+                  clientId: checked ? salaryData.clientId : '',
+                })}
+              />
+              <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-project-based`}>Project-based salary</Label>
+            </div>
+
+            {salaryData.isProjectBased && (
+              <>
+                <div>
+                  <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-project`}>Project *</Label>
+                  <Select
+                    value={salaryData.projectId}
+                    onValueChange={(value) => {
+                      const project = currentBusinessProjects.find(p => p.id === value);
+                      setSalaryData({ 
+                        ...salaryData, 
+                        projectId: value,
+                        clientId: project?.clientId || '',
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentBusinessProjects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedProject?.clientId && (
+                  <div>
+                    <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-client`}>Client</Label>
+                    <Select
+                      value={salaryData.clientId}
+                      onValueChange={(value) => setSalaryData({ ...salaryData, clientId: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentBusinessClients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name} ({client.company})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-amount`}>Amount *</Label>
+                <CurrencyInput
+                  id={`${isSecondary ? 'secondary' : 'primary'}-amount`}
+                  value={salaryData.amount}
+                  onChange={(value) => setSalaryData({ ...salaryData, amount: value })}
+                  placeholder="0.00"
+                  required
+                />
+                {convertedAmount !== null && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ≈ {data.userSettings.defaultCurrency.symbol}{convertedAmount.toLocaleString()}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-currency`}>Currency</Label>
+                <Select
+                  value={salaryData.currency}
+                  onValueChange={(value) => setSalaryData({ ...salaryData, currency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allCurrencies.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.symbol} {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-frequency`}>Frequency</Label>
+                <Select
+                  value={salaryData.frequency}
+                  onValueChange={(value: any) => setSalaryData({ ...salaryData, frequency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="annually">Annually</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-startDate`}>Start Date</Label>
+                <Input
+                  id={`${isSecondary ? 'secondary' : 'primary'}-startDate`}
+                  type="date"
+                  value={salaryData.startDate}
+                  onChange={(e) => setSalaryData({ ...salaryData, startDate: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {isSecondary && (
+              <div>
+                <Label htmlFor="secondary-endDate">Contract End Date</Label>
+                <Input
+                  id="secondary-endDate"
+                  type="date"
+                  value={salaryData.endDate}
+                  onChange={(e) => setSalaryData({ ...salaryData, endDate: e.target.value })}
+                  readOnly
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-calculated based on contract duration
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor={`${isSecondary ? 'secondary' : 'primary'}-description`}>Description</Label>
+              <Textarea
+                id={`${isSecondary ? 'secondary' : 'primary'}-description`}
+                value={salaryData.description}
+                onChange={(e) => setSalaryData({ ...salaryData, description: e.target.value })}
+                placeholder={isSecondary 
+                  ? "Details about the contract work, specific project, or additional responsibilities"
+                  : "Additional notes about this salary record (optional)"
+                }
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {existingRecord ? 'Edit Salary Record' : 'Add Salary Record'}
-          </DialogTitle>
+          <DialogTitle>Manage Team Member Salary</DialogTitle>
           <DialogDescription>
-            {existingRecord 
-              ? 'Update the salary information for this team member.'
-              : 'Create a new salary record for a team member.'
-            }
+            Configure primary and secondary salaries for a team member. You can enable both types or just one.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label htmlFor="teamMember">Team Member *</Label>
             <Select
-              value={formData.teamMemberId}
-              onValueChange={(value) => setFormData({ ...formData, teamMemberId: value })}
+              value={selectedTeamMemberId}
+              onValueChange={setSelectedTeamMemberId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select team member" />
@@ -282,221 +733,51 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
             </Select>
           </div>
 
-          <div>
-            <Label>Salary Type *</Label>
-            <RadioGroup
-              value={formData.salaryType}
-              onValueChange={(value: 'primary' | 'secondary') => setFormData({ ...formData, salaryType: value })}
-              className="flex space-x-6 mt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="primary" id="primary" />
-                <Label htmlFor="primary">Primary Salary</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="secondary" id="secondary" />
-                <Label htmlFor="secondary">Secondary/Contract Salary</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div>
-            <Label htmlFor="position">Position *</Label>
-            <Input
-              id="position"
-              value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-              placeholder="e.g., Senior Developer"
-              required
-            />
-          </div>
-
-          {formData.salaryType === 'secondary' && (
-            <div>
-              <Label htmlFor="contractDuration">Contract Duration (months) *</Label>
-              <Input
-                id="contractDuration"
-                type="number"
-                min="1"
-                max="60"
-                value={formData.contractDuration}
-                onChange={(e) => setFormData({ ...formData, contractDuration: e.target.value })}
-                placeholder="e.g., 6 for 6 months"
-                required
-              />
-            </div>
-          )}
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="project-based"
-              checked={formData.isProjectBased}
-              onCheckedChange={(checked) => setFormData({ 
-                ...formData, 
-                isProjectBased: checked,
-                projectId: checked ? formData.projectId : '',
-                clientId: checked ? formData.clientId : '',
-              })}
-            />
-            <Label htmlFor="project-based">Project-based salary</Label>
-          </div>
-
-          {formData.isProjectBased && (
-            <>
-              <div>
-                <Label htmlFor="project">Project *</Label>
-                <Select
-                  value={formData.projectId}
-                  onValueChange={(value) => {
-                    const project = currentBusinessProjects.find(p => p.id === value);
-                    setFormData({ 
-                      ...formData, 
-                      projectId: value,
-                      clientId: project?.clientId || '',
-                    });
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentBusinessProjects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedProject?.clientId && (
-                <div>
-                  <Label htmlFor="client">Client</Label>
-                  <Select
-                    value={formData.clientId}
-                    onValueChange={(value) => setFormData({ ...formData, clientId: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currentBusinessClients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name} ({client.company})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {(hasPrimarySalary || hasSecondarySalary) && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-lg">Total Monthly Salary</CardTitle>
+                <CardDescription>Combined primary and secondary salaries (converted to {data.userSettings.defaultCurrency.name})</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">
+                  {data.userSettings.defaultCurrency.symbol}{totalSalary.toLocaleString(undefined, { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
                 </div>
-              )}
-            </>
+                <div className="text-sm text-muted-foreground mt-1">
+                  per month (all frequencies converted to monthly equivalent)
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="amount">Amount *</Label>
-              <CurrencyInput
-                id="amount"
-                value={formData.amount}
-                onChange={(value) => setFormData({ ...formData, amount: value })}
-                placeholder="0.00"
-                required
-              />
-              {convertedAmount !== null && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  ≈ {data.userSettings.defaultCurrency.symbol}{convertedAmount.toLocaleString()}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="currency">Currency</Label>
-              <Select
-                value={formData.currency}
-                onValueChange={(value) => setFormData({ ...formData, currency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {allCurrencies.map((currency) => (
-                    <SelectItem key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="frequency">Frequency</Label>
-              <Select
-                value={formData.frequency}
-                onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {formData.salaryType === 'secondary' && (
-            <div>
-              <Label htmlFor="endDate">Contract End Date</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                readOnly
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Auto-calculated based on contract duration
-              </p>
-            </div>
+          {renderSalarySection(
+            "Primary Salary",
+            "Regular ongoing salary for this team member",
+            hasPrimarySalary,
+            setHasPrimarySalary,
+            primarySalary,
+            setPrimarySalary
           )}
 
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder={formData.salaryType === 'secondary' 
-                ? "Details about the contract work, specific project, or additional responsibilities"
-                : "Additional notes about this salary record (optional)"
-              }
-              rows={3}
-            />
-          </div>
+          {renderSalarySection(
+            "Secondary/Contract Salary",
+            "Additional contract-based salary with fixed duration",
+            hasSecondarySalary,
+            setHasSecondarySalary,
+            secondarySalary,
+            setSecondarySalary,
+            true
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit">
-              {existingRecord ? 'Update' : 'Create'} Record
+              Save Salary Information
             </Button>
           </DialogFooter>
         </form>
