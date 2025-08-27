@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -50,11 +49,15 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   const [secondaryProjectId, setSecondaryProjectId] = useState('');
   const [contractDuration, setContractDuration] = useState('');
 
-  // Get available data
-  const businessTeamMembers = data.teamMembers.filter(member => member.businessId === currentBusiness?.id);
+  // Get available data - filter team members by current business through salary records
+  const businessSalaryRecords = data.salaryRecords.filter(record => record.businessId === currentBusiness?.id);
+  const businessTeamMemberIds = [...new Set(businessSalaryRecords.map(record => record.teamMemberId))];
+  const businessTeamMembers = data.teamMembers.filter(member => 
+    businessTeamMemberIds.includes(member.id) || !businessTeamMemberIds.length
+  );
+  
   const businessProjects = data.projects.filter(project => project.businessId === currentBusiness?.id);
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
-  const businessSalaryRecords = data.salaryRecords.filter(record => record.businessId === currentBusiness?.id);
 
   // Load existing salary data when editing
   useEffect(() => {

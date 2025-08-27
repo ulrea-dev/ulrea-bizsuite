@@ -134,10 +134,10 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       id: generateId(),
       salaryRecordId: salaryRecord.id,
       amount: parseFloat(amount),
-      currency: data.userSettings.defaultCurrency.code,
       paymentDate,
-      paymentMethod: paymentMethod || undefined,
-      notes: notes || undefined,
+      period: `${new Date(paymentDate).toLocaleDateString()} Payment`,
+      method: paymentMethod || undefined,
+      description: notes || undefined,
       createdAt: new Date().toISOString(),
     };
 
