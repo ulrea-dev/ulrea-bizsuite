@@ -71,6 +71,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
       // Load primary salary data
       if (primaryRecord) {
+        console.log('Loading primary record:', primaryRecord);
         setPrimaryEnabled(true);
         setPrimaryPosition(primaryRecord.position);
         setPrimaryAmount(primaryRecord.amount.toString());
@@ -79,6 +80,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setPrimaryStartDate(primaryRecord.startDate);
         setPrimaryProjectId(primaryRecord.projectId || 'no-project');
       } else {
+        console.log('No primary record found, disabling primary');
         setPrimaryEnabled(false);
         // Reset primary form
         setPrimaryPosition('');
@@ -91,6 +93,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
       // Load secondary salary data
       if (secondaryRecord) {
+        console.log('Loading secondary record:', secondaryRecord);
         setSecondaryEnabled(true);
         setSecondaryPosition(secondaryRecord.position);
         setSecondaryAmount(secondaryRecord.amount.toString());
@@ -100,6 +103,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryProjectId(secondaryRecord.projectId || 'no-project');
         setContractDuration((secondaryRecord as any).contractDuration?.toString() || '');
       } else {
+        console.log('No secondary record found, disabling secondary');
         setSecondaryEnabled(false);
         // Reset secondary form
         setSecondaryPosition('');
@@ -111,6 +115,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setContractDuration('');
       }
     } else if (isOpen && !teamMemberId) {
+      console.log('New salary record, resetting all forms');
       // Reset all form data for new salary
       setSelectedTeamMemberId('');
       setPrimaryEnabled(false);
@@ -192,13 +197,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
   // Handle primary switch change
   const handlePrimaryToggle = (checked: boolean) => {
-    console.log('Primary toggle clicked:', checked);
+    console.log('Primary toggle clicked, new state:', checked);
     setPrimaryEnabled(checked);
   };
 
   // Handle secondary switch change
   const handleSecondaryToggle = (checked: boolean) => {
-    console.log('Secondary toggle clicked:', checked);
+    console.log('Secondary toggle clicked, new state:', checked);
     setSecondaryEnabled(checked);
   };
 
