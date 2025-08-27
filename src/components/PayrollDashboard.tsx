@@ -419,7 +419,10 @@ export const PayrollDashboard: React.FC = () => {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="font-medium">
-                        {formatCurrency(employee.amount, data.userSettings.defaultCurrency)}
+                        {data.userSettings.defaultCurrency.symbol}{employee.amount.toLocaleString('en-US', { 
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2 
+                        })}
                       </div>
                       {employee.lastPayment && (
                         <div className="text-xs text-muted-foreground">
