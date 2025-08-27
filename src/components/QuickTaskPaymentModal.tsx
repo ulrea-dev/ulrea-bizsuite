@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,9 +49,20 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     description: '',
   });
 
-  const availableTasks = data.quickTasks?.filter(task => 
-    task.businessId === currentBusiness?.id && !task.paidAt
-  ) || [];
+  const availableTasks = useMemo(() => 
+    data.quickTasks?.filter(task => 
+      task.businessId === currentBusiness?.id && !task.paidAt
+    ) || [], 
+    [data.quickTasks, currentBusiness?.id]
+  );
+
+  const getSelectedTasks = useMemo(() => {
+    return availableTasks.filter(task => selectedTaskIds.includes(task.id));
+  }, [availableTasks, selectedTaskIds]);
+
+  const getTotalAmount = useMemo(() => {
+    return getSelectedTasks.reduce((sum, task) => sum + task.amount, 0);
+  }, [getSelectedTasks]);
 
   useEffect(() => {
     // Reset form when modal opens
@@ -105,14 +116,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     }
   };
 
-  const getSelectedTasks = () => {
-    return availableTasks.filter(task => selectedTaskIds.includes(task.id));
-  };
-
-  const getTotalAmount = () => {
-    return getSelectedTasks().reduce((sum, task) => sum + task.amount, 0);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -136,11 +139,10 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
 
     if (bulkMode && selectedTaskIds.length > 0) {
       // Handle bulk payment
-      const selectedTasks = getSelectedTasks();
-      const totalAmount = getTotalAmount();
+      const totalAmount = getTotalAmount;
       
       // Group tasks by team member for bulk payments
-      const tasksByMember = selectedTasks.reduce((acc, task) => {
+      const tasksByMember = getSelectedTasks.reduce((acc, task) => {
         if (!acc[task.assignedToId]) {
           acc[task.assignedToId] = [];
         }
@@ -334,9 +336,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                             <p className="text-sm font-medium">
                               {selectedTaskIds.length} of {availableTasks.length} tasks selected
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              Total: {currentBusiness.currency.symbol}{getTotalAmount().toFixed(2)}
-                            </p>
+                             <p className="text-xs text-muted-foreground">
+                               Total: {currentBusiness.currency.symbol}{getTotalAmount.toFixed(2)}
+                             </p>
                           </div>
                         </div>
                         <Button
@@ -550,9 +552,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                     </div>
                     <div className="flex justify-between items-center">
                       <span>Total Amount:</span>
-                      <span className="font-medium text-lg">
-                        {currentBusiness.currency.symbol}{getTotalAmount().toFixed(2)}
-                      </span>
+                       <span className="font-medium text-lg">
+                         {currentBusiness.currency.symbol}{getTotalAmount.toFixed(2)}
+                       </span>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bulkDate">Payment Date</Label>
@@ -580,10 +582,10 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
             disabled={!manualMode && selectedTaskIds.length === 0}
             onClick={handleSubmit}
           >
-            {bulkMode && selectedTaskIds.length > 0 
-              ? `Pay ${selectedTaskIds.length} Tasks (${currentBusiness.currency.symbol}${getTotalAmount().toFixed(2)})`
-              : 'Record Payment'
-            }
+             {bulkMode && selectedTaskIds.length > 0 
+               ? `Pay ${selectedTaskIds.length} Tasks (${currentBusiness.currency.symbol}${getTotalAmount.toFixed(2)})`
+               : 'Record Payment'
+             }
           </Button>
         </DialogFooter>
       </DialogContent>
