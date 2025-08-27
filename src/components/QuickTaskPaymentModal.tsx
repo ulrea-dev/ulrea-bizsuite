@@ -85,7 +85,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
         });
       }
     }
-  }, [selectedTaskIds, availableTasks, manualMode, bulkMode]);
+  }, [selectedTaskIds, manualMode, bulkMode]); // Removed availableTasks dependency
 
   const handleTaskSelection = (taskId: string, checked: boolean) => {
     if (bulkMode) {
