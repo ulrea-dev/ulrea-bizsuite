@@ -64,6 +64,22 @@ export interface Client {
   createdAt: string;
 }
 
+export interface QuickTask {
+  id: string;
+  businessId: string;
+  title: string;
+  amount: number;
+  currencyCode: string;
+  assignedToId: string;
+  dueDate?: string;
+  status: 'pending' | 'active' | 'completed';
+  taskType?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  paidAt?: string;
+}
+
 export interface Payment {
   id: string;
   amount: number;
@@ -81,6 +97,7 @@ export interface Payment {
   paymentSource?: 'project' | 'salary' | 'task';
   taskDescription?: string;
   taskType?: string;
+  taskId?: string;
 }
 
 export interface ProjectAllocation {
@@ -303,6 +320,7 @@ export interface AppData {
   payslips: Payslip[];
   exchangeRates: ExchangeRate[];
   customCurrencies: Currency[];
+  quickTasks: QuickTask[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;

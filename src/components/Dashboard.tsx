@@ -10,6 +10,7 @@ import { SettingsPage } from './SettingsPage';
 import { ProjectDetailPage } from './ProjectDetailPage';
 import { AppSidebar } from './AppSidebar';
 import { SalariesPage } from './SalariesPage';
+import { QuickTasksPage } from './QuickTasksPage';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardProps {
@@ -76,6 +77,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
         return <PartnersPage onNavigateToPage={onNavigateToPage} />;
       case 'clients':
         return <ClientsPage onNavigateToPage={onNavigateToPage} />;
+      case 'quick-tasks':
+        return <QuickTasksPage onNavigateToPage={onNavigateToPage} />;
       case 'salaries':
         return <SalariesPage />;
       case 'analytics':

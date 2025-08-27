@@ -21,6 +21,7 @@ import {
   AllocationCompanyAllocation,
   Partner,
   Expense,
+  QuickTask,
 } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 
@@ -108,7 +109,12 @@ export type BusinessAction =
   | { type: 'ADD_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocation: AllocationPartnerAllocation } }
   | { type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION'; payload: { projectId: string; allocationId: string; partnerId: string } }
   | { type: 'SET_ALLOCATION_COMPANY_ALLOCATION'; payload: { projectId: string; allocation: AllocationCompanyAllocation } }
-  | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; clientPayments: number } };
+  | { type: 'UPDATE_CLIENT_PAYMENTS'; payload: { projectId: string; clientPayments: number } }
+  // Quick Task actions
+  | { type: 'ADD_QUICK_TASK'; payload: QuickTask }
+  | { type: 'UPDATE_QUICK_TASK'; payload: { id: string; updates: Partial<QuickTask> } }
+  | { type: 'DELETE_QUICK_TASK'; payload: string }
+  | { type: 'COMPLETE_QUICK_TASK'; payload: { id: string; paidAt: string } };
 
 const businessReducer = (state: AppData, action: BusinessAction): AppData => {
   switch (action.type) {
@@ -496,6 +502,31 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
           p.id === action.payload.projectId
             ? { ...p, clientPayments: action.payload.clientPayments, updatedAt: new Date().toISOString() }
             : p
+        ),
+      };
+
+    // Quick Task actions
+    case 'ADD_QUICK_TASK':
+      return { ...state, quickTasks: [...(state.quickTasks || []), action.payload] };
+    case 'UPDATE_QUICK_TASK':
+      return {
+        ...state,
+        quickTasks: (state.quickTasks || []).map(task =>
+          task.id === action.payload.id ? { ...task, ...action.payload.updates, updatedAt: new Date().toISOString() } : task
+        ),
+      };
+    case 'DELETE_QUICK_TASK':
+      return {
+        ...state,
+        quickTasks: (state.quickTasks || []).filter(task => task.id !== action.payload),
+      };
+    case 'COMPLETE_QUICK_TASK':
+      return {
+        ...state,
+        quickTasks: (state.quickTasks || []).map(task =>
+          task.id === action.payload.id 
+            ? { ...task, status: 'completed' as const, paidAt: action.payload.paidAt, updatedAt: new Date().toISOString() }
+            : task
         ),
       };
 

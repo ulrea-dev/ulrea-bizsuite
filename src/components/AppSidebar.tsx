@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign } from 'lucide-react';
+import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -34,6 +34,7 @@ const navigationItems = [
   { id: 'team', label: 'Team', icon: Users },
   { id: 'partners', label: 'Partners', icon: UserCheck },
   { id: 'clients', label: 'Clients', icon: UserCheck },
+  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
   { id: 'salaries', label: 'Salaries', icon: DollarSign },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings },

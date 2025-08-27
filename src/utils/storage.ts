@@ -17,6 +17,7 @@ const getInitialData = (): AppData => ({
   payslips: [],
   exchangeRates: [],
   customCurrencies: [],
+  quickTasks: [],
   currentBusinessId: null,
   userSettings: {
     username: '',
@@ -46,6 +47,7 @@ export const loadData = (): AppData => {
       payslips: data.payslips || [],
       exchangeRates: data.exchangeRates || [],
       customCurrencies: data.customCurrencies || [],
+      quickTasks: data.quickTasks || [],
       // Ensure projects have clientPayments field (for backward compatibility)
       projects: (data.projects || []).map(project => ({
         ...project,
