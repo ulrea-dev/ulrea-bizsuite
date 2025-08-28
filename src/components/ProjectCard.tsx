@@ -46,6 +46,40 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const totalPaid = project.teamAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
   const paymentProgress = totalAllocated > 0 ? (totalPaid / totalAllocated) * 100 : 0;
+
+  // Fix team member counting and deduplication
+  const getUniqueTeamMembers = () => {
+    if (teamMembers && teamMembers.length > 0) {
+      // Use provided teamMembers but deduplicate by ID
+      const uniqueMembers = teamMembers.reduce((acc, member) => {
+        if (!acc.find(existing => existing.id === member.id)) {
+          acc.push(member);
+        }
+        return acc;
+      }, [] as Array<{ id: string; name: string }>);
+      return uniqueMembers;
+    }
+
+    // Fallback to extracting from project allocations
+    if (project.isMultiPhase && project.allocationTeamAllocations) {
+      const uniqueMembers = project.allocationTeamAllocations.reduce((acc, alloc) => {
+        if (!acc.find(existing => existing.id === alloc.memberId)) {
+          acc.push({ id: alloc.memberId, name: alloc.memberName });
+        }
+        return acc;
+      }, [] as Array<{ id: string; name: string }>);
+      return uniqueMembers;
+    }
+
+    // Legacy team allocations
+    return project.teamAllocations?.map(alloc => ({
+      id: alloc.memberId,
+      name: alloc.memberName
+    })) || [];
+  };
+
+  const uniqueTeamMembers = getUniqueTeamMembers();
+  const teamMemberCount = uniqueTeamMembers.length;
   
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
@@ -109,7 +143,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               variant="ghost"
               size="sm"
               className="h-auto p-1 font-medium dashboard-text-primary hover:text-primary"
-              onClick={() => onNavigateToClient?.(project.clientId!)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateToClient?.(project.clientId!);
+              }}
             >
               {clientName}
             </Button>
@@ -127,24 +164,27 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               variant="ghost"
               size="sm"
               className="h-auto p-1 font-medium dashboard-text-primary hover:text-primary"
-              onClick={() => onNavigateToTeam?.()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNavigateToTeam?.();
+              }}
             >
-              {project.teamAllocations.length} members
+              {teamMemberCount} members
             </Button>
           </div>
           
           {/* Team Member Names */}
-          {teamMembers && teamMembers.length > 0 && (
+          {uniqueTeamMembers.length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {teamMembers.slice(0, 3).map((member) => (
-                <Badge key={member.id} variant="secondary" className="text-xs">
+              {uniqueTeamMembers.slice(0, 3).map((member) => (
+                <Badge key={`team-${member.id}`} variant="secondary" className="text-xs">
                   <User className="h-3 w-3 mr-1" />
                   {member.name}
                 </Badge>
               ))}
-              {teamMembers.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{teamMembers.length - 3} more
+              {uniqueTeamMembers.length > 3 && (
+                <Badge key="more-members" variant="outline" className="text-xs">
+                  +{uniqueTeamMembers.length - 3} more
                 </Badge>
               )}
             </div>
@@ -152,7 +192,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
         
         {/* Payment Progress */}
-        {project.teamAllocations.length > 0 && (
+        {teamMemberCount > 0 && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="dashboard-text-secondary">Payment Progress</span>
