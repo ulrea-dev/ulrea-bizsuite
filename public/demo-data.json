@@ -1,3 +1,4 @@
+
 {
   "businesses": [
     {
@@ -9,69 +10,489 @@
         "symbol": "$",
         "name": "US Dollar"
       },
-      "currentBalance": 125000,
-      "minimumBalance": 10000,
-      "createdAt": "2024-01-15T10:30:00Z",
+      "currentBalance": 2850000,
+      "minimumBalance": 50000,
+      "createdAt": "2023-01-15T10:30:00Z",
       "updatedAt": "2024-12-01T14:20:00Z"
     },
     {
       "id": "1735315200001-xyz789ghi",
       "name": "Creative Media Hub",
-      "type": "Digital Marketing",
+      "type": "Digital Marketing & Design",
       "currency": {
         "code": "EUR",
         "symbol": "€",
         "name": "Euro"
       },
-      "currentBalance": 89000,
-      "minimumBalance": 5000,
-      "createdAt": "2024-03-10T09:15:00Z",
+      "currentBalance": 1920000,
+      "minimumBalance": 25000,
+      "createdAt": "2023-03-10T09:15:00Z",
       "updatedAt": "2024-12-01T16:45:00Z"
+    }
+  ],
+  "teamMembers": [
+    {
+      "id": "1735315200020-team001",
+      "name": "Sarah Johnson",
+      "email": "sarah@techflow.com",
+      "role": "Senior Full Stack Developer",
+      "paymentHistory": [],
+      "createdAt": "2023-01-20T00:00:00Z"
+    },
+    {
+      "id": "1735315200021-team002",
+      "name": "Mike Chen",
+      "email": "mike@techflow.com",
+      "role": "DevOps Engineer",
+      "paymentHistory": [],
+      "createdAt": "2023-02-15T00:00:00Z"
+    },
+    {
+      "id": "1735315200022-team003",
+      "name": "Emma Rodriguez",
+      "email": "emma@creativemedia.com",
+      "role": "Creative Director",
+      "paymentHistory": [],
+      "createdAt": "2023-03-20T00:00:00Z"
+    },
+    {
+      "id": "1735315200023-team004",
+      "name": "James Wilson",
+      "email": "james@techflow.com",
+      "role": "Senior Backend Developer",
+      "paymentHistory": [],
+      "createdAt": "2023-04-10T00:00:00Z"
+    },
+    {
+      "id": "1735315200024-team005",
+      "name": "Lisa Anderson",
+      "email": "lisa@techflow.com",
+      "role": "UI/UX Designer",
+      "paymentHistory": [],
+      "createdAt": "2023-04-25T00:00:00Z"
+    },
+    {
+      "id": "1735315200025-team006",
+      "name": "Alex Thompson",
+      "email": "alex@techflow.com",
+      "role": "QA Engineer",
+      "paymentHistory": [],
+      "createdAt": "2023-05-12T00:00:00Z"
+    },
+    {
+      "id": "1735315200026-team007",
+      "name": "Rachel Green",
+      "email": "rachel@techflow.com",
+      "role": "Project Manager",
+      "paymentHistory": [],
+      "createdAt": "2023-06-01T00:00:00Z"
+    },
+    {
+      "id": "1735315200027-team008",
+      "name": "David Kim",
+      "email": "david@techflow.com",
+      "role": "Frontend Developer",
+      "paymentHistory": [],
+      "createdAt": "2023-06-15T00:00:00Z"
+    },
+    {
+      "id": "1735315200028-team009",
+      "name": "Jennifer Lopez",
+      "email": "jennifer@techflow.com",
+      "role": "Data Engineer",
+      "paymentHistory": [],
+      "createdAt": "2023-07-01T00:00:00Z"
+    },
+    {
+      "id": "1735315200029-team010",
+      "name": "Robert Davis",
+      "email": "robert@techflow.com",
+      "role": "Cloud Architect",
+      "paymentHistory": [],
+      "createdAt": "2023-07-20T00:00:00Z"
+    },
+    {
+      "id": "1735315200030-team011",
+      "name": "Amanda White",
+      "email": "amanda@techflow.com",
+      "role": "Mobile Developer",
+      "paymentHistory": [],
+      "createdAt": "2023-08-05T00:00:00Z"
+    },
+    {
+      "id": "1735315200031-team012",
+      "name": "Christopher Brown",
+      "email": "chris@techflow.com",
+      "role": "Security Engineer",
+      "paymentHistory": [],
+      "createdAt": "2023-08-25T00:00:00Z"
+    },
+    {
+      "id": "1735315200032-team013",
+      "name": "Sophie Martin",
+      "email": "sophie@creativemedia.com",
+      "role": "Senior Graphic Designer",
+      "paymentHistory": [],
+      "createdAt": "2023-09-10T00:00:00Z"
+    },
+    {
+      "id": "1735315200033-team014",
+      "name": "Carlos Hernandez",
+      "email": "carlos@creativemedia.com",
+      "role": "Content Writer",
+      "paymentHistory": [],
+      "createdAt": "2023-09-25T00:00:00Z"
+    },
+    {
+      "id": "1735315200034-team015",
+      "name": "Maria Garcia",
+      "email": "maria@creativemedia.com",
+      "role": "Marketing Specialist",
+      "paymentHistory": [],
+      "createdAt": "2023-10-12T00:00:00Z"
+    },
+    {
+      "id": "1735315200035-team016",
+      "name": "Thomas Lee",
+      "email": "thomas@creativemedia.com",
+      "role": "Social Media Manager",
+      "paymentHistory": [],
+      "createdAt": "2023-10-28T00:00:00Z"
+    },
+    {
+      "id": "1735315200036-team017",
+      "name": "Jessica Taylor",
+      "email": "jessica@creativemedia.com",
+      "role": "Video Editor",
+      "paymentHistory": [],
+      "createdAt": "2023-11-15T00:00:00Z"
+    },
+    {
+      "id": "1735315200037-team018",
+      "name": "Michael Clark",
+      "email": "michael@creativemedia.com",
+      "role": "Brand Strategist",
+      "paymentHistory": [],
+      "createdAt": "2023-12-01T00:00:00Z"
+    },
+    {
+      "id": "1735315200038-team019",
+      "name": "Ashley Turner",
+      "email": "ashley@creativemedia.com",
+      "role": "Digital Marketing Manager",
+      "paymentHistory": [],
+      "createdAt": "2024-01-10T00:00:00Z"
+    },
+    {
+      "id": "1735315200039-team020",
+      "name": "Daniel Rodriguez",
+      "email": "daniel@creativemedia.com",
+      "role": "Motion Graphics Designer",
+      "paymentHistory": [],
+      "createdAt": "2024-02-01T00:00:00Z"
+    }
+  ],
+  "partners": [
+    {
+      "id": "1735315200040-partner001",
+      "name": "Jason Martinez",
+      "email": "jason@partnership.com",
+      "type": "sales",
+      "paymentHistory": [],
+      "createdAt": "2023-01-25T00:00:00Z"
+    },
+    {
+      "id": "1735315200041-partner002",
+      "name": "Victoria Chen",
+      "email": "victoria@enterprisesales.com",
+      "type": "sales",
+      "paymentHistory": [],
+      "createdAt": "2023-03-15T00:00:00Z"
+    },
+    {
+      "id": "1735315200042-partner003",
+      "name": "Marcus Johnson",
+      "email": "marcus@smb-specialist.com",
+      "type": "sales",
+      "paymentHistory": [],
+      "createdAt": "2023-05-20T00:00:00Z"
+    },
+    {
+      "id": "1735315200043-partner004",
+      "name": "Elena Petrov",
+      "email": "elena@international-sales.com",
+      "type": "sales",
+      "paymentHistory": [],
+      "createdAt": "2023-07-10T00:00:00Z"
+    },
+    {
+      "id": "1735315200044-partner005",
+      "name": "Ryan O'Connor",
+      "email": "ryan@creative-partnerships.com",
+      "type": "sales",
+      "paymentHistory": [],
+      "createdAt": "2023-09-05T00:00:00Z"
+    }
+  ],
+  "clients": [
+    {
+      "id": "1735315200010-client001",
+      "name": "David Wilson",
+      "email": "david@globalcorp.com",
+      "company": "Global Enterprise Corp",
+      "projects": ["proj001", "proj002", "proj003", "proj004", "proj005", "proj006", "proj007", "proj008"],
+      "totalValue": 8950000,
+      "createdAt": "2023-08-20T00:00:00Z"
+    },
+    {
+      "id": "1735315200011-client002",
+      "name": "Sophie Laurent",
+      "email": "sophie@luxfashion.com",
+      "company": "Luxury Fashion Brands",
+      "projects": ["proj009", "proj010", "proj011", "proj012", "proj013"],
+      "totalValue": 4280000,
+      "createdAt": "2023-09-25T00:00:00Z"
+    },
+    {
+      "id": "1735315200012-client003",
+      "name": "Mark Thompson",
+      "email": "mark@innovatetech.com",
+      "company": "InnovateTech Solutions",
+      "projects": ["proj014", "proj015", "proj016"],
+      "totalValue": 3150000,
+      "createdAt": "2024-01-15T00:00:00Z"
     }
   ],
   "projects": [
     {
-      "id": "1735315200002-proj001",
+      "id": "proj001",
       "businessId": "1735315200000-abc123def",
-      "name": "E-commerce Platform Redesign",
-      "description": "Complete redesign and development of the client's e-commerce platform with modern UI/UX",
-      "totalValue": 95000,
-      "status": "active",
-      "startDate": "2024-09-01T00:00:00Z",
-      "endDate": "2024-12-31T00:00:00Z",
+      "name": "Enterprise ERP System",
+      "description": "Complete enterprise resource planning system with advanced analytics and AI integration",
+      "totalValue": 2800000,
+      "status": "completed",
+      "startDate": "2023-06-01T00:00:00Z",
+      "endDate": "2024-03-31T00:00:00Z",
       "clientId": "1735315200010-client001",
       "isMultiPhase": true,
       "allocations": [
         {
-          "id": "1735315200003-alloc001",
-          "title": "Phase 1: Discovery & Planning",
-          "budget": 25000,
-          "startDate": "2024-09-01T00:00:00Z",
-          "endDate": "2024-10-15T00:00:00Z",
+          "id": "alloc001",
+          "title": "Phase 1: System Architecture & Planning",
+          "budget": 800000,
+          "startDate": "2023-06-01T00:00:00Z",
+          "endDate": "2023-09-30T00:00:00Z",
           "status": "completed",
-          "description": "Initial planning, requirements gathering, and system architecture",
-          "createdAt": "2024-09-01T00:00:00Z",
-          "updatedAt": "2024-10-15T00:00:00Z"
+          "description": "Enterprise architecture design and project planning",
+          "createdAt": "2023-06-01T00:00:00Z",
+          "updatedAt": "2023-09-30T00:00:00Z"
         },
         {
-          "id": "1735315200004-alloc002",
-          "title": "Phase 2: Development & Testing",
-          "budget": 50000,
-          "startDate": "2024-10-16T00:00:00Z",
+          "id": "alloc002",
+          "title": "Phase 2: Core Development",
+          "budget": 1500000,
+          "startDate": "2023-10-01T00:00:00Z",
+          "endDate": "2024-02-29T00:00:00Z",
+          "status": "completed",
+          "description": "Core system development and integration",
+          "createdAt": "2023-10-01T00:00:00Z",
+          "updatedAt": "2024-02-29T00:00:00Z"
+        },
+        {
+          "id": "alloc003",
+          "title": "Phase 3: Testing & Deployment",
+          "budget": 500000,
+          "startDate": "2024-03-01T00:00:00Z",
+          "endDate": "2024-03-31T00:00:00Z",
+          "status": "completed",
+          "description": "System testing and production deployment",
+          "createdAt": "2024-03-01T00:00:00Z",
+          "updatedAt": "2024-03-31T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc001",
+          "allocationName": "Phase 1: System Architecture & Planning",
+          "memberId": "1735315200020-team001",
+          "memberName": "Sarah Johnson",
+          "allocationType": "percentage",
+          "allocationValue": 25,
+          "totalAllocated": 200000,
+          "paidAmount": 200000,
+          "outstanding": 0
+        },
+        {
+          "allocationId": "alloc002",
+          "allocationName": "Phase 2: Core Development",
+          "memberId": "1735315200020-team001",
+          "memberName": "Sarah Johnson",
+          "allocationType": "percentage",
+          "allocationValue": 20,
+          "totalAllocated": 300000,
+          "paidAmount": 300000,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc001",
+          "allocationName": "Phase 1: System Architecture & Planning",
+          "partnerId": "1735315200041-partner002",
+          "partnerName": "Victoria Chen",
+          "allocationType": "percentage",
+          "allocationValue": 8,
+          "totalAllocated": 64000,
+          "paidAmount": 64000,
+          "outstanding": 0
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc001",
+          "allocationName": "Phase 1: System Architecture & Planning",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 45,
+          "totalAllocated": 360000,
+          "paidAmount": 360000,
+          "outstanding": 0
+        }
+      ],
+      "clientPayments": 2800000,
+      "expenses": [
+        {
+          "id": "exp001",
+          "projectId": "proj001",
+          "allocationId": "alloc002",
+          "name": "AWS Enterprise Infrastructure",
+          "category": "hosting",
+          "amount": 15000,
+          "date": "2023-12-01T00:00:00Z",
+          "description": "Enterprise cloud infrastructure setup",
+          "status": "paid",
+          "createdAt": "2023-12-01T00:00:00Z",
+          "updatedAt": "2023-12-01T00:00:00Z"
+        }
+      ],
+      "createdAt": "2023-06-01T00:00:00Z",
+      "updatedAt": "2024-03-31T00:00:00Z"
+    },
+    {
+      "id": "proj002",
+      "businessId": "1735315200000-abc123def",
+      "name": "Mobile Banking App",
+      "description": "Secure mobile banking application with biometric authentication",
+      "totalValue": 1200000,
+      "status": "completed",
+      "startDate": "2023-09-01T00:00:00Z",
+      "endDate": "2024-02-15T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc004",
+          "title": "Complete Mobile App Development",
+          "budget": 1200000,
+          "startDate": "2023-09-01T00:00:00Z",
+          "endDate": "2024-02-15T00:00:00Z",
+          "status": "completed",
+          "description": "Full mobile banking application development",
+          "createdAt": "2023-09-01T00:00:00Z",
+          "updatedAt": "2024-02-15T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc004",
+          "allocationName": "Complete Mobile App Development",
+          "memberId": "1735315200030-team011",
+          "memberName": "Amanda White",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 420000,
+          "paidAmount": 420000,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc004",
+          "allocationName": "Complete Mobile App Development",
+          "partnerId": "1735315200040-partner001",
+          "partnerName": "Jason Martinez",
+          "allocationType": "percentage",
+          "allocationValue": 10,
+          "totalAllocated": 120000,
+          "paidAmount": 120000,
+          "outstanding": 0
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc004",
+          "allocationName": "Complete Mobile App Development",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 40,
+          "totalAllocated": 480000,
+          "paidAmount": 480000,
+          "outstanding": 0
+        }
+      ],
+      "clientPayments": 1200000,
+      "expenses": [],
+      "createdAt": "2023-09-01T00:00:00Z",
+      "updatedAt": "2024-02-15T00:00:00Z"
+    },
+    {
+      "id": "proj003",
+      "businessId": "1735315200000-abc123def",
+      "name": "Cloud Migration Platform",
+      "description": "Enterprise cloud migration and optimization platform",
+      "totalValue": 950000,
+      "status": "active",
+      "startDate": "2024-05-01T00:00:00Z",
+      "endDate": "2025-01-15T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": true,
+      "allocations": [
+        {
+          "id": "alloc005",
+          "title": "Phase 1: Assessment & Planning",
+          "budget": 300000,
+          "startDate": "2024-05-01T00:00:00Z",
+          "endDate": "2024-07-31T00:00:00Z",
+          "status": "completed",
+          "description": "Cloud readiness assessment and migration planning",
+          "createdAt": "2024-05-01T00:00:00Z",
+          "updatedAt": "2024-07-31T00:00:00Z"
+        },
+        {
+          "id": "alloc006",
+          "title": "Phase 2: Migration Execution",
+          "budget": 500000,
+          "startDate": "2024-08-01T00:00:00Z",
           "endDate": "2024-12-15T00:00:00Z",
           "status": "active",
-          "description": "Core development, feature implementation, and comprehensive testing",
-          "createdAt": "2024-10-16T00:00:00Z",
-          "updatedAt": "2024-11-20T00:00:00Z"
+          "description": "Cloud migration execution and testing",
+          "createdAt": "2024-08-01T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
         },
         {
-          "id": "1735315200005-alloc003",
-          "title": "Phase 3: Deployment & Support",
-          "budget": 20000,
+          "id": "alloc007",
+          "title": "Phase 3: Optimization & Support",
+          "budget": 150000,
           "startDate": "2024-12-16T00:00:00Z",
-          "endDate": "2024-12-31T00:00:00Z",
+          "endDate": "2025-01-15T00:00:00Z",
           "status": "planning",
-          "description": "Production deployment, training, and initial support",
+          "description": "Performance optimization and ongoing support",
           "createdAt": "2024-12-16T00:00:00Z",
           "updatedAt": "2024-12-16T00:00:00Z"
         }
@@ -80,340 +501,1088 @@
       "partnerAllocations": [],
       "allocationTeamAllocations": [
         {
-          "allocationId": "1735315200003-alloc001",
-          "allocationName": "Phase 1: Discovery & Planning",
-          "memberId": "1735315200020-team001",
-          "memberName": "Sarah Johnson",
+          "allocationId": "alloc005",
+          "allocationName": "Phase 1: Assessment & Planning",
+          "memberId": "1735315200029-team010",
+          "memberName": "Robert Davis",
           "allocationType": "percentage",
           "allocationValue": 40,
-          "totalAllocated": 10000,
-          "paidAmount": 10000,
+          "totalAllocated": 120000,
+          "paidAmount": 120000,
           "outstanding": 0
         },
         {
-          "allocationId": "1735315200004-alloc002",
-          "allocationName": "Phase 2: Development & Testing",
-          "memberId": "1735315200020-team001",
-          "memberName": "Sarah Johnson",
+          "allocationId": "alloc006",
+          "allocationName": "Phase 2: Migration Execution",
+          "memberId": "1735315200029-team010",
+          "memberName": "Robert Davis",
           "allocationType": "percentage",
           "allocationValue": 35,
-          "totalAllocated": 17500,
-          "paidAmount": 8750,
-          "outstanding": 8750
-        },
-        {
-          "allocationId": "1735315200004-alloc002",
-          "allocationName": "Phase 2: Development & Testing",
-          "memberId": "1735315200021-team002",
-          "memberName": "Mike Chen",
-          "allocationType": "fixed",
-          "allocationValue": 15000,
-          "totalAllocated": 15000,
-          "paidAmount": 7500,
-          "outstanding": 7500
+          "totalAllocated": 175000,
+          "paidAmount": 87500,
+          "outstanding": 87500
         }
       ],
       "allocationPartnerAllocations": [
         {
-          "allocationId": "1735315200003-alloc001",
-          "allocationName": "Phase 1: Discovery & Planning",
-          "partnerId": "1735315200030-partner001",
-          "partnerName": "Jason Martinez",
+          "allocationId": "alloc005",
+          "allocationName": "Phase 1: Assessment & Planning",
+          "partnerId": "1735315200041-partner002",
+          "partnerName": "Victoria Chen",
           "allocationType": "percentage",
-          "allocationValue": 25,
-          "totalAllocated": 6250,
-          "paidAmount": 6250,
+          "allocationValue": 12,
+          "totalAllocated": 36000,
+          "paidAmount": 36000,
           "outstanding": 0
-        },
-        {
-          "allocationId": "1735315200004-alloc002",
-          "allocationName": "Phase 2: Development & Testing",
-          "partnerId": "1735315200030-partner001",
-          "partnerName": "Jason Martinez",
-          "allocationType": "percentage",
-          "allocationValue": 20,
-          "totalAllocated": 10000,
-          "paidAmount": 0,
-          "outstanding": 10000
         }
       ],
       "allocationCompanyAllocations": [
         {
-          "allocationId": "1735315200003-alloc001",
-          "allocationName": "Phase 1: Discovery & Planning",
+          "allocationId": "alloc005",
+          "allocationName": "Phase 1: Assessment & Planning",
           "businessId": "1735315200000-abc123def",
           "businessName": "TechFlow Solutions",
           "allocationType": "percentage",
           "allocationValue": 35,
-          "totalAllocated": 8750,
-          "paidAmount": 8750,
+          "totalAllocated": 105000,
+          "paidAmount": 105000,
           "outstanding": 0
-        },
-        {
-          "allocationId": "1735315200004-alloc002",
-          "allocationName": "Phase 2: Development & Testing",
-          "businessId": "1735315200000-abc123def",
-          "businessName": "TechFlow Solutions",
-          "allocationType": "percentage",
-          "allocationValue": 30,
-          "totalAllocated": 15000,
-          "paidAmount": 5000,
-          "outstanding": 10000
         }
       ],
-      "clientPayments": 75000,
-      "expenses": [
-        {
-          "id": "1735315200050-exp001",
-          "projectId": "1735315200002-proj001",
-          "allocationId": "1735315200004-alloc002",
-          "name": "AWS Hosting Services",
-          "category": "hosting",
-          "amount": 250,
-          "date": "2024-11-01T00:00:00Z",
-          "description": "Monthly hosting and infrastructure costs",
-          "status": "paid",
-          "createdAt": "2024-11-01T00:00:00Z",
-          "updatedAt": "2024-11-01T00:00:00Z"
-        }
-      ],
-      "createdAt": "2024-09-01T00:00:00Z",
-      "updatedAt": "2024-11-20T00:00:00Z"
+      "clientPayments": 650000,
+      "expenses": [],
+      "createdAt": "2024-05-01T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
     },
     {
-      "id": "1735315200006-proj002",
-      "businessId": "1735315200001-xyz789ghi",
-      "name": "Brand Identity Campaign",
-      "description": "Complete brand identity overhaul and marketing campaign for luxury fashion brand",
-      "totalValue": 45000,
+      "id": "proj004",
+      "businessId": "1735315200000-abc123def",
+      "name": "AI-Powered Analytics Dashboard",
+      "description": "Advanced analytics dashboard with machine learning insights",
+      "totalValue": 850000,
       "status": "active",
-      "startDate": "2024-10-01T00:00:00Z",
-      "endDate": "2024-12-20T00:00:00Z",
-      "clientId": "1735315200011-client002",
+      "startDate": "2024-07-15T00:00:00Z",
+      "endDate": "2025-02-28T00:00:00Z",
+      "clientId": "1735315200010-client001",
       "isMultiPhase": false,
       "allocations": [
         {
-          "id": "1735315200007-alloc004",
-          "title": "Complete Campaign",
-          "budget": 45000,
-          "startDate": "2024-10-01T00:00:00Z",
-          "endDate": "2024-12-20T00:00:00Z",
+          "id": "alloc008",
+          "title": "AI Analytics Platform Development",
+          "budget": 850000,
+          "startDate": "2024-07-15T00:00:00Z",
+          "endDate": "2025-02-28T00:00:00Z",
           "status": "active",
-          "description": "Brand strategy, visual identity, and marketing campaign execution",
-          "createdAt": "2024-10-01T00:00:00Z",
-          "updatedAt": "2024-11-15T00:00:00Z"
+          "description": "Machine learning powered analytics platform",
+          "createdAt": "2024-07-15T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
         }
       ],
       "teamAllocations": [],
       "partnerAllocations": [],
       "allocationTeamAllocations": [
         {
-          "allocationId": "1735315200007-alloc004",
-          "allocationName": "Complete Campaign",
-          "memberId": "1735315200022-team003",
-          "memberName": "Emma Rodriguez",
+          "allocationId": "alloc008",
+          "allocationName": "AI Analytics Platform Development",
+          "memberId": "1735315200028-team009",
+          "memberName": "Jennifer Lopez",
           "allocationType": "percentage",
-          "allocationValue": 50,
-          "totalAllocated": 22500,
-          "paidAmount": 11250,
-          "outstanding": 11250
+          "allocationValue": 30,
+          "totalAllocated": 255000,
+          "paidAmount": 127500,
+          "outstanding": 127500
         }
       ],
       "allocationPartnerAllocations": [],
       "allocationCompanyAllocations": [
         {
-          "allocationId": "1735315200007-alloc004",
-          "allocationName": "Complete Campaign",
+          "allocationId": "alloc008",
+          "allocationName": "AI Analytics Platform Development",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 50,
+          "totalAllocated": 425000,
+          "paidAmount": 212500,
+          "outstanding": 212500
+        }
+      ],
+      "clientPayments": 450000,
+      "expenses": [],
+      "createdAt": "2024-07-15T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
+    },
+    {
+      "id": "proj005",
+      "businessId": "1735315200000-abc123def",
+      "name": "E-commerce Platform Redesign",
+      "description": "Complete redesign and modernization of e-commerce platform",
+      "totalValue": 750000,
+      "status": "active",
+      "startDate": "2024-09-01T00:00:00Z",
+      "endDate": "2025-03-31T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc009",
+          "title": "E-commerce Platform Modernization",
+          "budget": 750000,
+          "startDate": "2024-09-01T00:00:00Z",
+          "endDate": "2025-03-31T00:00:00Z",
+          "status": "active",
+          "description": "Modern e-commerce platform with enhanced user experience",
+          "createdAt": "2024-09-01T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc009",
+          "allocationName": "E-commerce Platform Modernization",
+          "memberId": "1735315200024-team005",
+          "memberName": "Lisa Anderson",
+          "allocationType": "percentage",
+          "allocationValue": 25,
+          "totalAllocated": 187500,
+          "paidAmount": 62500,
+          "outstanding": 125000
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc009",
+          "allocationName": "E-commerce Platform Modernization",
+          "partnerId": "1735315200040-partner001",
+          "partnerName": "Jason Martinez",
+          "allocationType": "percentage",
+          "allocationValue": 8,
+          "totalAllocated": 60000,
+          "paidAmount": 20000,
+          "outstanding": 40000
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc009",
+          "allocationName": "E-commerce Platform Modernization",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 45,
+          "totalAllocated": 337500,
+          "paidAmount": 112500,
+          "outstanding": 225000
+        }
+      ],
+      "clientPayments": 300000,
+      "expenses": [],
+      "createdAt": "2024-09-01T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
+    },
+    {
+      "id": "proj006",
+      "businessId": "1735315200000-abc123def",
+      "name": "Cybersecurity Enhancement Suite",
+      "description": "Advanced cybersecurity platform with threat detection and response",
+      "totalValue": 1200000,
+      "status": "active",
+      "startDate": "2024-10-01T00:00:00Z",
+      "endDate": "2025-06-30T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": true,
+      "allocations": [
+        {
+          "id": "alloc010",
+          "title": "Phase 1: Security Assessment",
+          "budget": 400000,
+          "startDate": "2024-10-01T00:00:00Z",
+          "endDate": "2024-12-31T00:00:00Z",
+          "status": "active",
+          "description": "Comprehensive security assessment and planning",
+          "createdAt": "2024-10-01T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
+        },
+        {
+          "id": "alloc011",
+          "title": "Phase 2: Implementation",
+          "budget": 600000,
+          "startDate": "2025-01-01T00:00:00Z",
+          "endDate": "2025-05-31T00:00:00Z",
+          "status": "planning",
+          "description": "Security platform implementation and integration",
+          "createdAt": "2025-01-01T00:00:00Z",
+          "updatedAt": "2025-01-01T00:00:00Z"
+        },
+        {
+          "id": "alloc012",
+          "title": "Phase 3: Monitoring Setup",
+          "budget": 200000,
+          "startDate": "2025-06-01T00:00:00Z",
+          "endDate": "2025-06-30T00:00:00Z",
+          "status": "planning",
+          "description": "24/7 monitoring and response setup",
+          "createdAt": "2025-06-01T00:00:00Z",
+          "updatedAt": "2025-06-01T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc010",
+          "allocationName": "Phase 1: Security Assessment",
+          "memberId": "1735315200031-team012",
+          "memberName": "Christopher Brown",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 140000,
+          "paidAmount": 46667,
+          "outstanding": 93333
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc010",
+          "allocationName": "Phase 1: Security Assessment",
+          "partnerId": "1735315200041-partner002",
+          "partnerName": "Victoria Chen",
+          "allocationType": "percentage",
+          "allocationValue": 10,
+          "totalAllocated": 40000,
+          "paidAmount": 13333,
+          "outstanding": 26667
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc010",
+          "allocationName": "Phase 1: Security Assessment",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 40,
+          "totalAllocated": 160000,
+          "paidAmount": 53333,
+          "outstanding": 106667
+        }
+      ],
+      "clientPayments": 200000,
+      "expenses": [],
+      "createdAt": "2024-10-01T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
+    },
+    {
+      "id": "proj007",
+      "businessId": "1735315200000-abc123def",
+      "name": "Legacy System Modernization",
+      "description": "Modernization of legacy financial systems with new architecture",
+      "totalValue": 1800000,
+      "status": "completed",
+      "startDate": "2023-01-15T00:00:00Z",
+      "endDate": "2023-12-15T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc013",
+          "title": "Complete System Modernization",
+          "budget": 1800000,
+          "startDate": "2023-01-15T00:00:00Z",
+          "endDate": "2023-12-15T00:00:00Z",
+          "status": "completed",
+          "description": "Full legacy system replacement and modernization",
+          "createdAt": "2023-01-15T00:00:00Z",
+          "updatedAt": "2023-12-15T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc013",
+          "allocationName": "Complete System Modernization",
+          "memberId": "1735315200020-team001",
+          "memberName": "Sarah Johnson",
+          "allocationType": "percentage",
+          "allocationValue": 30,
+          "totalAllocated": 540000,
+          "paidAmount": 540000,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc013",
+          "allocationName": "Complete System Modernization",
+          "partnerId": "1735315200041-partner002",
+          "partnerName": "Victoria Chen",
+          "allocationType": "percentage",
+          "allocationValue": 12,
+          "totalAllocated": 216000,
+          "paidAmount": 216000,
+          "outstanding": 0
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc013",
+          "allocationName": "Complete System Modernization",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 45,
+          "totalAllocated": 810000,
+          "paidAmount": 810000,
+          "outstanding": 0
+        }
+      ],
+      "clientPayments": 1800000,
+      "expenses": [],
+      "createdAt": "2023-01-15T00:00:00Z",
+      "updatedAt": "2023-12-15T00:00:00Z"
+    },
+    {
+      "id": "proj008",
+      "businessId": "1735315200000-abc123def",
+      "name": "Blockchain Integration Platform",
+      "description": "Integration of blockchain technology for secure transactions",
+      "totalValue": 1500000,
+      "status": "upcoming",
+      "startDate": "2025-02-01T00:00:00Z",
+      "endDate": "2025-09-30T00:00:00Z",
+      "clientId": "1735315200010-client001",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc014",
+          "title": "Blockchain Platform Development",
+          "budget": 1500000,
+          "startDate": "2025-02-01T00:00:00Z",
+          "endDate": "2025-09-30T00:00:00Z",
+          "status": "planning",
+          "description": "Blockchain integration and smart contract development",
+          "createdAt": "2025-02-01T00:00:00Z",
+          "updatedAt": "2025-02-01T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [],
+      "allocationPartnerAllocations": [],
+      "allocationCompanyAllocations": [],
+      "clientPayments": 0,
+      "expenses": [],
+      "createdAt": "2025-02-01T00:00:00Z",
+      "updatedAt": "2025-02-01T00:00:00Z"
+    },
+    {
+      "id": "proj009",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "Global Brand Identity Campaign",
+      "description": "Complete brand identity overhaul and global marketing campaign",
+      "totalValue": 1200000,
+      "status": "completed",
+      "startDate": "2023-10-01T00:00:00Z",
+      "endDate": "2024-06-30T00:00:00Z",
+      "clientId": "1735315200011-client002",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc015",
+          "title": "Complete Brand Campaign",
+          "budget": 1200000,
+          "startDate": "2023-10-01T00:00:00Z",
+          "endDate": "2024-06-30T00:00:00Z",
+          "status": "completed",
+          "description": "Brand strategy, visual identity, and global marketing campaign",
+          "createdAt": "2023-10-01T00:00:00Z",
+          "updatedAt": "2024-06-30T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc015",
+          "allocationName": "Complete Brand Campaign",
+          "memberId": "1735315200022-team003",
+          "memberName": "Emma Rodriguez",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 420000,
+          "paidAmount": 420000,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc015",
+          "allocationName": "Complete Brand Campaign",
+          "partnerId": "1735315200044-partner005",
+          "partnerName": "Ryan O'Connor",
+          "allocationType": "percentage",
+          "allocationValue": 15,
+          "totalAllocated": 180000,
+          "paidAmount": 180000,
+          "outstanding": 0
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc015",
+          "allocationName": "Complete Brand Campaign",
           "businessId": "1735315200001-xyz789ghi",
           "businessName": "Creative Media Hub",
           "allocationType": "percentage",
-          "allocationValue": 50,
-          "totalAllocated": 22500,
-          "paidAmount": 7500,
-          "outstanding": 15000
+          "allocationValue": 35,
+          "totalAllocated": 420000,
+          "paidAmount": 420000,
+          "outstanding": 0
         }
       ],
-      "clientPayments": 30000,
+      "clientPayments": 1200000,
       "expenses": [],
-      "createdAt": "2024-10-01T00:00:00Z",
-      "updatedAt": "2024-11-15T00:00:00Z"
-    }
-  ],
-  "teamMembers": [
-    {
-      "id": "1735315200020-team001",
-      "name": "Sarah Johnson",
-      "email": "sarah@techflow.com",
-      "role": "Senior Developer",
-      "paymentHistory": [],
-      "createdAt": "2024-01-20T00:00:00Z"
+      "createdAt": "2023-10-01T00:00:00Z",
+      "updatedAt": "2024-06-30T00:00:00Z"
     },
     {
-      "id": "1735315200021-team002",
-      "name": "Mike Chen",
-      "email": "mike@techflow.com",
-      "role": "Full Stack Developer",
-      "paymentHistory": [],
-      "createdAt": "2024-02-15T00:00:00Z"
+      "id": "proj010",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "Digital Marketing Transformation",
+      "description": "Complete digital marketing strategy and platform transformation",
+      "totalValue": 850000,
+      "status": "active",
+      "startDate": "2024-08-01T00:00:00Z",
+      "endDate": "2025-01-31T00:00:00Z",
+      "clientId": "1735315200011-client002",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc016",
+          "title": "Digital Marketing Overhaul",
+          "budget": 850000,
+          "startDate": "2024-08-01T00:00:00Z",
+          "endDate": "2025-01-31T00:00:00Z",
+          "status": "active",
+          "description": "Digital marketing strategy and platform transformation",
+          "createdAt": "2024-08-01T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc016",
+          "allocationName": "Digital Marketing Overhaul",
+          "memberId": "1735315200038-team019",
+          "memberName": "Ashley Turner",
+          "allocationType": "percentage",
+          "allocationValue": 30,
+          "totalAllocated": 255000,
+          "paidAmount": 127500,
+          "outstanding": 127500
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc016",
+          "allocationName": "Digital Marketing Overhaul",
+          "partnerId": "1735315200044-partner005",
+          "partnerName": "Ryan O'Connor",
+          "allocationType": "percentage",
+          "allocationValue": 12,
+          "totalAllocated": 102000,
+          "paidAmount": 51000,
+          "outstanding": 51000
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc016",
+          "allocationName": "Digital Marketing Overhaul",
+          "businessId": "1735315200001-xyz789ghi",
+          "businessName": "Creative Media Hub",
+          "allocationType": "percentage",
+          "allocationValue": 40,
+          "totalAllocated": 340000,
+          "paidAmount": 170000,
+          "outstanding": 170000
+        }
+      ],
+      "clientPayments": 550000,
+      "expenses": [],
+      "createdAt": "2024-08-01T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
     },
     {
-      "id": "1735315200022-team003",
-      "name": "Emma Rodriguez",
-      "email": "emma@creativemedia.com",
-      "role": "Creative Director",
-      "paymentHistory": [],
-      "createdAt": "2024-03-20T00:00:00Z"
-    }
-  ],
-  "partners": [
-    {
-      "id": "1735315200030-partner001",
-      "name": "Jason Martinez",
-      "email": "jason@partnership.com",
-      "type": "sales",
-      "paymentHistory": [],
-      "createdAt": "2024-01-25T00:00:00Z"
-    }
-  ],
-  "clients": [
-    {
-      "id": "1735315200010-client001",
-      "name": "David Wilson",
-      "email": "david@retailcorp.com",
-      "company": "RetailCorp Inc.",
-      "projects": ["1735315200002-proj001"],
-      "totalValue": 95000,
-      "createdAt": "2024-08-20T00:00:00Z"
-    },
-    {
-      "id": "1735315200011-client002",
-      "name": "Sophie Laurent",
-      "email": "sophie@luxfashion.com",
-      "company": "Luxury Fashion Brands",
-      "projects": ["1735315200006-proj002"],
-      "totalValue": 45000,
-      "createdAt": "2024-09-25T00:00:00Z"
-    }
-  ],
-  "payments": [
-    {
-      "id": "1735315200040-pay001",
-      "amount": 10000,
-      "date": "2024-10-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200003-alloc001",
-      "memberId": "1735315200020-team001",
-      "type": "outgoing",
-      "recipientType": "team",
+      "id": "proj011",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "E-commerce Website Redesign",
+      "description": "Modern e-commerce website with enhanced user experience",
+      "totalValue": 480000,
       "status": "completed",
-      "method": "bank_transfer",
-      "description": "Phase 1 completion payment",
-      "paymentSource": "project"
+      "startDate": "2024-02-01T00:00:00Z",
+      "endDate": "2024-07-15T00:00:00Z",
+      "clientId": "1735315200011-client002",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc017",
+          "title": "Website Redesign & Development",
+          "budget": 480000,
+          "startDate": "2024-02-01T00:00:00Z",
+          "endDate": "2024-07-15T00:00:00Z",
+          "status": "completed",
+          "description": "Modern e-commerce website with enhanced UX",
+          "createdAt": "2024-02-01T00:00:00Z",
+          "updatedAt": "2024-07-15T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc017",
+          "allocationName": "Website Redesign & Development",
+          "memberId": "1735315200032-team013",
+          "memberName": "Sophie Martin",
+          "allocationType": "percentage",
+          "allocationValue": 40,
+          "totalAllocated": 192000,
+          "paidAmount": 192000,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc017",
+          "allocationName": "Website Redesign & Development",
+          "businessId": "1735315200001-xyz789ghi",
+          "businessName": "Creative Media Hub",
+          "allocationType": "percentage",
+          "allocationValue": 45,
+          "totalAllocated": 216000,
+          "paidAmount": 216000,
+          "outstanding": 0
+        }
+      ],
+      "clientPayments": 480000,
+      "expenses": [],
+      "createdAt": "2024-02-01T00:00:00Z",
+      "updatedAt": "2024-07-15T00:00:00Z"
     },
     {
-      "id": "1735315200041-pay002",
-      "amount": 6250,
-      "date": "2024-10-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200003-alloc001",
-      "partnerId": "1735315200030-partner001",
-      "type": "outgoing",
-      "recipientType": "partner",
-      "status": "completed",
-      "method": "bank_transfer",
-      "description": "Partner commission for Phase 1",
-      "paymentSource": "project"
+      "id": "proj012",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "Social Media Campaign Automation",
+      "description": "Automated social media campaign management platform",
+      "totalValue": 650000,
+      "status": "upcoming",
+      "startDate": "2025-01-15T00:00:00Z",
+      "endDate": "2025-07-31T00:00:00Z",
+      "clientId": "1735315200011-client002",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc018",
+          "title": "Social Media Automation Platform",
+          "budget": 650000,
+          "startDate": "2025-01-15T00:00:00Z",
+          "endDate": "2025-07-31T00:00:00Z",
+          "status": "planning",
+          "description": "Automated social media campaign management system",
+          "createdAt": "2025-01-15T00:00:00Z",
+          "updatedAt": "2025-01-15T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [],
+      "allocationPartnerAllocations": [],
+      "allocationCompanyAllocations": [],
+      "clientPayments": 0,
+      "expenses": [],
+      "createdAt": "2025-01-15T00:00:00Z",
+      "updatedAt": "2025-01-15T00:00:00Z"
     },
     {
-      "id": "1735315200042-pay003",
-      "amount": 8750,
-      "date": "2024-10-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200003-alloc001",
-      "type": "outgoing",
-      "recipientType": "company",
-      "status": "completed",
-      "method": "internal_transfer",
-      "description": "Company allocation for Phase 1",
-      "paymentSource": "project"
+      "id": "proj013",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "Video Content Production Suite",
+      "description": "Complete video content production and distribution platform",
+      "totalValue": 1100000,
+      "status": "upcoming",
+      "startDate": "2025-03-01T00:00:00Z",
+      "endDate": "2025-10-15T00:00:00Z",
+      "clientId": "1735315200011-client002",
+      "isMultiPhase": true,
+      "allocations": [
+        {
+          "id": "alloc019",
+          "title": "Phase 1: Pre-production Setup",
+          "budget": 350000,
+          "startDate": "2025-03-01T00:00:00Z",
+          "endDate": "2025-05-31T00:00:00Z",
+          "status": "planning",
+          "description": "Video production infrastructure and planning",
+          "createdAt": "2025-03-01T00:00:00Z",
+          "updatedAt": "2025-03-01T00:00:00Z"
+        },
+        {
+          "id": "alloc020",
+          "title": "Phase 2: Content Production",
+          "budget": 550000,
+          "startDate": "2025-06-01T00:00:00Z",
+          "endDate": "2025-09-15T00:00:00Z",
+          "status": "planning",
+          "description": "Video content creation and production",
+          "createdAt": "2025-06-01T00:00:00Z",
+          "updatedAt": "2025-06-01T00:00:00Z"
+        },
+        {
+          "id": "alloc021",
+          "title": "Phase 3: Distribution Platform",
+          "budget": 200000,
+          "startDate": "2025-09-16T00:00:00Z",
+          "endDate": "2025-10-15T00:00:00Z",
+          "status": "planning",
+          "description": "Content distribution and analytics platform",
+          "createdAt": "2025-09-16T00:00:00Z",
+          "updatedAt": "2025-09-16T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [],
+      "allocationPartnerAllocations": [],
+      "allocationCompanyAllocations": [],
+      "clientPayments": 0,
+      "expenses": [],
+      "createdAt": "2025-03-01T00:00:00Z",
+      "updatedAt": "2025-03-01T00:00:00Z"
     },
     {
-      "id": "1735315200043-pay004",
-      "amount": 8750,
-      "date": "2024-11-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200004-alloc002",
-      "memberId": "1735315200020-team001",
-      "type": "outgoing",
-      "recipientType": "team",
+      "id": "proj014",
+      "businessId": "1735315200000-abc123def",
+      "name": "Custom CRM Development",
+      "description": "Custom customer relationship management system",
+      "totalValue": 950000,
       "status": "completed",
-      "method": "bank_transfer",
-      "description": "Phase 2 partial payment",
-      "paymentSource": "project"
+      "startDate": "2024-01-15T00:00:00Z",
+      "endDate": "2024-08-30T00:00:00Z",
+      "clientId": "1735315200012-client003",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc022",
+          "title": "CRM System Development",
+          "budget": 950000,
+          "startDate": "2024-01-15T00:00:00Z",
+          "endDate": "2024-08-30T00:00:00Z",
+          "status": "completed",
+          "description": "Custom CRM system with advanced features",
+          "createdAt": "2024-01-15T00:00:00Z",
+          "updatedAt": "2024-08-30T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc022",
+          "allocationName": "CRM System Development",
+          "memberId": "1735315200023-team004",
+          "memberName": "James Wilson",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 332500,
+          "paidAmount": 332500,
+          "outstanding": 0
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc022",
+          "allocationName": "CRM System Development",
+          "partnerId": "1735315200042-partner003",
+          "partnerName": "Marcus Johnson",
+          "allocationType": "percentage",
+          "allocationValue": 15,
+          "totalAllocated": 142500,
+          "paidAmount": 142500,
+          "outstanding": 0
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc022",
+          "allocationName": "CRM System Development",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 332500,
+          "paidAmount": 332500,
+          "outstanding": 0
+        }
+      ],
+      "clientPayments": 950000,
+      "expenses": [],
+      "createdAt": "2024-01-15T00:00:00Z",
+      "updatedAt": "2024-08-30T00:00:00Z"
     },
     {
-      "id": "1735315200044-pay005",
-      "amount": 7500,
-      "date": "2024-11-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200004-alloc002",
-      "memberId": "1735315200021-team002",
-      "type": "outgoing",
-      "recipientType": "team",
-      "status": "completed",
-      "method": "bank_transfer",
-      "description": "Phase 2 partial payment",
-      "paymentSource": "project"
+      "id": "proj015",
+      "businessId": "1735315200000-abc123def",
+      "name": "Data Analytics Platform",
+      "description": "Advanced data analytics and business intelligence platform",
+      "totalValue": 1100000,
+      "status": "active",
+      "startDate": "2024-11-01T00:00:00Z",
+      "endDate": "2025-05-15T00:00:00Z",
+      "clientId": "1735315200012-client003",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc023",
+          "title": "Analytics Platform Development",
+          "budget": 1100000,
+          "startDate": "2024-11-01T00:00:00Z",
+          "endDate": "2025-05-15T00:00:00Z",
+          "status": "active",
+          "description": "Business intelligence and data analytics platform",
+          "createdAt": "2024-11-01T00:00:00Z",
+          "updatedAt": "2024-11-30T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [
+        {
+          "allocationId": "alloc023",
+          "allocationName": "Analytics Platform Development",
+          "memberId": "1735315200028-team009",
+          "memberName": "Jennifer Lopez",
+          "allocationType": "percentage",
+          "allocationValue": 40,
+          "totalAllocated": 440000,
+          "paidAmount": 73333,
+          "outstanding": 366667
+        }
+      ],
+      "allocationPartnerAllocations": [
+        {
+          "allocationId": "alloc023",
+          "allocationName": "Analytics Platform Development",
+          "partnerId": "1735315200042-partner003",
+          "partnerName": "Marcus Johnson",
+          "allocationType": "percentage",
+          "allocationValue": 10,
+          "totalAllocated": 110000,
+          "paidAmount": 18333,
+          "outstanding": 91667
+        }
+      ],
+      "allocationCompanyAllocations": [
+        {
+          "allocationId": "alloc023",
+          "allocationName": "Analytics Platform Development",
+          "businessId": "1735315200000-abc123def",
+          "businessName": "TechFlow Solutions",
+          "allocationType": "percentage",
+          "allocationValue": 35,
+          "totalAllocated": 385000,
+          "paidAmount": 64167,
+          "outstanding": 320833
+        }
+      ],
+      "clientPayments": 220000,
+      "expenses": [],
+      "createdAt": "2024-11-01T00:00:00Z",
+      "updatedAt": "2024-11-30T00:00:00Z"
     },
     {
-      "id": "1735315200045-pay006",
-      "amount": 5000,
-      "date": "2024-11-15T00:00:00Z",
-      "projectId": "1735315200002-proj001",
-      "allocationId": "1735315200004-alloc002",
-      "type": "outgoing",
-      "recipientType": "company",
-      "status": "completed",
-      "method": "internal_transfer",
-      "description": "Company allocation partial payment",
-      "paymentSource": "project"
-    },
-    {
-      "id": "1735315200046-pay007",
-      "amount": 11250,
-      "date": "2024-11-10T00:00:00Z",
-      "projectId": "1735315200006-proj002",
-      "allocationId": "1735315200007-alloc004",
-      "memberId": "1735315200022-team003",
-      "type": "outgoing",
-      "recipientType": "team",
-      "status": "completed",
-      "method": "bank_transfer",
-      "description": "Campaign milestone payment",
-      "paymentSource": "project"
-    },
-    {
-      "id": "1735315200047-pay008",
-      "amount": 7500,
-      "date": "2024-11-10T00:00:00Z",
-      "projectId": "1735315200006-proj002",
-      "allocationId": "1735315200007-alloc004",
-      "type": "outgoing",
-      "recipientType": "company",
-      "status": "completed",
-      "method": "internal_transfer",
-      "description": "Company allocation payment",
-      "paymentSource": "project"
+      "id": "proj016",
+      "businessId": "1735315200000-abc123def",
+      "name": "Enterprise API Gateway",
+      "description": "Scalable API gateway for enterprise microservices architecture",
+      "totalValue": 1100000,
+      "status": "upcoming",
+      "startDate": "2025-04-01T00:00:00Z",
+      "endDate": "2025-11-30T00:00:00Z",
+      "clientId": "1735315200012-client003",
+      "isMultiPhase": false,
+      "allocations": [
+        {
+          "id": "alloc024",
+          "title": "API Gateway Development",
+          "budget": 1100000,
+          "startDate": "2025-04-01T00:00:00Z",
+          "endDate": "2025-11-30T00:00:00Z",
+          "status": "planning",
+          "description": "Enterprise-grade API gateway with advanced features",
+          "createdAt": "2025-04-01T00:00:00Z",
+          "updatedAt": "2025-04-01T00:00:00Z"
+        }
+      ],
+      "teamAllocations": [],
+      "partnerAllocations": [],
+      "allocationTeamAllocations": [],
+      "allocationPartnerAllocations": [],
+      "allocationCompanyAllocations": [],
+      "clientPayments": 0,
+      "expenses": [],
+      "createdAt": "2025-04-01T00:00:00Z",
+      "updatedAt": "2025-04-01T00:00:00Z"
     }
   ],
   "salaryRecords": [
     {
-      "id": "1735315200060-sal001",
+      "id": "sal001",
       "businessId": "1735315200000-abc123def",
       "teamMemberId": "1735315200020-team001",
-      "position": "Senior Developer",
+      "position": "Senior Full Stack Developer",
+      "amount": 12000,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-01-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-01-01T00:00:00Z",
+      "updatedAt": "2023-01-01T00:00:00Z"
+    },
+    {
+      "id": "sal002",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200021-team002",
+      "position": "DevOps Engineer",
+      "amount": 11000,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-02-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-02-01T00:00:00Z",
+      "updatedAt": "2023-02-01T00:00:00Z"
+    },
+    {
+      "id": "sal003",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200022-team003",
+      "position": "Creative Director",
+      "amount": 9500,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-03-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-03-01T00:00:00Z",
+      "updatedAt": "2023-03-01T00:00:00Z"
+    },
+    {
+      "id": "sal004",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200023-team004",
+      "position": "Senior Backend Developer",
+      "amount": 11500,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-04-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-04-01T00:00:00Z",
+      "updatedAt": "2023-04-01T00:00:00Z"
+    },
+    {
+      "id": "sal005",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200024-team005",
+      "position": "UI/UX Designer",
       "amount": 8500,
       "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-04-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-04-01T00:00:00Z",
+      "updatedAt": "2023-04-01T00:00:00Z"
+    },
+    {
+      "id": "sal006",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200025-team006",
+      "position": "QA Engineer",
+      "amount": 7500,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-05-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-05-01T00:00:00Z",
+      "updatedAt": "2023-05-01T00:00:00Z"
+    },
+    {
+      "id": "sal007",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200026-team007",
+      "position": "Project Manager",
+      "amount": 9000,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-06-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-06-01T00:00:00Z",
+      "updatedAt": "2023-06-01T00:00:00Z"
+    },
+    {
+      "id": "sal008",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200027-team008",
+      "position": "Frontend Developer",
+      "amount": 8000,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-06-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-06-01T00:00:00Z",
+      "updatedAt": "2023-06-01T00:00:00Z"
+    },
+    {
+      "id": "sal009",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200028-team009",
+      "position": "Data Engineer",
+      "amount": 10500,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-07-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-07-01T00:00:00Z",
+      "updatedAt": "2023-07-01T00:00:00Z"
+    },
+    {
+      "id": "sal010",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200029-team010",
+      "position": "Cloud Architect",
+      "amount": 13000,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-07-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-07-01T00:00:00Z",
+      "updatedAt": "2023-07-01T00:00:00Z"
+    },
+    {
+      "id": "sal011",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200030-team011",
+      "position": "Mobile Developer",
+      "amount": 9500,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-08-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-08-01T00:00:00Z",
+      "updatedAt": "2023-08-01T00:00:00Z"
+    },
+    {
+      "id": "sal012",
+      "businessId": "1735315200000-abc123def",
+      "teamMemberId": "1735315200031-team012",
+      "position": "Security Engineer",
+      "amount": 12500,
+      "currency": "USD",
+      "frequency": "monthly",
+      "startDate": "2023-08-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-08-01T00:00:00Z",
+      "updatedAt": "2023-08-01T00:00:00Z"
+    },
+    {
+      "id": "sal013",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200032-team013",
+      "position": "Senior Graphic Designer",
+      "amount": 6500,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-09-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-09-01T00:00:00Z",
+      "updatedAt": "2023-09-01T00:00:00Z"
+    },
+    {
+      "id": "sal014",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200033-team014",
+      "position": "Content Writer",
+      "amount": 4500,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-09-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-09-01T00:00:00Z",
+      "updatedAt": "2023-09-01T00:00:00Z"
+    },
+    {
+      "id": "sal015",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200034-team015",
+      "position": "Marketing Specialist",
+      "amount": 5500,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-10-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-10-01T00:00:00Z",
+      "updatedAt": "2023-10-01T00:00:00Z"
+    },
+    {
+      "id": "sal016",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200035-team016",
+      "position": "Social Media Manager",
+      "amount": 5000,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-10-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-10-01T00:00:00Z",
+      "updatedAt": "2023-10-01T00:00:00Z"
+    },
+    {
+      "id": "sal017",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200036-team017",
+      "position": "Video Editor",
+      "amount": 5500,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-11-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-11-01T00:00:00Z",
+      "updatedAt": "2023-11-01T00:00:00Z"
+    },
+    {
+      "id": "sal018",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200037-team018",
+      "position": "Brand Strategist",
+      "amount": 7000,
+      "currency": "EUR",
+      "frequency": "monthly",
+      "startDate": "2023-12-01T00:00:00Z",
+      "salaryType": "primary",
+      "createdAt": "2023-12-01T00:00:00Z",
+      "updatedAt": "2023-12-01T00:00:00Z"
+    },
+    {
+      "id": "sal019",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200038-team019",
+      "position": "Digital Marketing Manager",
+      "amount": 7500,
+      "currency": "EUR",
       "frequency": "monthly",
       "startDate": "2024-01-01T00:00:00Z",
       "salaryType": "primary",
@@ -421,30 +1590,243 @@
       "updatedAt": "2024-01-01T00:00:00Z"
     },
     {
-      "id": "1735315200061-sal002",
-      "businessId": "1735315200000-abc123def",
-      "teamMemberId": "1735315200021-team002",
-      "position": "Full Stack Developer",
-      "amount": 7000,
-      "currency": "USD",
+      "id": "sal020",
+      "businessId": "1735315200001-xyz789ghi",
+      "teamMemberId": "1735315200039-team020",
+      "position": "Motion Graphics Designer",
+      "amount": 6000,
+      "currency": "EUR",
       "frequency": "monthly",
       "startDate": "2024-02-01T00:00:00Z",
       "salaryType": "primary",
       "createdAt": "2024-02-01T00:00:00Z",
       "updatedAt": "2024-02-01T00:00:00Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": "pay001",
+      "amount": 200000,
+      "date": "2023-09-30T00:00:00Z",
+      "projectId": "proj001",
+      "allocationId": "alloc001",
+      "memberId": "1735315200020-team001",
+      "type": "outgoing",
+      "recipientType": "team",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Phase 1 completion payment - Enterprise ERP",
+      "paymentSource": "project"
     },
     {
-      "id": "1735315200062-sal003",
+      "id": "pay002",
+      "amount": 64000,
+      "date": "2023-09-30T00:00:00Z",
+      "projectId": "proj001",
+      "allocationId": "alloc001",
+      "partnerId": "1735315200041-partner002",
+      "type": "outgoing",
+      "recipientType": "partner",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Partner commission - Enterprise ERP Phase 1",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay003",
+      "amount": 360000,
+      "date": "2023-09-30T00:00:00Z",
+      "projectId": "proj001",
+      "allocationId": "alloc001",
+      "type": "outgoing",
+      "recipientType": "company",
+      "status": "completed",
+      "method": "internal_transfer",
+      "description": "Company allocation - Enterprise ERP Phase 1",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay004",
+      "amount": 540000,
+      "date": "2023-12-15T00:00:00Z",
+      "projectId": "proj007",
+      "allocationId": "alloc013",
+      "memberId": "1735315200020-team001",
+      "type": "outgoing",
+      "recipientType": "team",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Legacy System Modernization - Full payment",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay005",
+      "amount": 216000,
+      "date": "2023-12-15T00:00:00Z",
+      "projectId": "proj007",
+      "allocationId": "alloc013",
+      "partnerId": "1735315200041-partner002",
+      "type": "outgoing",
+      "recipientType": "partner",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Partner commission - Legacy System Modernization",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay006",
+      "amount": 810000,
+      "date": "2023-12-15T00:00:00Z",
+      "projectId": "proj007",
+      "allocationId": "alloc013",
+      "type": "outgoing",
+      "recipientType": "company",
+      "status": "completed",
+      "method": "internal_transfer",
+      "description": "Company allocation - Legacy System Modernization",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay007",
+      "amount": 420000,
+      "date": "2024-02-15T00:00:00Z",
+      "projectId": "proj002",
+      "allocationId": "alloc004",
+      "memberId": "1735315200030-team011",
+      "type": "outgoing",
+      "recipientType": "team",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Mobile Banking App - Full payment",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay008",
+      "amount": 120000,
+      "date": "2024-02-15T00:00:00Z",
+      "projectId": "proj002",
+      "allocationId": "alloc004",
+      "partnerId": "1735315200040-partner001",
+      "type": "outgoing",
+      "recipientType": "partner",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Partner commission - Mobile Banking App",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay009",
+      "amount": 480000,
+      "date": "2024-02-15T00:00:00Z",
+      "projectId": "proj002",
+      "allocationId": "alloc004",
+      "type": "outgoing",
+      "recipientType": "company",
+      "status": "completed",
+      "method": "internal_transfer",
+      "description": "Company allocation - Mobile Banking App",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay010",
+      "amount": 420000,
+      "date": "2024-06-30T00:00:00Z",
+      "projectId": "proj009",
+      "allocationId": "alloc015",
+      "memberId": "1735315200022-team003",
+      "type": "outgoing",
+      "recipientType": "team",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Global Brand Identity Campaign - Full payment",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay011",
+      "amount": 180000,
+      "date": "2024-06-30T00:00:00Z",
+      "projectId": "proj009",
+      "allocationId": "alloc015",
+      "partnerId": "1735315200044-partner005",
+      "type": "outgoing",
+      "recipientType": "partner",
+      "status": "completed",
+      "method": "bank_transfer",
+      "description": "Partner commission - Global Brand Identity",
+      "paymentSource": "project"
+    },
+    {
+      "id": "pay012",
+      "amount": 420000,
+      "date": "2024-06-30T00:00:00Z",
+      "projectId": "proj009",
+      "allocationId": "alloc015",
+      "type": "outgoing",
+      "recipientType": "company",
+      "status": "completed",
+      "method": "internal_transfer",
+      "description": "Company allocation - Global Brand Identity",
+      "paymentSource": "project"
+    }
+  ],
+  "quickTasks": [
+    {
+      "id": "task001",
+      "businessId": "1735315200000-abc123def",
+      "title": "Security Code Review",
+      "amount": 1500,
+      "currencyCode": "USD",
+      "assignedToId": "1735315200031-team012",
+      "dueDate": "2024-12-05T00:00:00Z",
+      "status": "completed",
+      "taskType": "Security Review",
+      "description": "Security audit for the new payment module",
+      "createdAt": "2024-12-01T00:00:00Z",
+      "updatedAt": "2024-12-04T00:00:00Z",
+      "paidAt": "2024-12-04T00:00:00Z"
+    },
+    {
+      "id": "task002",
       "businessId": "1735315200001-xyz789ghi",
-      "teamMemberId": "1735315200022-team003",
-      "position": "Creative Director",
-      "amount": 6500,
-      "currency": "EUR",
-      "frequency": "monthly",
-      "startDate": "2024-03-01T00:00:00Z",
-      "salaryType": "primary",
-      "createdAt": "2024-03-01T00:00:00Z",
-      "updatedAt": "2024-03-01T00:00:00Z"
+      "title": "Brand Strategy Consultation",
+      "amount": 800,
+      "currencyCode": "EUR",
+      "assignedToId": "1735315200037-team018",
+      "dueDate": "2024-12-10T00:00:00Z",
+      "status": "active",
+      "taskType": "Consultation",
+      "description": "Strategic brand consultation for upcoming campaign",
+      "createdAt": "2024-12-02T00:00:00Z",
+      "updatedAt": "2024-12-02T00:00:00Z"
+    },
+    {
+      "id": "task003",
+      "businessId": "1735315200000-abc123def",
+      "title": "Performance Optimization",
+      "amount": 1200,
+      "currencyCode": "USD",
+      "assignedToId": "1735315200021-team002",
+      "dueDate": "2024-12-15T00:00:00Z",
+      "status": "active",
+      "taskType": "Optimization",
+      "description": "Database and server performance optimization",
+      "createdAt": "2024-12-05T00:00:00Z",
+      "updatedAt": "2024-12-05T00:00:00Z"
+    },
+    {
+      "id": "task004",
+      "businessId": "1735315200001-xyz789ghi",
+      "title": "Social Media Analytics",
+      "amount": 600,
+      "currencyCode": "EUR",
+      "assignedToId": "1735315200035-team016",
+      "dueDate": "2024-12-08T00:00:00Z",
+      "status": "completed",
+      "taskType": "Analytics",
+      "description": "Monthly social media performance analysis",
+      "createdAt": "2024-12-01T00:00:00Z",
+      "updatedAt": "2024-12-06T00:00:00Z",
+      "paidAt": "2024-12-06T00:00:00Z"
     }
   ],
   "salaryPayments": [],
@@ -452,37 +1834,6 @@
   "payslips": [],
   "exchangeRates": [],
   "customCurrencies": [],
-  "quickTasks": [
-    {
-      "id": "1735315200070-task001",
-      "businessId": "1735315200000-abc123def",
-      "title": "Code Review Session",
-      "amount": 500,
-      "currencyCode": "USD",
-      "assignedToId": "1735315200020-team001",
-      "dueDate": "2024-12-05T00:00:00Z",
-      "status": "completed",
-      "taskType": "Review",
-      "description": "Code review for the new authentication module",
-      "createdAt": "2024-12-01T00:00:00Z",
-      "updatedAt": "2024-12-04T00:00:00Z",
-      "paidAt": "2024-12-04T00:00:00Z"
-    },
-    {
-      "id": "1735315200071-task002",
-      "businessId": "1735315200001-xyz789ghi",
-      "title": "Client Presentation Prep",
-      "amount": 300,
-      "currencyCode": "EUR",
-      "assignedToId": "1735315200022-team003",
-      "dueDate": "2024-12-10T00:00:00Z",
-      "status": "active",
-      "taskType": "Presentation",
-      "description": "Prepare presentation materials for the brand pitch",
-      "createdAt": "2024-12-02T00:00:00Z",
-      "updatedAt": "2024-12-02T00:00:00Z"
-    }
-  ],
   "currentBusinessId": "1735315200000-abc123def",
   "userSettings": {
     "username": "Alex Demo",
