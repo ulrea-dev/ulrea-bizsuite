@@ -44,8 +44,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     : (project.companyAllocation?.totalAllocated || 0);
   
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
-  const totalPaid = project.teamAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
-  const paymentProgress = totalAllocated > 0 ? (totalPaid / totalAllocated) * 100 : 0;
+  
+  // Calculate client payments received vs total project value (actual cash flow)
+  const clientPaymentsReceived = project.clientPayments || 0;
+  const paymentProgress = totalProjectValue > 0 ? (clientPaymentsReceived / totalProjectValue) * 100 : 0;
 
   // Fix team member counting and deduplication
   const getUniqueTeamMembers = () => {
@@ -195,9 +197,9 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         {teamMemberCount > 0 && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="dashboard-text-secondary">Payment Progress</span>
+              <span className="dashboard-text-secondary">Client Payments</span>
               <span className="dashboard-text-primary">
-                {formatCurrency(totalPaid, currency)} / {formatCurrency(totalAllocated, currency)}
+                {formatCurrency(clientPaymentsReceived, currency)} / {formatCurrency(totalProjectValue, currency)}
               </span>
             </div>
             <Progress value={paymentProgress} className="h-2" />
