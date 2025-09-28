@@ -9,6 +9,11 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { QuickTask } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 import { generateId } from '@/utils/storage';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface QuickTaskModalProps {
   isOpen: boolean;
@@ -39,11 +44,12 @@ export const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
     title: '',
     amount: '',
     assignedToId: '',
-    dueDate: '',
     status: 'pending' as 'pending' | 'active' | 'completed',
     taskType: '',
     description: '',
   });
+
+  const [dueDate, setDueDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (task) {
@@ -51,21 +57,21 @@ export const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
         title: task.title,
         amount: task.amount.toString(),
         assignedToId: task.assignedToId,
-        dueDate: task.dueDate || '',
         status: task.status,
         taskType: task.taskType || '',
         description: task.description || '',
       });
+      setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
     } else {
       setFormData({
         title: '',
         amount: '',
         assignedToId: '',
-        dueDate: '',
         status: 'pending',
         taskType: '',
         description: '',
       });
+      setDueDate(undefined);
     }
   }, [task, isOpen]);
 
@@ -103,7 +109,7 @@ export const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
             title: formData.title,
             amount: parseFloat(formData.amount),
             assignedToId: formData.assignedToId,
-            dueDate: formData.dueDate || undefined,
+            dueDate: dueDate?.toISOString(),
             status: formData.status,
             taskType: formData.taskType || undefined,
             description: formData.description || undefined,
@@ -124,7 +130,7 @@ export const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
         amount: parseFloat(formData.amount),
         currencyCode: currentBusiness.currency.code,
         assignedToId: formData.assignedToId,
-        dueDate: formData.dueDate || undefined,
+        dueDate: dueDate?.toISOString(),
         status: formData.status,
         taskType: formData.taskType || undefined,
         description: formData.description || undefined,
@@ -247,13 +253,29 @@ export const QuickTaskModal: React.FC<QuickTaskModalProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date (Optional)</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
-              />
+              <Label>Due Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "MMM dd, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

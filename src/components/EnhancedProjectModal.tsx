@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Plus } from 'lucide-react';
+import { Plus, CalendarIcon } from 'lucide-react';
 import { Project } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { ClientModal } from './ClientModal';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface EnhancedProjectModalProps {
   isOpen: boolean;
@@ -28,10 +31,15 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
     description: project?.description || '',
     totalValue: project?.totalValue?.toString() || '',
     status: project?.status || 'active' as Project['status'],
-    startDate: project?.startDate || new Date().toISOString().split('T')[0],
-    endDate: project?.endDate || '',
     clientId: project?.clientId || ''
   });
+
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    project?.startDate ? new Date(project.startDate) : new Date()
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    project?.endDate ? new Date(project.endDate) : undefined
+  );
 
   const clients = data.clients || [];
 
@@ -45,8 +53,8 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
       description: formData.description,
       totalValue: parseFloat(formData.totalValue),
       status: formData.status,
-      startDate: formData.startDate,
-      endDate: formData.endDate || undefined,
+      startDate: startDate?.toISOString() || new Date().toISOString(),
+      endDate: endDate?.toISOString(),
       clientId: formData.clientId || undefined,
       isMultiPhase: project?.isMultiPhase || false,
       allocations: project?.allocations || [],
@@ -187,27 +195,58 @@ export const EnhancedProjectModal: React.FC<EnhancedProjectModalProps> = ({ isOp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                  disabled={isReadOnly}
-                  required
-                />
+                <Label>Start Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                      disabled={isReadOnly}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "MMM dd, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date (Optional)</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                disabled={isReadOnly}
-              />
+              <Label>End Date (Optional)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                    disabled={isReadOnly}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "MMM dd, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {project && currentBusiness && (

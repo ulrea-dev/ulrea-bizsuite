@@ -7,7 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Payment } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Trash2 } from 'lucide-react';
+import { Trash2, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface ClientPaymentModalProps {
   isOpen: boolean;
@@ -31,9 +35,12 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
   const { data, dispatch } = useBusiness();
   const [formData, setFormData] = useState({
     amount: payment?.amount?.toString() || '',
-    date: payment?.date || new Date().toISOString().split('T')[0],
     description: payment?.description || ''
   });
+
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(
+    payment?.date ? new Date(payment.date) : new Date()
+  );
 
   const currentProject = data.projects.find(p => p.id === projectId);
   const currentClientPayments = currentProject?.clientPayments || 0;
@@ -47,7 +54,7 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
       const newPayment: Payment = {
         id: `payment_${Date.now()}`,
         amount: amount,
-        date: formData.date,
+        date: paymentDate?.toISOString() || new Date().toISOString(),
         projectId,
         clientId,
         recipientType: 'client',
@@ -81,7 +88,7 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
           id: payment.id, 
           updates: {
             amount: newAmount,
-            date: formData.date,
+            date: paymentDate?.toISOString() || new Date().toISOString(),
             description: formData.description
           }
         }
@@ -155,15 +162,30 @@ export const ClientPaymentModal: React.FC<ClientPaymentModalProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="date">Payment Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                disabled={isReadOnly}
-                required
-              />
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                    disabled={isReadOnly}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "MMM dd, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={setPaymentDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
