@@ -7,10 +7,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
 import { Project } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -25,10 +29,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
     name: project?.name || '',
     description: project?.description || '',
     totalValue: project?.totalValue?.toString() || '',
-    status: project?.status || 'active' as Project['status'],
-    startDate: project?.startDate || new Date().toISOString().split('T')[0],
-    endDate: project?.endDate || ''
+    status: project?.status || 'active' as Project['status']
   });
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    project?.startDate ? new Date(project.startDate) : new Date()
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    project?.endDate ? new Date(project.endDate) : undefined
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +48,8 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
       description: formData.description,
       totalValue: parseFloat(formData.totalValue),
       status: formData.status,
-      startDate: formData.startDate,
-      endDate: formData.endDate || undefined,
+      startDate: startDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+      endDate: endDate?.toISOString().split('T')[0] || undefined,
       isMultiPhase: project?.isMultiPhase || false,
       allocations: project?.allocations || [],
       teamAllocations: project?.teamAllocations || [],
@@ -141,26 +149,57 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ isOpen, onClose, pro
 
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                disabled={isReadOnly}
-                required
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                    disabled={isReadOnly}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "MMM dd, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="endDate">End Date (Optional)</Label>
-            <Input
-              id="endDate"
-              type="date"
-              value={formData.endDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-              disabled={isReadOnly}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !endDate && "text-muted-foreground"
+                  )}
+                  disabled={isReadOnly}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "MMM dd, yyyy") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {project && currentBusiness && (

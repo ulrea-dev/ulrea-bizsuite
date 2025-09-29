@@ -5,11 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId, formatCurrency } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
 import { SUPPORTED_CURRENCIES, SalaryPayment } from '@/types/business';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface SalaryPaymentModalProps {
   isOpen: boolean;
@@ -26,7 +31,7 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
   const { toast } = useToast();
 
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>();
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -105,7 +110,7 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
     if (isOpen && salaryRecord) {
       // Set default amount to combined salary
       setAmount(combinedSalary.toString());
-      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentDate(new Date());
       setPaymentMethod('');
       setNotes('');
     }
@@ -134,8 +139,8 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       id: generateId(),
       salaryRecordId: salaryRecord.id,
       amount: parseFloat(amount),
-      paymentDate,
-      period: `${new Date(paymentDate).toLocaleDateString()} Payment`,
+      paymentDate: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+      period: `${paymentDate?.toLocaleDateString()} Payment`,
       method: paymentMethod || undefined,
       description: notes || undefined,
       status: 'paid',
@@ -231,12 +236,28 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
           {/* Payment Date */}
           <div className="space-y-2">
             <Label htmlFor="paymentDate">Payment Date *</Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !paymentDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {paymentDate ? format(paymentDate, "MMM dd, yyyy") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={paymentDate}
+                  onSelect={setPaymentDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Payment Method */}

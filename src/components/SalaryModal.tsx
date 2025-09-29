@@ -7,11 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId, formatCurrency } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
 import { SUPPORTED_CURRENCIES, SalaryRecord } from '@/types/business';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface SalaryModalProps {
   isOpen: boolean;
@@ -37,7 +42,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   const [primaryAmount, setPrimaryAmount] = useState('');
   const [primaryCurrency, setPrimaryCurrency] = useState('');
   const [primaryFrequency, setPrimaryFrequency] = useState('');
-  const [primaryStartDate, setPrimaryStartDate] = useState('');
+  const [primaryStartDate, setPrimaryStartDate] = useState<Date | undefined>();
   const [primaryProjectId, setPrimaryProjectId] = useState('');
 
   // Secondary salary form
@@ -45,7 +50,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
   const [secondaryAmount, setSecondaryAmount] = useState('');
   const [secondaryCurrency, setSecondaryCurrency] = useState('');
   const [secondaryFrequency, setSecondaryFrequency] = useState('');
-  const [secondaryStartDate, setSecondaryStartDate] = useState('');
+  const [secondaryStartDate, setSecondaryStartDate] = useState<Date | undefined>();
   const [secondaryProjectId, setSecondaryProjectId] = useState('');
   const [contractDuration, setContractDuration] = useState('');
 
@@ -81,7 +86,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setPrimaryAmount(primaryRecord.amount.toString());
         setPrimaryCurrency(primaryRecord.currency);
         setPrimaryFrequency(primaryRecord.frequency);
-        setPrimaryStartDate(primaryRecord.startDate);
+        setPrimaryStartDate(new Date(primaryRecord.startDate));
         setPrimaryProjectId(primaryRecord.projectId || 'no-project');
       } else {
         console.log('No primary record found, disabling primary');
@@ -91,7 +96,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setPrimaryAmount('');
         setPrimaryCurrency(currentBusiness.currency.code);
         setPrimaryFrequency('monthly');
-        setPrimaryStartDate('');
+        setPrimaryStartDate(undefined);
         setPrimaryProjectId('no-project');
       }
 
@@ -103,7 +108,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryAmount(secondaryRecord.amount.toString());
         setSecondaryCurrency(secondaryRecord.currency);
         setSecondaryFrequency(secondaryRecord.frequency);
-        setSecondaryStartDate(secondaryRecord.startDate);
+        setSecondaryStartDate(new Date(secondaryRecord.startDate));
         setSecondaryProjectId(secondaryRecord.projectId || 'no-project');
         setContractDuration((secondaryRecord as any).contractDuration?.toString() || '');
       } else {
@@ -114,7 +119,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
         setSecondaryAmount('');
         setSecondaryCurrency(currentBusiness.currency.code);
         setSecondaryFrequency('monthly');
-        setSecondaryStartDate('');
+        setSecondaryStartDate(undefined);
         setSecondaryProjectId('no-project');
         setContractDuration('');
       }
@@ -130,7 +135,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       setPrimaryAmount('');
       setPrimaryCurrency(currentBusiness?.currency.code || 'USD');
       setPrimaryFrequency('monthly');
-      setPrimaryStartDate('');
+      setPrimaryStartDate(undefined);
       setPrimaryProjectId('no-project');
       
       // Reset secondary form
@@ -138,7 +143,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
       setSecondaryAmount('');
       setSecondaryCurrency(currentBusiness?.currency.code || 'USD');
       setSecondaryFrequency('monthly');
-      setSecondaryStartDate('');
+      setSecondaryStartDate(undefined);
       setSecondaryProjectId('no-project');
       setContractDuration('');
     }
@@ -281,7 +286,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           amount: parseFloat(primaryAmount),
           currency: primaryCurrency,
           frequency: primaryFrequency as any,
-          startDate: primaryStartDate,
+          startDate: primaryStartDate.toISOString().split('T')[0],
           projectId: primaryProjectId === 'no-project' ? undefined : primaryProjectId,
           createdAt: existingPrimary?.createdAt || now,
           updatedAt: now,
@@ -317,7 +322,7 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
           amount: parseFloat(secondaryAmount),
           currency: secondaryCurrency,
           frequency: secondaryFrequency as any,
-          startDate: secondaryStartDate,
+          startDate: secondaryStartDate.toISOString().split('T')[0],
           projectId: secondaryProjectId === 'no-project' ? undefined : secondaryProjectId,
           createdAt: existingSecondary?.createdAt || now,
           updatedAt: now,
@@ -508,12 +513,28 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="primaryStartDate">Start Date *</Label>
-                  <Input
-                    id="primaryStartDate"
-                    type="date"
-                    value={primaryStartDate}
-                    onChange={(e) => setPrimaryStartDate(e.target.value)}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !primaryStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {primaryStartDate ? format(primaryStartDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={primaryStartDate}
+                        onSelect={setPrimaryStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </CardContent>
             )}
@@ -636,12 +657,28 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="secondaryStartDate">Start Date *</Label>
-                  <Input
-                    id="secondaryStartDate"
-                    type="date"
-                    value={secondaryStartDate}
-                    onChange={(e) => setSecondaryStartDate(e.target.value)}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !secondaryStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {secondaryStartDate ? format(secondaryStartDate, "MMM dd, yyyy") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={secondaryStartDate}
+                        onSelect={setSecondaryStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </CardContent>
             )}
