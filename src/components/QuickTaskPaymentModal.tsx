@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -467,13 +468,13 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="amount">Amount ({currentBusiness.currency.symbol})</Label>
-                    <Input
+                    <CurrencyInput
                       id="amount"
-                      type="number"
-                      step="0.01"
                       value={formData.amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                      onChange={(value) => setFormData(prev => ({ ...prev, amount: value }))}
                       placeholder="0.00"
+                      allowDecimals={true}
+                      maxDecimals={2}
                       required
                       disabled={!manualMode && selectedTaskIds.length === 1}
                     />

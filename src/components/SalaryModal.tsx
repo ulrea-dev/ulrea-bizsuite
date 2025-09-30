@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -458,12 +459,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="primaryAmount">Amount *</Label>
-                    <Input
+                    <CurrencyInput
                       id="primaryAmount"
-                      type="number"
                       value={primaryAmount}
-                      onChange={(e) => setPrimaryAmount(e.target.value)}
+                      onChange={setPrimaryAmount}
                       placeholder="50000"
+                      allowDecimals={true}
+                      maxDecimals={2}
                     />
                     {/* Currency conversion display */}
                     {(() => {
@@ -592,12 +594,13 @@ export const SalaryModal: React.FC<SalaryModalProps> = ({
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="secondaryAmount">Amount *</Label>
-                    <Input
+                    <CurrencyInput
                       id="secondaryAmount"
-                      type="number"
                       value={secondaryAmount}
-                      onChange={(e) => setSecondaryAmount(e.target.value)}
+                      onChange={setSecondaryAmount}
                       placeholder="30000"
+                      allowDecimals={true}
+                      maxDecimals={2}
                     />
                     {/* Currency conversion display */}
                     {(() => {

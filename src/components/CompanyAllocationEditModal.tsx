@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -146,14 +147,25 @@ export const CompanyAllocationEditModal: React.FC<CompanyAllocationEditModalProp
             <Label className="text-sm font-medium">
               {allocationType === 'percentage' ? 'Percentage' : 'Fixed Amount'}
             </Label>
-            <Input
-              type="number"
-              step="0.01"
-              value={allocationValue}
-              onChange={(e) => setAllocationValue(e.target.value)}
-              placeholder={allocationType === 'percentage' ? '10' : '1000'}
-              className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
-            />
+            {allocationType === 'fixed' ? (
+              <CurrencyInput
+                value={allocationValue}
+                onChange={setAllocationValue}
+                placeholder="1000"
+                className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
+                allowDecimals={true}
+                maxDecimals={2}
+              />
+            ) : (
+              <Input
+                type="number"
+                step="0.01"
+                value={allocationValue}
+                onChange={(e) => setAllocationValue(e.target.value)}
+                placeholder="10"
+                className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
+              />
+            )}
           </div>
 
           {/* Real-time preview */}

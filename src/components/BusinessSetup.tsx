@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,25 +104,25 @@ export const BusinessSetup: React.FC<BusinessSetupProps> = ({ onComplete }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="currentBalance" className="dashboard-text-primary">Current Balance</Label>
-              <Input
+              <CurrencyInput
                 id="currentBalance"
-                type="number"
-                step="0.01"
                 value={formData.currentBalance}
-                onChange={(e) => setFormData(prev => ({ ...prev, currentBalance: e.target.value }))}
+                onChange={(value) => setFormData(prev => ({ ...prev, currentBalance: value }))}
                 placeholder="0.00"
+                allowDecimals={true}
+                maxDecimals={2}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="minimumBalance" className="dashboard-text-primary">Minimum Balance Alert</Label>
-              <Input
+              <CurrencyInput
                 id="minimumBalance"
-                type="number"
-                step="0.01"
                 value={formData.minimumBalance}
-                onChange={(e) => setFormData(prev => ({ ...prev, minimumBalance: e.target.value }))}
+                onChange={(value) => setFormData(prev => ({ ...prev, minimumBalance: value }))}
                 placeholder="0.00"
+                allowDecimals={true}
+                maxDecimals={2}
               />
             </div>
           </div>

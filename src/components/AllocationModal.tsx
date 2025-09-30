@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TeamAllocation, PartnerAllocation, CompanyAllocation } from '@/types/business';
@@ -197,16 +198,29 @@ export const AllocationModal: React.FC<AllocationModalProps> = ({
               <Label htmlFor="allocationValue">
                 {formData.allocationType === 'percentage' ? 'Percentage (%)' : 'Amount'}
               </Label>
-              <Input
-                id="allocationValue"
-                type="number"
-                step={formData.allocationType === 'percentage' ? '0.1' : '0.01'}
-                value={formData.allocationValue}
-                onChange={(e) => setFormData(prev => ({ ...prev, allocationValue: e.target.value }))}
-                placeholder={formData.allocationType === 'percentage' ? '10' : '1000.00'}
-                disabled={isReadOnly}
-                required
-              />
+              {formData.allocationType === 'fixed' ? (
+                <CurrencyInput
+                  id="allocationValue"
+                  value={formData.allocationValue}
+                  onChange={(value) => setFormData(prev => ({ ...prev, allocationValue: value }))}
+                  placeholder="1000.00"
+                  disabled={isReadOnly}
+                  required
+                  allowDecimals={true}
+                  maxDecimals={2}
+                />
+              ) : (
+                <Input
+                  id="allocationValue"
+                  type="number"
+                  step="0.1"
+                  value={formData.allocationValue}
+                  onChange={(e) => setFormData(prev => ({ ...prev, allocationValue: e.target.value }))}
+                  placeholder="10"
+                  disabled={isReadOnly}
+                  required
+                />
+              )}
             </div>
           </div>
 

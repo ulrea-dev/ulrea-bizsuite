@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
@@ -220,13 +221,13 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
           {/* Payment Amount */}
           <div className="space-y-2">
             <Label htmlFor="amount">Payment Amount *</Label>
-            <Input
+            <CurrencyInput
               id="amount"
-              type="number"
-              step="0.01"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               placeholder="0.00"
+              allowDecimals={true}
+              maxDecimals={2}
             />
             <p className="text-xs text-muted-foreground">
               In {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -153,20 +154,22 @@ export const BusinessManagement: React.FC<BusinessManagementProps> = ({ onCreate
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="currentBalance">Current Balance</Label>
-                              <Input
+                              <CurrencyInput
                                 id="currentBalance"
-                                type="number"
-                                value={editForm.currentBalance}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, currentBalance: parseFloat(e.target.value) || 0 }))}
+                                value={editForm.currentBalance.toString()}
+                                onChange={(value) => setEditForm(prev => ({ ...prev, currentBalance: parseFloat(value) || 0 }))}
+                                allowDecimals={true}
+                                maxDecimals={2}
                               />
                             </div>
                             <div>
                               <Label htmlFor="minimumBalance">Minimum Balance</Label>
-                              <Input
+                              <CurrencyInput
                                 id="minimumBalance"
-                                type="number"
-                                value={editForm.minimumBalance}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, minimumBalance: parseFloat(e.target.value) || 0 }))}
+                                value={editForm.minimumBalance.toString()}
+                                onChange={(value) => setEditForm(prev => ({ ...prev, minimumBalance: parseFloat(value) || 0 }))}
+                                allowDecimals={true}
+                                maxDecimals={2}
                               />
                             </div>
                           </div>
