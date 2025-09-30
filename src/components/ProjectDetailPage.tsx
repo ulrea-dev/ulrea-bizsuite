@@ -68,10 +68,14 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
   const clientPaymentsReceived = project.clientPayments || 0;
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const netProfit = clientPaymentsReceived - totalAllocated - totalExpenses;
+  
+  // Calculate actual payments made (cash outflow)
   const totalPaid = payments
     .filter(payment => payment.type === 'outgoing' && payment.status === 'completed')
     .reduce((sum, payment) => sum + payment.amount, 0);
+  
+  // Net profit = Cash received - Cash paid out (actual cash flow, not budgeted amounts)
+  const netProfit = clientPaymentsReceived - totalPaid - totalExpenses;
   const remainingBudget = totalProjectValue - totalAllocated - totalExpenses;
   const outstandingPayments = totalAllocated - totalPaid;
 
