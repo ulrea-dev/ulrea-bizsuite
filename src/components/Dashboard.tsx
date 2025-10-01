@@ -11,6 +11,8 @@ import { ProjectDetailPage } from './ProjectDetailPage';
 import { AppSidebar } from './AppSidebar';
 import { SalariesPage } from './SalariesPage';
 import { QuickTasksPage } from './QuickTasksPage';
+import { PaymentsPage } from './PaymentsPage';
+import { ExpensesPage } from './ExpensesPage';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardProps {
@@ -81,6 +83,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
         return <QuickTasksPage onNavigateToPage={onNavigateToPage} />;
       case 'salaries':
         return <SalariesPage />;
+      case 'payments':
+        return <PaymentsPage />;
+      case 'expenses':
+        return <ExpensesPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'settings':
