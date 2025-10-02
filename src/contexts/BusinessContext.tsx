@@ -22,6 +22,7 @@ import {
   Partner,
   Expense,
   QuickTask,
+  Retainer,
 } from '@/types/business';
 import { loadData, saveData, generateId } from '@/utils/storage';
 
@@ -117,7 +118,11 @@ export type BusinessAction =
   | { type: 'ADD_QUICK_TASK'; payload: QuickTask }
   | { type: 'UPDATE_QUICK_TASK'; payload: { id: string; updates: Partial<QuickTask> } }
   | { type: 'DELETE_QUICK_TASK'; payload: string }
-  | { type: 'COMPLETE_QUICK_TASK'; payload: { id: string; paidAt: string } };
+  | { type: 'COMPLETE_QUICK_TASK'; payload: { id: string; paidAt: string } }
+  // Retainer actions
+  | { type: 'ADD_RETAINER'; payload: any }
+  | { type: 'UPDATE_RETAINER'; payload: { id: string; updates: Partial<any> } }
+  | { type: 'DELETE_RETAINER'; payload: string };
 
 const businessReducer = (state: AppData, action: BusinessAction): AppData => {
   switch (action.type) {
@@ -683,6 +688,22 @@ const businessReducer = (state: AppData, action: BusinessAction): AppData => {
             ? { ...task, status: 'completed' as const, paidAt: action.payload.paidAt, updatedAt: new Date().toISOString() }
             : task
         ),
+      };
+
+    // Retainer actions
+    case 'ADD_RETAINER':
+      return { ...state, retainers: [...(state.retainers || []), action.payload] };
+    case 'UPDATE_RETAINER':
+      return {
+        ...state,
+        retainers: (state.retainers || []).map(retainer =>
+          retainer.id === action.payload.id ? { ...retainer, ...action.payload.updates, updatedAt: new Date().toISOString() } : retainer
+        ),
+      };
+    case 'DELETE_RETAINER':
+      return {
+        ...state,
+        retainers: (state.retainers || []).filter(retainer => retainer.id !== action.payload),
       };
 
     default:

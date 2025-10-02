@@ -80,6 +80,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     if (mode === 'create') {
       const newExpense: Expense = {
         id: generateId(),
+        businessId: currentBusiness?.id || '',
         projectId,
         name: formData.name.trim(),
         category: formData.category,

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks, CreditCard, Receipt } from 'lucide-react';
+import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks, CreditCard, Receipt, TrendingUp, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -31,10 +31,12 @@ interface AppSidebarProps {
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Building2 },
   { id: 'projects', label: 'Projects', icon: FolderOpen },
+  { id: 'clients', label: 'Clients', icon: UserCheck },
+  { id: 'revenue', label: 'Revenue', icon: TrendingUp },
+  { id: 'retainers', label: 'Retainers', icon: RefreshCw },
+  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
   { id: 'team', label: 'Team', icon: Users },
   { id: 'partners', label: 'Partners', icon: UserCheck },
-  { id: 'clients', label: 'Clients', icon: UserCheck },
-  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
   { id: 'salaries', label: 'Salaries', icon: DollarSign },
   { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'expenses', label: 'Expenses', icon: Receipt },

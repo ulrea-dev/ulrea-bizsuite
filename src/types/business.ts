@@ -64,6 +64,24 @@ export interface Client {
   createdAt: string;
 }
 
+export interface Retainer {
+  id: string;
+  businessId: string;
+  clientId: string;
+  name: string;
+  amount: number;
+  currency: string;
+  frequency: 'monthly' | 'quarterly' | 'yearly';
+  startDate: string;
+  endDate?: string;
+  status: 'active' | 'paused' | 'cancelled';
+  description?: string;
+  nextBillingDate: string;
+  totalReceived: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface QuickTask {
   id: string;
   businessId: string;
@@ -89,12 +107,14 @@ export interface Payment {
   memberId?: string;
   partnerId?: string;
   clientId?: string;
+  retainerId?: string;
+  expenseId?: string;
   type: 'incoming' | 'outgoing';
   recipientType?: 'team' | 'partner' | 'company' | 'client';
   status: 'pending' | 'completed';
   method?: string;
   description?: string;
-  paymentSource?: 'project' | 'salary' | 'task';
+  paymentSource?: 'project' | 'salary' | 'task' | 'retainer' | 'expense';
   taskDescription?: string;
   taskType?: string;
   taskId?: string;
@@ -146,12 +166,20 @@ export type ExpenseCategory =
   | 'supplies'
   | 'hosting'
   | 'services'
+  | 'domain'
+  | 'email'
+  | 'subscription'
   | 'other';
 
 export interface Expense {
   id: string;
-  projectId: string;
+  businessId: string;
+  projectId?: string;
+  retainerId?: string;
   allocationId?: string;
+  memberId?: string;
+  partnerId?: string;
+  taskId?: string;
   name: string;
   category: ExpenseCategory;
   amount: number;
@@ -159,6 +187,10 @@ export interface Expense {
   description?: string;
   status: 'pending' | 'paid';
   receipt?: string;
+  isRecurring?: boolean;
+  recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  recurringEndDate?: string;
+  parentExpenseId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -321,6 +353,7 @@ export interface AppData {
   exchangeRates: ExchangeRate[];
   customCurrencies: Currency[];
   quickTasks: QuickTask[];
+  retainers: Retainer[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;
@@ -350,5 +383,8 @@ export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'supplies', label: 'Office Supplies' },
   { value: 'hosting', label: 'Hosting & Infrastructure' },
   { value: 'services', label: 'Professional Services' },
+  { value: 'domain', label: 'Domain Registration' },
+  { value: 'email', label: 'Email Services' },
+  { value: 'subscription', label: 'Subscriptions' },
   { value: 'other', label: 'Other' },
 ];
