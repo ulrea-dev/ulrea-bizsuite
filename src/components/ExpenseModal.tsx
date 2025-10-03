@@ -20,7 +20,11 @@ import { cn } from '@/lib/utils';
 interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: string;
+  projectId?: string;
+  retainerId?: string;
+  memberId?: string;
+  partnerId?: string;
+  taskId?: string;
   expense?: Expense;
   mode: 'create' | 'edit' | 'view';
 }
@@ -29,10 +33,16 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   isOpen,
   onClose,
   projectId,
+  retainerId,
+  memberId,
+  partnerId,
+  taskId,
   expense,
   mode
 }) => {
-  const { dispatch, currentBusiness } = useBusiness();
+  const { dispatch, currentBusiness, data } = useBusiness();
+  const [expenseType, setExpenseType] = useState<'project' | 'retainer' | 'team' | 'partner' | 'task' | 'business'>('business');
+  const [selectedEntityId, setSelectedEntityId] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     category: 'other' as ExpenseCategory,
@@ -40,8 +50,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     date: new Date(),
     description: '',
     status: 'pending' as 'pending' | 'paid',
+    isRecurring: false,
+    recurringFrequency: 'monthly' as 'weekly' | 'monthly' | 'quarterly' | 'yearly',
+    recurringEndDate: undefined as Date | undefined,
   });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
 
   useEffect(() => {
     if (expense) {
@@ -52,8 +66,49 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         date: new Date(expense.date),
         description: expense.description || '',
         status: expense.status,
+        isRecurring: expense.isRecurring || false,
+        recurringFrequency: expense.recurringFrequency || 'monthly',
+        recurringEndDate: expense.recurringEndDate ? new Date(expense.recurringEndDate) : undefined,
       });
+      
+      // Set expense type based on what's set
+      if (expense.projectId) {
+        setExpenseType('project');
+        setSelectedEntityId(expense.projectId);
+      } else if (expense.retainerId) {
+        setExpenseType('retainer');
+        setSelectedEntityId(expense.retainerId);
+      } else if (expense.memberId) {
+        setExpenseType('team');
+        setSelectedEntityId(expense.memberId);
+      } else if (expense.partnerId) {
+        setExpenseType('partner');
+        setSelectedEntityId(expense.partnerId);
+      } else if (expense.taskId) {
+        setExpenseType('task');
+        setSelectedEntityId(expense.taskId);
+      } else {
+        setExpenseType('business');
+      }
     } else {
+      // Set initial expense type based on props
+      if (projectId) {
+        setExpenseType('project');
+        setSelectedEntityId(projectId);
+      } else if (retainerId) {
+        setExpenseType('retainer');
+        setSelectedEntityId(retainerId);
+      } else if (memberId) {
+        setExpenseType('team');
+        setSelectedEntityId(memberId);
+      } else if (partnerId) {
+        setExpenseType('partner');
+        setSelectedEntityId(partnerId);
+      } else if (taskId) {
+        setExpenseType('task');
+        setSelectedEntityId(taskId);
+      }
+      
       setFormData({
         name: '',
         category: 'other',
@@ -61,9 +116,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         date: new Date(),
         description: '',
         status: 'pending',
+        isRecurring: false,
+        recurringFrequency: 'monthly',
+        recurringEndDate: undefined,
       });
     }
-  }, [expense]);
+  }, [expense, projectId, retainerId, memberId, partnerId, taskId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,13 +139,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       const newExpense: Expense = {
         id: generateId(),
         businessId: currentBusiness?.id || '',
-        projectId,
+        projectId: expenseType === 'project' ? selectedEntityId : undefined,
+        retainerId: expenseType === 'retainer' ? selectedEntityId : undefined,
+        memberId: expenseType === 'team' ? selectedEntityId : undefined,
+        partnerId: expenseType === 'partner' ? selectedEntityId : undefined,
+        taskId: expenseType === 'task' ? selectedEntityId : undefined,
         name: formData.name.trim(),
         category: formData.category,
         amount,
         date: formData.date.toISOString(),
         description: formData.description.trim() || undefined,
         status: formData.status,
+        isRecurring: formData.isRecurring,
+        recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
+        recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate.toISOString() : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -95,12 +160,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       dispatch({ type: 'ADD_EXPENSE', payload: newExpense });
     } else if (mode === 'edit' && expense) {
       const updates: Partial<Expense> = {
+        projectId: expenseType === 'project' ? selectedEntityId : undefined,
+        retainerId: expenseType === 'retainer' ? selectedEntityId : undefined,
+        memberId: expenseType === 'team' ? selectedEntityId : undefined,
+        partnerId: expenseType === 'partner' ? selectedEntityId : undefined,
+        taskId: expenseType === 'task' ? selectedEntityId : undefined,
         name: formData.name.trim(),
         category: formData.category,
         amount,
         date: formData.date.toISOString(),
         description: formData.description.trim() || undefined,
         status: formData.status,
+        isRecurring: formData.isRecurring,
+        recurringFrequency: formData.isRecurring ? formData.recurringFrequency : undefined,
+        recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate.toISOString() : undefined,
         updatedAt: new Date().toISOString(),
       };
 
@@ -133,6 +206,78 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Expense Type Selector */}
+          {!expense && (
+            <div className="space-y-2">
+              <Label>Expense Type</Label>
+              <Select
+                value={expenseType}
+                onValueChange={(value: any) => {
+                  setExpenseType(value);
+                  setSelectedEntityId('');
+                }}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="business">Business Expense</SelectItem>
+                  <SelectItem value="project">Project Expense</SelectItem>
+                  <SelectItem value="retainer">Retainer Expense</SelectItem>
+                  <SelectItem value="team">Team Member Expense</SelectItem>
+                  <SelectItem value="partner">Partner Expense</SelectItem>
+                  <SelectItem value="task">Quick Task Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Entity Selector */}
+          {expenseType !== 'business' && !expense && (
+            <div className="space-y-2">
+              <Label>
+                {expenseType === 'project' && 'Select Project'}
+                {expenseType === 'retainer' && 'Select Retainer'}
+                {expenseType === 'team' && 'Select Team Member'}
+                {expenseType === 'partner' && 'Select Partner'}
+                {expenseType === 'task' && 'Select Quick Task'}
+              </Label>
+              <Select
+                value={selectedEntityId}
+                onValueChange={setSelectedEntityId}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Select ${expenseType}...`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {expenseType === 'project' && data.projects
+                    .filter(p => p.businessId === currentBusiness?.id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  {expenseType === 'retainer' && data.retainers
+                    .filter(r => r.businessId === currentBusiness?.id)
+                    .map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  {expenseType === 'team' && data.teamMembers.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                  {expenseType === 'partner' && data.partners.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                  {expenseType === 'task' && data.quickTasks
+                    .filter(t => t.businessId === currentBusiness?.id)
+                    .map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.description}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="name">Expense Name</Label>
             <Input
@@ -244,6 +389,78 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               rows={3}
               disabled={isReadOnly}
             />
+          </div>
+
+          {/* Recurring Expense Section */}
+          <div className="space-y-3 border-t pt-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={formData.isRecurring}
+                onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
+                disabled={isReadOnly}
+                className="rounded"
+              />
+              <Label htmlFor="isRecurring" className="cursor-pointer">
+                Make this expense recurring
+              </Label>
+            </div>
+
+            {formData.isRecurring && (
+              <div className="space-y-3 pl-6">
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select
+                    value={formData.recurringFrequency}
+                    onValueChange={(value: any) => 
+                      setFormData({ ...formData, recurringFrequency: value })
+                    }
+                    disabled={isReadOnly}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>End Date (Optional)</Label>
+                  <Popover open={endDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !formData.recurringEndDate && "text-muted-foreground"
+                        )}
+                        disabled={isReadOnly}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.recurringEndDate ? format(formData.recurringEndDate, "PPP") : "No end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.recurringEndDate}
+                        onSelect={(date) => {
+                          setFormData({ ...formData, recurringEndDate: date });
+                          setEndDatePickerOpen(false);
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex gap-2">

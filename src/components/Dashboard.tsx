@@ -15,6 +15,7 @@ import { PaymentsPage } from './PaymentsPage';
 import { ExpensesPage } from './ExpensesPage';
 import { RevenuePage } from './RevenuePage';
 import { RetainersPage } from './RetainersPage';
+import { RetainerDetailPage } from './RetainerDetailPage';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardProps {
@@ -25,6 +26,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness }) => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedRetainerId, setSelectedRetainerId] = useState<string | null>(null);
 
   const handlePageChange = (page: string) => {
     setCurrentPage(page);
@@ -84,7 +86,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
       case 'revenue':
         return <RevenuePage />;
       case 'retainers':
-        return <RetainersPage />;
+        return <RetainersPage onNavigate={(page, id) => {
+          if (page === 'retainer-detail' && id) {
+            setSelectedRetainerId(id);
+            setCurrentPage('retainer-detail');
+          }
+        }} />;
+      case 'retainer-detail':
+        return selectedRetainerId ? (
+          <RetainerDetailPage 
+            retainerId={selectedRetainerId}
+            onBack={() => {
+              setCurrentPage('retainers');
+              setSelectedRetainerId(null);
+            }}
+          />
+        ) : (
+          <RetainersPage onNavigate={(page, id) => {
+            if (page === 'retainer-detail' && id) {
+              setSelectedRetainerId(id);
+              setCurrentPage('retainer-detail');
+            }
+          }} />
+        );
       case 'quick-tasks':
         return <QuickTasksPage onNavigateToPage={onNavigateToPage} />;
       case 'salaries':

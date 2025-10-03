@@ -28,24 +28,48 @@ export const AllPaymentsView: React.FC = () => {
     );
   }
 
-  // Get all payments (including salary payments as regular payments) - excluding incoming payments
+  // Get all payments (including salary payments, expense payments, retainer payments)
   const allPayments: (Payment & { displayName?: string; source?: string })[] = [
-    // Regular payments (outgoing only)
+    // Regular payments (outgoing and incoming)
     ...data.payments.filter(payment => {
-      // Filter by business through projects or direct business relationship
       const project = payment.projectId ? data.projects.find(p => p.id === payment.projectId) : null;
-      const isBusinessRelated = project?.businessId === currentBusiness.id || !payment.projectId;
-      // Only include outgoing payments
-      return isBusinessRelated && payment.type === 'outgoing';
+      const retainer = payment.retainerId ? data.retainers?.find(r => r.id === payment.retainerId) : null;
+      const expense = payment.expenseId ? data.expenses?.find(e => e.id === payment.expenseId) : null;
+      
+      const isBusinessRelated = 
+        (project?.businessId === currentBusiness.id) ||
+        (retainer?.businessId === currentBusiness.id) ||
+        (expense?.businessId === currentBusiness.id) ||
+        (!payment.projectId && !payment.retainerId && !payment.expenseId);
+      
+      return isBusinessRelated;
     }).map(payment => {
       const member = payment.memberId ? data.teamMembers.find(m => m.id === payment.memberId) : null;
       const partner = payment.partnerId ? data.partners.find(p => p.id === payment.partnerId) : null;
       const project = payment.projectId ? data.projects.find(p => p.id === payment.projectId) : null;
+      const retainer = payment.retainerId ? data.retainers?.find(r => r.id === payment.retainerId) : null;
+      const expense = payment.expenseId ? data.expenses?.find(e => e.id === payment.expenseId) : null;
+      
+      let displayName = 'Unknown';
+      let source = payment.paymentSource || 'project';
+      
+      if (retainer) {
+        const client = data.clients.find(c => c.id === retainer.clientId);
+        displayName = client?.name || 'Unknown Client';
+        source = 'retainer';
+      } else if (expense) {
+        displayName = expense.name;
+        source = 'expense';
+      } else if (member) {
+        displayName = member.name;
+      } else if (partner) {
+        displayName = partner.name;
+      }
       
       return {
         ...payment,
-        displayName: member?.name || partner?.name || 'Unknown',
-        source: payment.paymentSource || 'project',
+        displayName,
+        source,
       };
     }),
     
@@ -99,6 +123,8 @@ export const AllPaymentsView: React.FC = () => {
       case 'salary': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'project': return 'bg-green-100 text-green-800 border-green-200';
       case 'task': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'retainer': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'expense': return 'bg-orange-100 text-orange-800 border-orange-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -108,6 +134,8 @@ export const AllPaymentsView: React.FC = () => {
       case 'salary': return <User className="h-3 w-3" />;
       case 'project': return <Briefcase className="h-3 w-3" />;
       case 'task': return <CheckCircle className="h-3 w-3" />;
+      case 'retainer': return <DollarSign className="h-3 w-3" />;
+      case 'expense': return <DollarSign className="h-3 w-3" />;
       default: return <DollarSign className="h-3 w-3" />;
     }
   };
@@ -210,6 +238,8 @@ export const AllPaymentsView: React.FC = () => {
                 <SelectItem value="salary">Salary Payments</SelectItem>
                 <SelectItem value="project">Project Payments</SelectItem>
                 <SelectItem value="task">Task Payments</SelectItem>
+                <SelectItem value="retainer">Retainer Payments</SelectItem>
+                <SelectItem value="expense">Expense Payments</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>

@@ -354,6 +354,7 @@ export interface AppData {
   customCurrencies: Currency[];
   quickTasks: QuickTask[];
   retainers: Retainer[];
+  expenses: Expense[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;

@@ -8,8 +8,13 @@ import { formatCurrency } from '@/utils/storage';
 import { format } from 'date-fns';
 import { Plus, Eye, Edit, Pause, Play, X } from 'lucide-react';
 import { RetainerModal } from './RetainerModal';
+import { useNavigate } from 'react-router-dom';
 
-export const RetainersPage: React.FC = () => {
+interface RetainersPageProps {
+  onNavigate?: (page: string, retainerId?: string) => void;
+}
+
+export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRetainer, setSelectedRetainer] = useState<any>(null);
@@ -47,9 +52,9 @@ export const RetainersPage: React.FC = () => {
   };
 
   const handleView = (retainer: any) => {
-    setSelectedRetainer(retainer);
-    setModalMode('view');
-    setIsModalOpen(true);
+    if (onNavigate) {
+      onNavigate('retainer-detail', retainer.id);
+    }
   };
 
   const handleToggleStatus = (retainer: any) => {

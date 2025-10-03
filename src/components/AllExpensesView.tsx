@@ -20,7 +20,8 @@ export const AllExpensesView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterProject, setFilterProject] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterEntity, setFilterEntity] = useState<string>('all');
   const [isAddingExpense, setIsAddingExpense] = useState(false);
 
   if (!currentBusiness) {
@@ -31,28 +32,73 @@ export const AllExpensesView: React.FC = () => {
     );
   }
 
-  // Get all expenses from all projects in this business
-  const allExpenses: (Expense & { projectName?: string })[] = data.projects
-    .filter(project => project.businessId === currentBusiness.id)
-    .flatMap(project => 
-      project.expenses.map(expense => ({
-        ...expense,
-        projectName: project.name,
-      }))
-    );
+  // Get all expenses (including business-level expenses)
+  const allExpenses: (Expense & { entityName?: string; expenseType?: string })[] = [
+    // Project expenses
+    ...data.projects
+      .filter(project => project.businessId === currentBusiness.id)
+      .flatMap(project => 
+        project.expenses.map(expense => ({
+          ...expense,
+          entityName: project.name,
+          expenseType: 'project',
+        }))
+      ),
+    // Business-level expenses (new structure)
+    ...(data.expenses || [])
+      .filter(expense => expense.businessId === currentBusiness.id)
+      .map(expense => {
+        let entityName = 'Business';
+        let expenseType = 'business';
+        
+        if (expense.projectId) {
+          const project = data.projects.find(p => p.id === expense.projectId);
+          entityName = project?.name || 'Unknown Project';
+          expenseType = 'project';
+        } else if (expense.retainerId) {
+          const retainer = data.retainers?.find(r => r.id === expense.retainerId);
+          entityName = retainer?.name || 'Unknown Retainer';
+          expenseType = 'retainer';
+        } else if (expense.memberId) {
+          const member = data.teamMembers.find(m => m.id === expense.memberId);
+          entityName = member?.name || 'Unknown Member';
+          expenseType = 'team';
+        } else if (expense.partnerId) {
+          const partner = data.partners.find(p => p.id === expense.partnerId);
+          entityName = partner?.name || 'Unknown Partner';
+          expenseType = 'partner';
+        } else if (expense.taskId) {
+          const task = data.quickTasks?.find(t => t.id === expense.taskId);
+          entityName = task?.description || 'Unknown Task';
+          expenseType = 'task';
+        }
+        
+        return {
+          ...expense,
+          entityName,
+          expenseType,
+        };
+      }),
+  ];
 
   // Apply filters
   const filteredExpenses = allExpenses.filter(expense => {
     const matchesSearch = searchTerm === '' || 
       expense.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.projectName?.toLowerCase().includes(searchTerm.toLowerCase());
+      expense.entityName?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesCategory = filterCategory === 'all' || expense.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || expense.status === filterStatus;
-    const matchesProject = filterProject === 'all' || expense.projectId === filterProject;
+    const matchesType = filterType === 'all' || expense.expenseType === filterType;
+    const matchesEntity = filterEntity === 'all' || 
+      expense.projectId === filterEntity ||
+      expense.retainerId === filterEntity ||
+      expense.memberId === filterEntity ||
+      expense.partnerId === filterEntity ||
+      expense.taskId === filterEntity;
     
-    return matchesSearch && matchesCategory && matchesStatus && matchesProject;
+    return matchesSearch && matchesCategory && matchesStatus && matchesType && matchesEntity;
   });
 
   // Sort by date (newest first)
@@ -165,17 +211,18 @@ export const AllExpensesView: React.FC = () => {
                 />
               </div>
             </div>
-            <Select value={filterProject} onValueChange={setFilterProject}>
+            <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by project" />
+                <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
-                {projects.map(project => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="project">Project</SelectItem>
+                <SelectItem value="retainer">Retainer</SelectItem>
+                <SelectItem value="team">Team Member</SelectItem>
+                <SelectItem value="partner">Partner</SelectItem>
+                <SelectItem value="task">Quick Task</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterCategory} onValueChange={setFilterCategory}>
@@ -192,6 +239,9 @@ export const AllExpensesView: React.FC = () => {
                 <SelectItem value="supplies">Supplies</SelectItem>
                 <SelectItem value="hosting">Hosting</SelectItem>
                 <SelectItem value="services">Services</SelectItem>
+                <SelectItem value="domain">Domain</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="subscription">Subscription</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -228,6 +278,9 @@ export const AllExpensesView: React.FC = () => {
                         <Badge variant="outline" className={getCategoryColor(expense.category)}>
                           {expense.category}
                         </Badge>
+                        {expense.isRecurring && (
+                          <Badge variant="secondary">Recurring</Badge>
+                        )}
                         <Badge variant={expense.status === 'paid' ? 'default' : 'secondary'}>
                           {expense.status === 'paid' ? (
                             <>
@@ -244,10 +297,15 @@ export const AllExpensesView: React.FC = () => {
                       </div>
                       
                       <div className="text-sm text-muted-foreground">
-                        {expense.projectName && (
+                        {expense.entityName && (
                           <div className="flex items-center gap-1 mb-1">
                             <Briefcase className="h-3 w-3" />
-                            <span className="font-medium">Project:</span> {expense.projectName}
+                            <span className="font-medium capitalize">{expense.expenseType}:</span> {expense.entityName}
+                          </div>
+                        )}
+                        {expense.isRecurring && (
+                          <div className="text-xs capitalize">
+                            Recurring: {expense.recurringFrequency}
                           </div>
                         )}
                         {expense.description && (
@@ -313,11 +371,10 @@ export const AllExpensesView: React.FC = () => {
       </Card>
 
       {/* Add Expense Modal */}
-      {isAddingExpense && projects.length > 0 && (
+      {isAddingExpense && (
         <ExpenseModal
           isOpen={isAddingExpense}
           onClose={() => setIsAddingExpense(false)}
-          projectId={projects[0].id}
           mode="create"
         />
       )}
