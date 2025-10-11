@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks, CreditCard, Receipt, TrendingUp, RefreshCw } from 'lucide-react';
+import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks, CreditCard, Receipt, TrendingUp, RefreshCw, Wallet } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -18,6 +18,8 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,18 +30,30 @@ interface AppSidebarProps {
   onCreateBusiness: () => void;
 }
 
-const navigationItems = [
+const coreNavigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Building2 },
   { id: 'projects', label: 'Projects', icon: FolderOpen },
   { id: 'clients', label: 'Clients', icon: UserCheck },
+];
+
+const financialItems = [
   { id: 'revenue', label: 'Revenue', icon: TrendingUp },
   { id: 'retainers', label: 'Retainers', icon: RefreshCw },
-  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
-  { id: 'team', label: 'Team', icon: Users },
-  { id: 'partners', label: 'Partners', icon: UserCheck },
-  { id: 'salaries', label: 'Salaries', icon: DollarSign },
   { id: 'payments', label: 'Payments', icon: CreditCard },
   { id: 'expenses', label: 'Expenses', icon: Receipt },
+  { id: 'salaries', label: 'Salaries', icon: DollarSign },
+];
+
+const peopleItems = [
+  { id: 'team', label: 'Team', icon: Users },
+  { id: 'partners', label: 'Partners', icon: UserCheck },
+];
+
+const workItems = [
+  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
+];
+
+const systemItems = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -53,6 +67,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
+  const [financialsOpen, setFinancialsOpen] = React.useState(true);
+  const [peopleOpen, setPeopleOpen] = React.useState(true);
 
   const handleBackupDownload = () => {
     try {
@@ -102,11 +118,12 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Core Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Core</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => {
+              {coreNavigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPage === item.id;
                 
@@ -129,6 +146,143 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
         <SidebarSeparator />
 
+        {/* Financials Group */}
+        <Collapsible open={financialsOpen} onOpenChange={setFinancialsOpen}>
+          <SidebarGroup>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  <span>Financials</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${financialsOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {financialItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+                    
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          onClick={() => onPageChange(item.id)}
+                          isActive={isActive}
+                          tooltip={item.label}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <SidebarSeparator />
+
+        {/* People Group */}
+        <Collapsible open={peopleOpen} onOpenChange={setPeopleOpen}>
+          <SidebarGroup>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>People</span>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${peopleOpen ? 'rotate-180' : ''}`} />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {peopleItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+                    
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        <SidebarMenuButton
+                          onClick={() => onPageChange(item.id)}
+                          isActive={isActive}
+                          tooltip={item.label}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        <SidebarSeparator />
+
+        {/* Work Management */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Work</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {workItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onPageChange(item.id)}
+                      isActive={isActive}
+                      tooltip={item.label}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* System */}
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {systemItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onPageChange(item.id)}
+                      isActive={isActive}
+                      tooltip={item.label}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Quick Actions */}
         <SidebarGroup>
           <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
           <SidebarGroupContent>
