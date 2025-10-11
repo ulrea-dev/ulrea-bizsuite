@@ -67,8 +67,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
-  const [financialsOpen, setFinancialsOpen] = React.useState(true);
-  const [peopleOpen, setPeopleOpen] = React.useState(true);
+  const [financialsOpen, setFinancialsOpen] = React.useState(false);
+  const [peopleOpen, setPeopleOpen] = React.useState(false);
 
   const handleBackupDownload = () => {
     try {
@@ -120,7 +120,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarContent>
         {/* Core Navigation */}
         <SidebarGroup>
-          <SidebarGroupLabel>Core</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {coreNavigationItems.map((item) => {
@@ -143,8 +142,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarSeparator />
 
         {/* Financials Group */}
         <Collapsible open={financialsOpen} onOpenChange={setFinancialsOpen}>
@@ -184,8 +181,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </SidebarGroup>
         </Collapsible>
 
-        <SidebarSeparator />
-
         {/* People Group */}
         <Collapsible open={peopleOpen} onOpenChange={setPeopleOpen}>
           <SidebarGroup>
@@ -224,11 +219,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </SidebarGroup>
         </Collapsible>
 
-        <SidebarSeparator />
-
         {/* Work Management */}
         <SidebarGroup>
-          <SidebarGroupLabel>Work</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {workItems.map((item) => {
@@ -252,11 +244,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
-
         {/* System */}
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {systemItems.map((item) => {
@@ -279,31 +268,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarSeparator />
-
-        {/* Quick Actions */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleBackupDownload} tooltip="Download Backup">
-                  <Download className="h-4 w-4" />
-                  <span>Backup Data</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleBackupDownload} tooltip="Download Backup">
+              <Download className="h-4 w-4" />
+              <span>Backup</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+              <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
