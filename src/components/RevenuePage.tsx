@@ -23,10 +23,22 @@ export const RevenuePage: React.FC = () => {
     );
   }
 
-  // Get all revenue sources
-  const allRevenue = data.payments.filter(
-    payment => payment.type === 'incoming' && payment.status === 'completed'
-  );
+  // Get all revenue sources (filtered by business)
+  const allRevenue = data.payments.filter(payment => {
+    if (payment.type !== 'incoming' || payment.status !== 'completed') return false;
+    
+    // Filter by business: check if payment is associated with current business
+    const project = payment.projectId ? data.projects.find(p => p.id === payment.projectId) : null;
+    const retainer = payment.retainerId ? data.retainers?.find(r => r.id === payment.retainerId) : null;
+    const expense = payment.expenseId ? data.expenses?.find(e => e.id === payment.expenseId) : null;
+    
+    return (
+      (project?.businessId === currentBusiness.id) ||
+      (retainer?.businessId === currentBusiness.id) ||
+      (expense?.businessId === currentBusiness.id) ||
+      (!payment.projectId && !payment.retainerId && !payment.expenseId)
+    );
+  });
 
   // Calculate period dates
   const now = new Date();
