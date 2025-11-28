@@ -48,14 +48,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
 
   // Calculate member allocations across projects
   const getMemberAllocations = (memberId: string) => {
+    if (!currentBusiness) {
+      return { totalAllocated: 0, totalPaid: 0, outstanding: 0 };
+    }
+    
     const phaseAllocations = data.projects
-      .filter(project => project.businessId === currentBusiness?.id)
+      .filter(project => project.businessId === currentBusiness.id)
       .flatMap(project => 
         project.allocationTeamAllocations?.filter(alloc => alloc.memberId === memberId) || []
       );
     
     const legacyAllocations = data.projects
-      .filter(project => project.businessId === currentBusiness?.id)
+      .filter(project => project.businessId === currentBusiness.id)
       .flatMap(project => 
         project.teamAllocations.filter(alloc => alloc.memberId === memberId)
       );
@@ -68,25 +72,12 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     return { totalAllocated, totalPaid, outstanding };
   };
 
-  if (!currentBusiness) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-medium mb-2">No Business Selected</h3>
-            <p className="text-muted-foreground">Please select a business to manage team members</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold dashboard-text-primary">Team Members</h1>
-          <p className="dashboard-text-secondary">Manage your team for {currentBusiness.name}</p>
+          <p className="dashboard-text-secondary">Manage your team members across all businesses</p>
         </div>
         <Button onClick={handleCreateMember}>
           <Plus className="h-4 w-4 mr-2" />
@@ -147,13 +138,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
               </TableHeader>
               <TableBody>
                   {filteredMembers.map(member => {
-                    const allocations = getMemberAllocations(member.id);
-                    const memberProjects = data.projects
-                      .filter(project => project.businessId === currentBusiness?.id)
-                      .filter(project => 
-                        project.teamAllocations.some(alloc => alloc.memberId === member.id) ||
-                        project.allocationTeamAllocations?.some(alloc => alloc.memberId === member.id)
-                      );
+                     const allocations = getMemberAllocations(member.id);
+                    const memberProjects = currentBusiness 
+                      ? data.projects
+                          .filter(project => project.businessId === currentBusiness.id)
+                          .filter(project => 
+                            project.teamAllocations.some(alloc => alloc.memberId === member.id) ||
+                            project.allocationTeamAllocations?.some(alloc => alloc.memberId === member.id)
+                          )
+                      : [];
                     
                     return (
                       <TableRow key={member.id}>
@@ -174,7 +167,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div>{formatCurrency(allocations.totalAllocated, currentBusiness.currency)}</div>
+                            <div>{currentBusiness ? formatCurrency(allocations.totalAllocated, currentBusiness.currency) : '-'}</div>
                             {memberProjects.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 {memberProjects.slice(0, 2).map(project => (
@@ -199,7 +192,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                         </TableCell>
                         <TableCell>
                           <span className={allocations.outstanding > 0 ? 'text-orange-600' : 'dashboard-text-secondary'}>
-                            {formatCurrency(allocations.outstanding, currentBusiness.currency)}
+                            {currentBusiness ? formatCurrency(allocations.outstanding, currentBusiness.currency) : '-'}
                           </span>
                         </TableCell>
                         <TableCell>

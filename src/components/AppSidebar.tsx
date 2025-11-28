@@ -17,6 +17,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
@@ -67,6 +69,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
+  const { open: sidebarOpen } = useSidebar();
   const [financialsOpen, setFinancialsOpen] = React.useState(false);
   const [peopleOpen, setPeopleOpen] = React.useState(false);
 
@@ -97,24 +100,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   };
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-3 px-4 py-2">
-          <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
-            <Building2 className="h-6 w-6 dashboard-text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold dashboard-text-primary">BizSuite</h1>
-            <p className="text-sm dashboard-text-secondary">Management Tool</p>
-          </div>
+        <div className="flex items-center gap-2 px-2 py-2">
+          <SidebarTrigger />
+          {sidebarOpen && (
+            <>
+              <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
+                <Building2 className="h-6 w-6 dashboard-text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold dashboard-text-primary">BizSuite</h1>
+                <p className="text-sm dashboard-text-secondary">Management Tool</p>
+              </div>
+            </>
+          )}
         </div>
         
-        <div className="px-4">
-          <BusinessSwitcher 
-            onCreateBusiness={onCreateBusiness}
-            onManageBusinesses={() => onPageChange('settings')}
-          />
-        </div>
+        {sidebarOpen && (
+          <div className="px-4">
+            <BusinessSwitcher 
+              onCreateBusiness={onCreateBusiness}
+              onManageBusinesses={() => onPageChange('settings')}
+            />
+          </div>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
@@ -134,7 +144,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       tooltip={item.label}
                     >
                       <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
+                      {sidebarOpen && <span>{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -150,9 +160,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
                 <div className="flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
-                  <span>Financials</span>
+                  {sidebarOpen && <span>Financials</span>}
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${financialsOpen ? 'rotate-180' : ''}`} />
+                {sidebarOpen && <ChevronDown className={`h-4 w-4 transition-transform ${financialsOpen ? 'rotate-180' : ''}`} />}
               </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
@@ -170,7 +180,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                           tooltip={item.label}
                         >
                           <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                          {sidebarOpen && <span>{item.label}</span>}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
@@ -188,9 +198,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  <span>People</span>
+                  {sidebarOpen && <span>People</span>}
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${peopleOpen ? 'rotate-180' : ''}`} />
+                {sidebarOpen && <ChevronDown className={`h-4 w-4 transition-transform ${peopleOpen ? 'rotate-180' : ''}`} />}
               </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
@@ -208,7 +218,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                           tooltip={item.label}
                         >
                           <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                          {sidebarOpen && <span>{item.label}</span>}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
@@ -235,7 +245,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       tooltip={item.label}
                     >
                       <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
+                      {sidebarOpen && <span>{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -260,7 +270,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                       tooltip={item.label}
                     >
                       <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
+                      {sidebarOpen && <span>{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -275,19 +285,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleBackupDownload} tooltip="Download Backup">
               <Download className="h-4 w-4" />
-              <span>Backup</span>
+              {sidebarOpen && <span>Backup</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              <span>{theme === 'light' ? 'Dark' : 'Light'}</span>
+              {sidebarOpen && <span>{theme === 'light' ? 'Dark' : 'Light'}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={onLogout} tooltip="Sign Out">
               <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
+              {sidebarOpen && <span>Sign Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

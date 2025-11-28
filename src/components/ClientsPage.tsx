@@ -50,25 +50,12 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
     onNavigateToPage?.('client-detail', client.id);
   };
 
-  if (!currentBusiness) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <h3 className="text-lg font-medium mb-2">No Business Selected</h3>
-            <p className="text-muted-foreground">Please select a business to manage clients</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold dashboard-text-primary">Clients</h1>
-          <p className="dashboard-text-secondary">Manage your clients for {currentBusiness.name}</p>
+          <p className="dashboard-text-secondary">Manage your clients across all businesses</p>
         </div>
         <Button onClick={handleCreateClient}>
           <Plus className="h-4 w-4 mr-2" />
@@ -159,7 +146,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium">
-                            {formatCurrency(metrics.totalValue, currentBusiness.currency)}
+                            {currentBusiness ? formatCurrency(metrics.totalValue, currentBusiness.currency) : '-'}
                           </div>
                           <div className="text-xs dashboard-text-secondary">
                             {metrics.paymentProgress.toFixed(1)}% paid
@@ -170,7 +157,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                         <div className="flex items-center gap-1">
                           <TrendingUp className={`h-3 w-3 ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
                           <span className={`font-medium ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(metrics.netProfit, currentBusiness.currency)}
+                            {currentBusiness ? formatCurrency(metrics.netProfit, currentBusiness.currency) : '-'}
                           </span>
                         </div>
                       </TableCell>
