@@ -1,20 +1,13 @@
 
+
 import React, { useState } from 'react';
 import { DashboardHome } from './DashboardHome';
 import { ProjectsPage } from './ProjectsPage';
-import { TeamPage } from './TeamPage';
-import { PartnersPage } from './PartnersPage';
-import { ClientsPage } from './ClientsPage';
 import { AnalyticsPage } from './AnalyticsPage';
 import { SettingsPage } from './SettingsPage';
 import { ProjectDetailPage } from './ProjectDetailPage';
 import { AppSidebar } from './AppSidebar';
-import { SalariesPage } from './SalariesPage';
-import { QuickTasksPage } from './QuickTasksPage';
-import { PaymentsPage } from './PaymentsPage';
-import { ExpensesPage } from './ExpensesPage';
-import { RevenuePage } from './RevenuePage';
-import { RetainersPage } from './RetainersPage';
+import { FinancialsPage } from './FinancialsPage';
 import { RetainerDetailPage } from './RetainerDetailPage';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
@@ -77,16 +70,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
         ) : (
           <ProjectsPage onNavigateToPage={onNavigateToPage} />
         );
-      case 'team':
-        return <TeamPage onNavigateToPage={(page: string) => onNavigateToPage(page)} />;
-      case 'partners':
-        return <PartnersPage onNavigateToPage={onNavigateToPage} />;
-      case 'clients':
-        return <ClientsPage onNavigateToPage={onNavigateToPage} />;
-      case 'revenue':
-        return <RevenuePage />;
-      case 'retainers':
-        return <RetainersPage onNavigate={(page, id) => {
+      case 'financials':
+        return <FinancialsPage onNavigate={(page, id) => {
           if (page === 'retainer-detail' && id) {
             setSelectedRetainerId(id);
             setCurrentPage('retainer-detail');
@@ -97,26 +82,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
           <RetainerDetailPage 
             retainerId={selectedRetainerId}
             onBack={() => {
-              setCurrentPage('retainers');
+              setCurrentPage('financials');
               setSelectedRetainerId(null);
             }}
           />
         ) : (
-          <RetainersPage onNavigate={(page, id) => {
-            if (page === 'retainer-detail' && id) {
-              setSelectedRetainerId(id);
-              setCurrentPage('retainer-detail');
-            }
-          }} />
+          <FinancialsPage />
         );
-      case 'quick-tasks':
-        return <QuickTasksPage onNavigateToPage={onNavigateToPage} />;
-      case 'salaries':
-        return <SalariesPage />;
-      case 'payments':
-        return <PaymentsPage />;
-      case 'expenses':
-        return <ExpensesPage />;
       case 'analytics':
         return <AnalyticsPage />;
       case 'settings':

@@ -22,6 +22,10 @@ import { SalarySettings } from '@/components/SalarySettings';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
 import { Plus } from 'lucide-react';
+import { TeamPage } from './TeamPage';
+import { PartnersPage } from './PartnersPage';
+import { ClientsPage } from './ClientsPage';
+import { BusinessManagement } from './BusinessManagement';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -118,9 +122,12 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsTrigger value="people">People</TabsTrigger>
+          <TabsTrigger value="businesses">Businesses</TabsTrigger>
+          <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="currency">Currency</TabsTrigger>
           <TabsTrigger value="salaries">Salaries</TabsTrigger>
         </TabsList>
@@ -178,6 +185,30 @@ export const SettingsPage: React.FC = () => {
             selectedPalette={selectedPalette}
             onPaletteChange={handlePaletteChange}
           />
+        </TabsContent>
+
+        <TabsContent value="people" className="space-y-4">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Team Members</h2>
+              <p className="text-muted-foreground">Manage your team members across all businesses</p>
+            </div>
+            <TeamPage />
+            
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-2">Partners</h2>
+              <p className="text-muted-foreground">Manage your sales and managing partners</p>
+            </div>
+            <PartnersPage />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="businesses" className="space-y-4">
+          <BusinessManagement onCreateBusiness={() => {}} />
+        </TabsContent>
+
+        <TabsContent value="clients" className="space-y-4">
+          <ClientsPage />
         </TabsContent>
 
         <TabsContent value="currency" className="space-y-4">
