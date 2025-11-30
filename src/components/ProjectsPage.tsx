@@ -10,6 +10,8 @@ import { EnhancedProjectModal } from './EnhancedProjectModal';
 import { ProjectCard } from './ProjectCard';
 import { Project } from '@/types/business';
 import { toast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { QuickTasksPage } from './QuickTasksPage';
 
 interface ProjectsPageProps {
   onNavigateToPage?: (page: string, itemId?: string) => void;
@@ -92,16 +94,29 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold dashboard-text-primary">Projects</h1>
-          <p className="dashboard-text-secondary">Manage your projects for {currentBusiness.name}</p>
-        </div>
-        <Button onClick={handleCreateProject}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Projects & Tasks</h1>
+        <p className="text-muted-foreground">
+          Manage your projects and quick tasks for {currentBusiness.name}
+        </p>
       </div>
+
+      <Tabs defaultValue="projects" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="quick-tasks">Quick Tasks</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="projects" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Projects</h2>
+            </div>
+            <Button onClick={handleCreateProject}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          </div>
 
       <div className="flex gap-4 items-center">
         <div className="relative flex-1 max-w-md">
@@ -209,12 +224,18 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
         </div>
       )}
 
-      <EnhancedProjectModal
-        isOpen={showProjectModal}
-        onClose={() => setShowProjectModal(false)}
-        project={selectedProject}
-        mode={modalMode}
-      />
+          <EnhancedProjectModal
+            isOpen={showProjectModal}
+            onClose={() => setShowProjectModal(false)}
+            project={selectedProject}
+            mode={modalMode}
+          />
+        </TabsContent>
+
+        <TabsContent value="quick-tasks" className="space-y-6">
+          <QuickTasksPage onNavigateToPage={onNavigateToPage || (() => {})} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, FolderOpen, Users, UserCheck, BarChart3, Settings, LogOut, Moon, Sun, Download, DollarSign, ListChecks, CreditCard, Receipt, TrendingUp, RefreshCw, Wallet } from 'lucide-react';
+import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -11,18 +11,13 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 interface AppSidebarProps {
@@ -32,31 +27,10 @@ interface AppSidebarProps {
   onCreateBusiness: () => void;
 }
 
-const coreNavigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Building2 },
-  { id: 'projects', label: 'Projects', icon: FolderOpen },
-  { id: 'clients', label: 'Clients', icon: UserCheck },
-];
-
-const financialItems = [
-  { id: 'revenue', label: 'Revenue', icon: TrendingUp },
-  { id: 'retainers', label: 'Retainers', icon: RefreshCw },
-  { id: 'payments', label: 'Payments', icon: CreditCard },
-  { id: 'expenses', label: 'Expenses', icon: Receipt },
-  { id: 'salaries', label: 'Salaries', icon: DollarSign },
-];
-
-const peopleItems = [
-  { id: 'team', label: 'Team', icon: Users },
-  { id: 'partners', label: 'Partners', icon: UserCheck },
-];
-
-const workItems = [
-  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks },
-];
-
-const systemItems = [
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+const navigationItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'financials', label: 'Financials', icon: DollarSign },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -70,8 +44,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
   const { open: sidebarOpen } = useSidebar();
-  const [financialsOpen, setFinancialsOpen] = React.useState(false);
-  const [peopleOpen, setPeopleOpen] = React.useState(false);
 
   const handleBackupDownload = () => {
     try {
@@ -128,137 +100,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Core Navigation */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {coreNavigationItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.id;
-                
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      onClick={() => onPageChange(item.id)}
-                      isActive={isActive}
-                      tooltip={item.label}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {sidebarOpen && <span>{item.label}</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Financials Group */}
-        <Collapsible open={financialsOpen} onOpenChange={setFinancialsOpen}>
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  {sidebarOpen && <span>Financials</span>}
-                </div>
-                {sidebarOpen && <ChevronDown className={`h-4 w-4 transition-transform ${financialsOpen ? 'rotate-180' : ''}`} />}
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {financialItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = currentPage === item.id;
-                    
-                    return (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          onClick={() => onPageChange(item.id)}
-                          isActive={isActive}
-                          tooltip={item.label}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {sidebarOpen && <span>{item.label}</span>}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* People Group */}
-        <Collapsible open={peopleOpen} onOpenChange={setPeopleOpen}>
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger className="flex w-full items-center justify-between hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md px-2 py-1.5 transition-colors">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  {sidebarOpen && <span>People</span>}
-                </div>
-                {sidebarOpen && <ChevronDown className={`h-4 w-4 transition-transform ${peopleOpen ? 'rotate-180' : ''}`} />}
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {peopleItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = currentPage === item.id;
-                    
-                    return (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          onClick={() => onPageChange(item.id)}
-                          isActive={isActive}
-                          tooltip={item.label}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {sidebarOpen && <span>{item.label}</span>}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* Work Management */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {workItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.id;
-                
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      onClick={() => onPageChange(item.id)}
-                      isActive={isActive}
-                      tooltip={item.label}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {sidebarOpen && <span>{item.label}</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* System */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {systemItems.map((item) => {
+              {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPage === item.id;
                 

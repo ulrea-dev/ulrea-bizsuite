@@ -21,6 +21,7 @@ export interface TeamMember {
   name: string;
   email: string;
   role: string;
+  businessIds: string[]; // Team members can belong to multiple businesses
   paymentHistory: Payment[];
   createdAt: string;
 }

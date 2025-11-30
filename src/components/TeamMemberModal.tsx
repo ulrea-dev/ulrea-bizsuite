@@ -15,11 +15,12 @@ interface TeamMemberModalProps {
 }
 
 export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClose, member, mode }) => {
-  const { dispatch } = useBusiness();
+  const { dispatch, data } = useBusiness();
   const [formData, setFormData] = useState({
     name: member?.name || '',
     email: member?.email || '',
-    role: member?.role || ''
+    role: member?.role || '',
+    businessIds: member?.businessIds || []
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,6 +32,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
         name: formData.name,
         email: formData.email,
         role: formData.role,
+        businessIds: formData.businessIds,
         paymentHistory: [],
         createdAt: new Date().toISOString()
       };
@@ -47,13 +49,23 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
           updates: {
             name: formData.name,
             email: formData.email,
-            role: formData.role
+            role: formData.role,
+            businessIds: formData.businessIds
           }
         }
       });
     }
 
     onClose();
+  };
+
+  const toggleBusiness = (businessId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      businessIds: prev.businessIds.includes(businessId)
+        ? prev.businessIds.filter(id => id !== businessId)
+        : [...prev.businessIds, businessId]
+    }));
   };
 
   const isReadOnly = mode === 'view';
@@ -114,6 +126,31 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>Associated Businesses</Label>
+            <div className="border rounded-md p-3 space-y-2">
+              {data.businesses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No businesses available</p>
+              ) : (
+                data.businesses.map(business => (
+                  <div key={business.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={`business-${business.id}`}
+                      checked={formData.businessIds.includes(business.id)}
+                      onChange={() => toggleBusiness(business.id)}
+                      disabled={isReadOnly}
+                      className="rounded border-gray-300"
+                    />
+                    <label htmlFor={`business-${business.id}`} className="text-sm cursor-pointer">
+                      {business.name}
+                    </label>
+                  </div>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">Select which businesses this team member belongs to</p>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
