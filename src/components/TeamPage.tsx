@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Search, Eye, Edit, Mail, DollarSign } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TeamMemberModal } from './TeamMemberModal';
@@ -21,12 +22,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [searchTerm, setSearchTerm] = useState('');
+  const [memberTypeFilter, setMemberTypeFilter] = useState<'all' | 'employee' | 'contractor'>('all');
 
-  const filteredMembers = data.teamMembers.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMembers = data.teamMembers.filter(member => {
+    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.role.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = memberTypeFilter === 'all' || member.memberType === memberTypeFilter;
+    
+    return matchesSearch && matchesType;
+  });
 
   const handleCreateMember = () => {
     setSelectedMember(null);
@@ -46,12 +52,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     setShowMemberModal(true);
   };
 
-  // Calculate member allocations across projects
+  // Calculate comprehensive outstanding amounts (projects + salaries + quick tasks)
   const getMemberAllocations = (memberId: string) => {
     if (!currentBusiness) {
-      return { totalAllocated: 0, totalPaid: 0, outstanding: 0 };
+      return { totalAllocated: 0, totalPaid: 0, projectOutstanding: 0, salaryOutstanding: 0, quickTaskOutstanding: 0, totalOutstanding: 0 };
     }
     
+    // 1. Project allocations outstanding
     const phaseAllocations = data.projects
       .filter(project => project.businessId === currentBusiness.id)
       .flatMap(project => 
@@ -67,9 +74,40 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     const allAllocations = [...phaseAllocations, ...legacyAllocations];
     const totalAllocated = allAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
     const totalPaid = allAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
-    const outstanding = totalAllocated - totalPaid;
+    const projectOutstanding = totalAllocated - totalPaid;
     
-    return { totalAllocated, totalPaid, outstanding };
+    // 2. Salary outstanding (expected salary vs payments made)
+    const memberSalaryRecords = data.salaryRecords.filter(
+      r => r.teamMemberId === memberId && r.businessId === currentBusiness.id
+    );
+    const totalExpectedSalary = memberSalaryRecords.reduce((sum, r) => sum + r.amount, 0);
+    
+    const salaryRecordIds = memberSalaryRecords.map(r => r.id);
+    const memberSalaryPayments = data.salaryPayments.filter(
+      p => salaryRecordIds.includes(p.salaryRecordId)
+    );
+    const totalSalaryPaid = memberSalaryPayments.reduce((sum, p) => sum + p.amount, 0);
+    const salaryOutstanding = totalExpectedSalary - totalSalaryPaid;
+    
+    // 3. Quick tasks outstanding (completed but unpaid)
+    const unpaidTasks = data.quickTasks.filter(
+      t => t.assignedToId === memberId && 
+           t.status === 'completed' && 
+           !t.paidAt &&
+           t.businessId === currentBusiness.id
+    );
+    const quickTaskOutstanding = unpaidTasks.reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalOutstanding = projectOutstanding + salaryOutstanding + quickTaskOutstanding;
+    
+    return { 
+      totalAllocated, 
+      totalPaid, 
+      projectOutstanding,
+      salaryOutstanding,
+      quickTaskOutstanding,
+      totalOutstanding 
+    };
   };
 
   return (
@@ -95,6 +133,14 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
             className="pl-10"
           />
         </div>
+        
+        <Tabs value={memberTypeFilter} onValueChange={(v) => setMemberTypeFilter(v as 'all' | 'employee' | 'contractor')}>
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="employee">Employees</TabsTrigger>
+            <TabsTrigger value="contractor">Contractors</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {filteredMembers.length === 0 ? (
@@ -129,8 +175,9 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Default Rate</TableHead>
+                  <TableHead>Businesses</TableHead>
                   <TableHead>Projects & Allocations</TableHead>
                   <TableHead>Outstanding</TableHead>
                   <TableHead>Actions</TableHead>
@@ -160,10 +207,28 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                           </div>
                         </TableCell>
                         <TableCell>
+                          <Badge variant={member.memberType === 'employee' ? 'default' : 'secondary'}>
+                            {member.memberType === 'employee' ? 'Employee' : 'Contractor'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="outline">{member.role}</Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="dashboard-text-secondary">-</div>
+                          <div className="flex flex-wrap gap-1">
+                            {member.businessIds.length === 0 ? (
+                              <span className="text-sm dashboard-text-secondary">No businesses</span>
+                            ) : (
+                              member.businessIds.map(businessId => {
+                                const business = data.businesses.find(b => b.id === businessId);
+                                return business ? (
+                                  <Badge key={businessId} variant="outline" className="text-xs">
+                                    {business.name}
+                                  </Badge>
+                                ) : null;
+                              })
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
@@ -191,9 +256,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className={allocations.outstanding > 0 ? 'text-orange-600' : 'dashboard-text-secondary'}>
-                            {currentBusiness ? formatCurrency(allocations.outstanding, currentBusiness.currency) : '-'}
-                          </span>
+                          <div>
+                            <span className={allocations.totalOutstanding > 0 ? 'text-orange-600 font-medium' : 'dashboard-text-secondary'}>
+                              {currentBusiness ? formatCurrency(allocations.totalOutstanding, currentBusiness.currency) : '-'}
+                            </span>
+                            {allocations.totalOutstanding > 0 && (
+                              <div className="text-xs dashboard-text-secondary mt-1">
+                                {allocations.projectOutstanding > 0 && <div>Projects: {formatCurrency(allocations.projectOutstanding, currentBusiness!.currency)}</div>}
+                                {allocations.salaryOutstanding > 0 && <div>Salary: {formatCurrency(allocations.salaryOutstanding, currentBusiness!.currency)}</div>}
+                                {allocations.quickTaskOutstanding > 0 && <div>Tasks: {formatCurrency(allocations.quickTaskOutstanding, currentBusiness!.currency)}</div>}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">

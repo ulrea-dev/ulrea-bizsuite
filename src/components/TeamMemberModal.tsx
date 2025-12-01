@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TeamMember } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 
@@ -20,8 +21,22 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
     name: member?.name || '',
     email: member?.email || '',
     role: member?.role || '',
+    memberType: member?.memberType || 'employee' as 'employee' | 'contractor',
     businessIds: member?.businessIds || []
   });
+
+  // Fix: Sync formData when member or modal state changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: member?.name || '',
+        email: member?.email || '',
+        role: member?.role || '',
+        memberType: member?.memberType || 'employee',
+        businessIds: member?.businessIds || []
+      });
+    }
+  }, [member, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +47,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
         name: formData.name,
         email: formData.email,
         role: formData.role,
+        memberType: formData.memberType,
         businessIds: formData.businessIds,
         paymentHistory: [],
         createdAt: new Date().toISOString()
@@ -50,6 +66,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
             name: formData.name,
             email: formData.email,
             role: formData.role,
+            memberType: formData.memberType,
             businessIds: formData.businessIds
           }
         }
@@ -111,6 +128,25 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({ isOpen, onClos
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="memberType">Member Type</Label>
+            <Select
+              value={formData.memberType}
+              onValueChange={(value: 'employee' | 'contractor') => 
+                setFormData(prev => ({ ...prev, memberType: value }))
+              }
+              disabled={isReadOnly}
+            >
+              <SelectTrigger id="memberType">
+                <SelectValue placeholder="Select member type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
+                <SelectItem value="contractor">Contractor</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
