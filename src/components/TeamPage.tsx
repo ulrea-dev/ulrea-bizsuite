@@ -29,7 +29,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
       member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.role.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesType = memberTypeFilter === 'all' || member.memberType === memberTypeFilter;
+    const memberTypeValue = member.memberType || 'employee';
+    const matchesType = memberTypeFilter === 'all' || memberTypeValue === memberTypeFilter;
     
     return matchesSearch && matchesType;
   });
@@ -207,8 +208,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={member.memberType === 'employee' ? 'default' : 'secondary'}>
-                            {member.memberType === 'employee' ? 'Employee' : 'Contractor'}
+                          <Badge variant={(member.memberType || 'employee') === 'employee' ? 'default' : 'secondary'}>
+                            {(member.memberType || 'employee') === 'employee' ? 'Employee' : 'Contractor'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -216,7 +217,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {member.businessIds.length === 0 ? (
+                            {(!member.businessIds || member.businessIds.length === 0) ? (
                               <span className="text-sm dashboard-text-secondary">No businesses</span>
                             ) : (
                               member.businessIds.map(businessId => {
