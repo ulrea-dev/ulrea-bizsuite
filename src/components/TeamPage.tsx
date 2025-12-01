@@ -10,7 +10,8 @@ import { Plus, Search, Eye, Edit, Mail, DollarSign } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TeamMemberModal } from './TeamMemberModal';
 import { formatCurrency } from '@/utils/storage';
-import { TeamMember } from '@/types/business';
+import { TeamMember, SUPPORTED_CURRENCIES } from '@/types/business';
+import { convertCurrency } from '@/utils/currencyConversion';
 
 interface TeamPageProps {
   onNavigateToPage?: (page: string) => void;
@@ -77,18 +78,60 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     const totalPaid = allAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
     const projectOutstanding = totalAllocated - totalPaid;
     
-    // 2. Salary outstanding (expected salary vs payments made)
+    // 2. Salary outstanding (current month's salary minus payments made this month)
     const memberSalaryRecords = data.salaryRecords.filter(
       r => r.teamMemberId === memberId && r.businessId === currentBusiness.id
     );
-    const totalExpectedSalary = memberSalaryRecords.reduce((sum, r) => sum + r.amount, 0);
     
+    // Calculate combined monthly salary (like PayrollDashboard does)
+    let monthlySalaryAmount = 0;
+    const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
+    
+    memberSalaryRecords.forEach(record => {
+      const recordCurrency = allCurrencies.find(c => c.code === record.currency) || data.userSettings.defaultCurrency;
+      let monthlyAmount = record.amount;
+      
+      // Convert to monthly equivalent based on frequency
+      switch (record.frequency) {
+        case 'weekly':
+          monthlyAmount = record.amount * 4.33;
+          break;
+        case 'bi-weekly':
+          monthlyAmount = record.amount * 2.17;
+          break;
+        case 'quarterly':
+          monthlyAmount = record.amount / 3;
+          break;
+        case 'annually':
+          monthlyAmount = record.amount / 12;
+          break;
+        // 'monthly' stays as is
+      }
+      
+      // Convert to default currency
+      const converted = convertCurrency(
+        monthlyAmount, 
+        recordCurrency, 
+        data.userSettings.defaultCurrency, 
+        data.exchangeRates || []
+      );
+      monthlySalaryAmount += converted;
+    });
+    
+    // Check if paid this month
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
     const salaryRecordIds = memberSalaryRecords.map(r => r.id);
-    const memberSalaryPayments = data.salaryPayments.filter(
-      p => salaryRecordIds.includes(p.salaryRecordId)
-    );
-    const totalSalaryPaid = memberSalaryPayments.reduce((sum, p) => sum + p.amount, 0);
-    const salaryOutstanding = totalExpectedSalary - totalSalaryPaid;
+    
+    const paidThisMonth = data.salaryPayments.some(p => {
+      if (!salaryRecordIds.includes(p.salaryRecordId)) return false;
+      const paymentDate = new Date(p.paymentDate);
+      return paymentDate.getMonth() === currentMonth && 
+             paymentDate.getFullYear() === currentYear;
+    });
+    
+    const salaryOutstanding = paidThisMonth ? 0 : monthlySalaryAmount;
     
     // 3. Quick tasks outstanding (completed but unpaid)
     const unpaidTasks = data.quickTasks.filter(
