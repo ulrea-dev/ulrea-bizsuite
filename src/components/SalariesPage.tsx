@@ -31,10 +31,11 @@ interface CombinedSalaryRecord {
   totalAmountOriginal: number; // Combined amount in original currencies
   currency: string; // Default currency for display
   primarySalary?: SalaryRecord;
-  secondarySalary?: SalaryRecord;
+  secondarySalaries: SalaryRecord[]; // Now supports multiple
   frequency: string; // Combined frequency display
   startDate: string;
   projectInfo?: string;
+  secondaryCount: number;
 }
 
 export const SalariesPage: React.FC = () => {
@@ -85,6 +86,17 @@ export const SalariesPage: React.FC = () => {
     ...(data.customCurrencies || [])
   ];
 
+  // Helper to convert amount to monthly
+  const getMonthlyAmount = (amount: number, frequency: string) => {
+    switch (frequency) {
+      case 'weekly': return amount * 4.33;
+      case 'bi-weekly': return amount * 2.17;
+      case 'quarterly': return amount / 3;
+      case 'annually': return amount / 12;
+      default: return amount;
+    }
+  };
+
   // Group salary records by team member and create combined records
   const combinedSalaryRecords: CombinedSalaryRecord[] = [];
   const processedTeamMembers = new Set<string>();
@@ -99,7 +111,7 @@ export const SalariesPage: React.FC = () => {
     // Get all salary records for this team member
     const memberRecords = businessSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
     const primaryRecord = memberRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
-    const secondaryRecord = memberRecords.find(r => (r as any).salaryType === 'secondary');
+    const secondaryRecords = memberRecords.filter(r => (r as any).salaryType === 'secondary');
 
     // Calculate combined total amount in default currency
     let totalAmountInDefaultCurrency = 0;
@@ -107,23 +119,7 @@ export const SalariesPage: React.FC = () => {
 
     if (primaryRecord) {
       const primaryCurrency = allCurrencies.find(c => c.code === primaryRecord.currency) || data.userSettings.defaultCurrency;
-      let primaryMonthlyAmount = primaryRecord.amount;
-      
-      // Convert to monthly equivalent
-      switch (primaryRecord.frequency) {
-        case 'weekly':
-          primaryMonthlyAmount = primaryRecord.amount * 4.33;
-          break;
-        case 'bi-weekly':
-          primaryMonthlyAmount = primaryRecord.amount * 2.17;
-          break;
-        case 'quarterly':
-          primaryMonthlyAmount = primaryRecord.amount / 3;
-          break;
-        case 'annually':
-          primaryMonthlyAmount = primaryRecord.amount / 12;
-          break;
-      }
+      const primaryMonthlyAmount = getMonthlyAmount(primaryRecord.amount, primaryRecord.frequency);
 
       const convertedPrimary = convertCurrency(
         primaryMonthlyAmount,
@@ -136,25 +132,10 @@ export const SalariesPage: React.FC = () => {
       totalAmountOriginal += primaryMonthlyAmount;
     }
 
-    if (secondaryRecord) {
+    // Process all secondary salaries
+    secondaryRecords.forEach(secondaryRecord => {
       const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
-      let secondaryMonthlyAmount = secondaryRecord.amount;
-      
-      // Convert to monthly equivalent
-      switch (secondaryRecord.frequency) {
-        case 'weekly':
-          secondaryMonthlyAmount = secondaryRecord.amount * 4.33;
-          break;
-        case 'bi-weekly':
-          secondaryMonthlyAmount = secondaryRecord.amount * 2.17;
-          break;
-        case 'quarterly':
-          secondaryMonthlyAmount = secondaryRecord.amount / 3;
-          break;
-        case 'annually':
-          secondaryMonthlyAmount = secondaryRecord.amount / 12;
-          break;
-      }
+      const secondaryMonthlyAmount = getMonthlyAmount(secondaryRecord.amount, secondaryRecord.frequency);
 
       const convertedSecondary = convertCurrency(
         secondaryMonthlyAmount,
@@ -165,29 +146,38 @@ export const SalariesPage: React.FC = () => {
       
       totalAmountInDefaultCurrency += convertedSecondary;
       totalAmountOriginal += secondaryMonthlyAmount;
-    }
+    });
 
     // Create combined record
     const memberName = getTeamMemberName(record.teamMemberId);
     const positions = [];
     if (primaryRecord) positions.push(primaryRecord.position);
-    if (secondaryRecord) positions.push(secondaryRecord.position);
+    if (secondaryRecords.length > 0) {
+      if (secondaryRecords.length === 1) {
+        positions.push(secondaryRecords[0].position);
+      } else {
+        positions.push(`+${secondaryRecords.length} secondary`);
+      }
+    }
 
     const frequencies = [];
     if (primaryRecord) frequencies.push(`Primary: ${primaryRecord.frequency}`);
-    if (secondaryRecord) frequencies.push(`Secondary: ${secondaryRecord.frequency}`);
+    if (secondaryRecords.length > 0) {
+      frequencies.push(`Secondary: ${secondaryRecords.length} record${secondaryRecords.length > 1 ? 's' : ''}`);
+    }
 
     let projectInfo = '';
     if (primaryRecord?.projectId) {
       projectInfo += `Primary: ${getProjectName(primaryRecord.projectId)}`;
     }
-    if (secondaryRecord?.projectId) {
+    const secondaryProjects = secondaryRecords.filter(r => r.projectId).map(r => getProjectName(r.projectId!));
+    if (secondaryProjects.length > 0) {
       if (projectInfo) projectInfo += ', ';
-      projectInfo += `Secondary: ${getProjectName(secondaryRecord.projectId)}`;
+      projectInfo += `Secondary: ${secondaryProjects.join(', ')}`;
     }
 
     combinedSalaryRecords.push({
-      id: primaryRecord?.id || secondaryRecord?.id || record.id,
+      id: primaryRecord?.id || secondaryRecords[0]?.id || record.id,
       teamMemberId: record.teamMemberId,
       employeeName: memberName,
       position: positions.join(' + '),
@@ -195,10 +185,11 @@ export const SalariesPage: React.FC = () => {
       totalAmountOriginal: totalAmountOriginal,
       currency: data.userSettings.defaultCurrency.code,
       primarySalary: primaryRecord,
-      secondarySalary: secondaryRecord,
+      secondarySalaries: secondaryRecords,
       frequency: frequencies.join(', '),
-      startDate: primaryRecord?.startDate || secondaryRecord?.startDate || record.startDate,
+      startDate: primaryRecord?.startDate || secondaryRecords[0]?.startDate || record.startDate,
       projectInfo: projectInfo || undefined,
+      secondaryCount: secondaryRecords.length,
     });
   });
 
@@ -229,8 +220,8 @@ export const SalariesPage: React.FC = () => {
   };
 
   const handleRecordPayment = (record: CombinedSalaryRecord) => {
-    // Use primary salary record for payment, or secondary if no primary
-    const recordId = record.primarySalary?.id || record.secondarySalary?.id;
+    // Use primary salary record for payment, or first secondary if no primary
+    const recordId = record.primarySalary?.id || record.secondarySalaries[0]?.id;
     setSelectedPaymentRecordId(recordId || null);
     setShowPaymentModal(true);
   };
