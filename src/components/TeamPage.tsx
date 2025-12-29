@@ -26,6 +26,14 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [searchTerm, setSearchTerm] = useState('');
   const [memberTypeFilter, setMemberTypeFilter] = useState<'all' | 'employee' | 'contractor'>('all');
+  const [showPaymentHistoryModal, setShowPaymentHistoryModal] = useState(false);
+  const [paymentHistoryMember, setPaymentHistoryMember] = useState<TeamMember | null>(null);
+  const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
+
+  const handleViewPaymentHistory = (member: TeamMember) => {
+    setPaymentHistoryMember(member);
+    setShowPaymentHistoryModal(true);
+  };
 
   const filteredMembers = data.teamMembers.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -163,10 +171,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
           <h1 className="text-3xl font-bold dashboard-text-primary">Team Members</h1>
           <p className="dashboard-text-secondary">Manage your team members across all businesses</p>
         </div>
-        <Button onClick={handleCreateMember}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Member
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowBulkPaymentModal(true)}>
+            <CreditCard className="h-4 w-4 mr-2" />
+            Bulk Pay
+          </Button>
+          <Button onClick={handleCreateMember}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4 items-center">
@@ -321,6 +335,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleViewMember(member)}
+                              title="View"
                             >
                               <Eye className="h-3 w-3" />
                             </Button>
@@ -328,8 +343,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditMember(member)}
+                              title="Edit"
                             >
                               <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewPaymentHistory(member)}
+                              title="Payment History"
+                            >
+                              <History className="h-3 w-3" />
                             </Button>
                           </div>
                         </TableCell>
@@ -347,6 +371,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
         onClose={() => setShowMemberModal(false)}
         member={selectedMember}
         mode={modalMode}
+      />
+
+      <TeamMemberPaymentHistoryModal
+        isOpen={showPaymentHistoryModal}
+        onClose={() => setShowPaymentHistoryModal(false)}
+        member={paymentHistoryMember}
+      />
+
+      <BulkTeamPaymentModal
+        isOpen={showBulkPaymentModal}
+        onClose={() => setShowBulkPaymentModal(false)}
       />
     </div>
   );
