@@ -111,8 +111,8 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Freelance Tasks</h1>
-          <p className="text-muted-foreground">Manage one-time work and payments for {currentBusiness.name}</p>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Freelance Tasks</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage one-time work and payments for {currentBusiness.name}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => onNavigateToPage('salaries')} variant="outline">
@@ -133,7 +133,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
             <div className="flex items-center space-x-2">
               <ListChecks className="h-5 w-5 text-blue-600" />
               <div>
-                <p className="text-2xl font-bold">{activeTasks.length}</p>
+                <p className="text-lg md:text-xl font-bold">{activeTasks.length}</p>
                 <p className="text-xs text-muted-foreground">Active</p>
               </div>
             </div>
@@ -145,7 +145,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-yellow-600" />
               <div>
-                <p className="text-2xl font-bold">{pendingTasks.length}</p>
+                <p className="text-lg md:text-xl font-bold">{pendingTasks.length}</p>
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
             </div>
@@ -157,7 +157,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-red-600" />
               <div>
-                <p className="text-2xl font-bold">{overdueTasks.length}</p>
+                <p className="text-lg md:text-xl font-bold">{overdueTasks.length}</p>
                 <p className="text-xs text-muted-foreground">Overdue</p>
               </div>
             </div>
@@ -169,7 +169,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
               <div>
-                <p className="text-2xl font-bold">{completedTasks.length}</p>
+                <p className="text-lg md:text-xl font-bold">{completedTasks.length}</p>
                 <p className="text-xs text-muted-foreground">Completed</p>
               </div>
             </div>
@@ -181,7 +181,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold">
+                <p className="text-lg md:text-xl font-bold">
                   {formatCurrency(totalPendingAmount, currentBusiness.currency)}
                 </p>
                 <p className="text-xs text-muted-foreground">Unpaid Amount</p>

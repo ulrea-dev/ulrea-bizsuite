@@ -73,7 +73,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Retainers</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Retainers</h1>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -85,7 +85,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
               </Tooltip>
             </TooltipProvider>
           </div>
-          <p className="text-muted-foreground">Manage recurring client contracts</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage recurring client contracts</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
@@ -99,7 +99,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
             <CardTitle className="text-sm font-medium">Active Retainers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeRetainers.length}</div>
+            <div className="text-lg md:text-xl font-bold">{activeRetainers.length}</div>
             <p className="text-xs text-muted-foreground mt-1">of {retainers.length} total</p>
           </CardContent>
         </Card>
@@ -121,7 +121,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(mrr, currentBusiness.currency)}</div>
+            <div className="text-lg md:text-xl font-bold">{formatCurrency(mrr, currentBusiness.currency)}</div>
             <p className="text-xs text-muted-foreground mt-1">Per month</p>
           </CardContent>
         </Card>
@@ -131,7 +131,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
             <CardTitle className="text-sm font-medium">Quarterly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(mrr * 3, currentBusiness.currency)}</div>
+            <div className="text-lg md:text-xl font-bold">{formatCurrency(mrr * 3, currentBusiness.currency)}</div>
             <p className="text-xs text-muted-foreground mt-1">Per quarter</p>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
             <CardTitle className="text-sm font-medium">Annual Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(mrr * 12, currentBusiness.currency)}</div>
+            <div className="text-lg md:text-xl font-bold">{formatCurrency(mrr * 12, currentBusiness.currency)}</div>
             <p className="text-xs text-muted-foreground mt-1">Per year</p>
           </CardContent>
         </Card>

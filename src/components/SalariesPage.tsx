@@ -242,8 +242,8 @@ export const SalariesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">Payroll</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Manage salaries and payments for {currentBusiness.name}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -305,7 +305,7 @@ export const SalariesPage: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{combinedSalaryRecords.length}</div>
+            <div className="text-lg md:text-xl font-bold">{combinedSalaryRecords.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -314,7 +314,7 @@ export const SalariesPage: React.FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg md:text-xl font-bold">
               {formatCurrency(totalMonthlySalaries, data.userSettings.defaultCurrency)}
             </div>
           </CardContent>
@@ -325,7 +325,7 @@ export const SalariesPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg md:text-xl font-bold">
               {formatCurrency(currentMonthPayments, data.userSettings.defaultCurrency)}
             </div>
           </CardContent>
@@ -336,7 +336,7 @@ export const SalariesPage: React.FC = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{businessSalaryPayments.length}</div>
+            <div className="text-lg md:text-xl font-bold">{businessSalaryPayments.length}</div>
           </CardContent>
         </Card>
       </div>

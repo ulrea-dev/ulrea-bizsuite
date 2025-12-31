@@ -365,8 +365,8 @@ export const PayrollDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">Payroll Dashboard</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Manage monthly payroll for {currentBusiness.name}
           </p>
         </div>

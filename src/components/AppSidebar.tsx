@@ -85,8 +85,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Building2 className="h-6 w-6 dashboard-text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold dashboard-text-primary">BizSuite</h1>
-                <p className="text-sm dashboard-text-secondary">Management Tool</p>
+                <h1 className="text-base font-bold dashboard-text-primary">BizSuite</h1>
+                <p className="text-xs dashboard-text-secondary">Management Tool</p>
               </div>
             </>
           )}

@@ -54,8 +54,8 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold dashboard-text-primary">Partners</h1>
-          <p className="dashboard-text-secondary">Manage your business partners and their allocations</p>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold dashboard-text-primary">Partners</h1>
+          <p className="text-xs sm:text-sm dashboard-text-secondary">Manage your business partners and their allocations</p>
         </div>
         <Button onClick={() => openModal('create')} className="flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
