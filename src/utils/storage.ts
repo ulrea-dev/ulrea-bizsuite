@@ -1,6 +1,15 @@
+/**
+ * Storage Utilities
+ * 
+ * This file is maintained for backward compatibility.
+ * New code should use the Repository pattern from @/repositories.
+ * 
+ * @deprecated Use LocalStorageRepository from @/repositories instead
+ */
 
-import { AppData, Business, Project, TeamMember, Client, Payment, SUPPORTED_CURRENCIES } from '@/types/business';
+import { AppData, SUPPORTED_CURRENCIES } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from './appearance';
+import { localStorageRepository } from '@/repositories';
 
 const STORAGE_KEY = 'bizsuite-data';
 
@@ -30,76 +39,55 @@ const getInitialData = (): AppData => ({
   },
 });
 
+/**
+ * @deprecated Use localStorageRepository.load() instead
+ */
 export const loadData = (): AppData => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return getInitialData();
-    
-    const data = JSON.parse(stored) as AppData;
-    const initialData = getInitialData();
-    
-    return {
-      ...initialData,
-      ...data,
-      // Ensure arrays exist (for backward compatibility)
-      partners: data.partners || [],
-      salaryRecords: data.salaryRecords || [],
-      salaryPayments: data.salaryPayments || [],
-      payrollPeriods: data.payrollPeriods || [],
-      payslips: data.payslips || [],
-      exchangeRates: data.exchangeRates || [],
-      customCurrencies: data.customCurrencies || [],
-      quickTasks: data.quickTasks || [],
-      retainers: data.retainers || [],
-      expenses: data.expenses || [],
-      // Ensure projects have clientPayments field (for backward compatibility)
-      projects: (data.projects || []).map(project => ({
-        ...project,
-        clientPayments: project.clientPayments ?? 0,
-      })),
-      userSettings: {
-        ...initialData.userSettings,
-        ...data.userSettings,
-      },
-    };
-  } catch (error) {
-    console.error('Error loading data:', error);
-    return getInitialData();
-  }
+  return localStorageRepository.load();
 };
 
+/**
+ * @deprecated Use localStorageRepository.save() instead
+ */
 export const saveData = (data: AppData): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Error saving data:', error);
-  }
+  localStorageRepository.save(data);
 };
 
+/**
+ * @deprecated Use localStorageRepository.export() instead
+ */
 export const exportData = (): string => {
-  const data = loadData();
-  return JSON.stringify(data, null, 2);
+  const exported = localStorageRepository.export();
+  return JSON.stringify(exported, null, 2);
 };
 
+/**
+ * @deprecated Use localStorageRepository.import() instead
+ */
 export const importData = (jsonString: string): AppData => {
-  try {
-    const data = JSON.parse(jsonString) as AppData;
-    saveData(data);
-    return data;
-  } catch (error) {
-    throw new Error('Invalid data format');
-  }
+  return localStorageRepository.import(jsonString);
 };
 
+/**
+ * @deprecated Use localStorageRepository.clear() instead
+ */
 export const clearAllData = (): void => {
-  localStorage.removeItem(STORAGE_KEY);
+  localStorageRepository.clear();
 };
 
-// Helper functions
+/**
+ * @deprecated Use localStorageRepository.generateId() instead
+ */
 export const generateId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return localStorageRepository.generateId();
 };
 
+/**
+ * Format currency with appropriate symbol and abbreviation
+ * 
+ * Note: This is a formatting utility, not a storage function.
+ * Consider moving to @/utils/formatters.ts in a future refactor.
+ */
 export const formatCurrency = (amount: number, currency: { symbol: string; code: string }): string => {
   let formattedAmount: string;
   
