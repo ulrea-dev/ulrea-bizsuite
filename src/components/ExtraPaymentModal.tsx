@@ -184,17 +184,11 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
                 <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent className="bg-background z-50">
-                {businessTeamMembers.length === 0 ? (
-                  <div className="px-2 py-4 text-center text-sm text-muted-foreground">
-                    No team members found for this business
-                  </div>
-                ) : (
-                  businessTeamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name}
-                    </SelectItem>
-                  ))
-                )}
+                {businessTeamMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
