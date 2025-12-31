@@ -114,14 +114,12 @@ export const PayrollDashboard: React.FC = () => {
       });
 
       // Check payment status for current period
-      const periodStart = new Date(selectedYear, selectedMonth - 1, 1);
-      const periodEnd = new Date(selectedYear, selectedMonth, 0);
+      const currentPeriod = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
       
       const paymentsInPeriod = businessSalaryPayments.filter(payment => {
-        const paymentDate = new Date(payment.paymentDate);
         const salaryRecord = businessSalaryRecords.find(r => r.id === payment.salaryRecordId);
         return salaryRecord?.teamMemberId === record.teamMemberId &&
-               paymentDate >= periodStart && paymentDate <= periodEnd;
+               payment.period === currentPeriod;
       });
 
       let status: 'pending' | 'paid' | 'overdue' = 'pending';
@@ -136,6 +134,7 @@ export const PayrollDashboard: React.FC = () => {
         // 1. The selected period is in the past
         // 2. The employee's salary started before or during the selected period
         const salaryStartDate = new Date(record.startDate);
+        const periodEnd = new Date(selectedYear, selectedMonth, 0);
         const isOverdue = now > periodEnd && salaryStartDate <= periodEnd;
         status = isOverdue ? 'overdue' : 'pending';
       }
