@@ -187,12 +187,23 @@ export const PayrollDashboard: React.FC = () => {
   const handleBulkMarkAsPaid = async () => {
     setProcessingPayroll(true);
     try {
-      const pendingEmployees = payrollEmployees.filter(emp => emp.status === 'pending');
+      // Include both pending and overdue employees (not already paid)
+      const unpaidEmployees = payrollEmployees.filter(emp => emp.status !== 'paid');
       let totalPayments = 0;
+      const currentPeriod = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
       
-      for (const employee of pendingEmployees) {
+      for (const employee of unpaidEmployees) {
         // Create a payment for EACH salary record
         for (const salaryRecordId of employee.salaryRecordIds) {
+          // Check if payment already exists for this salary record and period
+          const existingPayment = businessSalaryPayments.find(
+            p => p.salaryRecordId === salaryRecordId && p.period === currentPeriod
+          );
+          
+          if (existingPayment) {
+            continue; // Skip if already paid for this record
+          }
+
           const salaryRecord = businessSalaryRecords.find(r => r.id === salaryRecordId);
           if (!salaryRecord) continue;
 
@@ -214,9 +225,9 @@ export const PayrollDashboard: React.FC = () => {
             salaryRecordId: salaryRecordId,
             amount: convertedAmount,
             paymentDate: new Date().toISOString().split('T')[0],
-            period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+            period: currentPeriod,
             method: 'Bulk Payment',
-            description: `Payroll payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+            description: `Payroll payment for ${currentPeriod}`,
             status: 'paid',
             createdAt: new Date().toISOString(),
           };
@@ -228,7 +239,7 @@ export const PayrollDashboard: React.FC = () => {
 
       toast({
         title: "Success",
-        description: `Created ${totalPayments} payment records for ${pendingEmployees.length} employees`,
+        description: `Created ${totalPayments} payment records for ${unpaidEmployees.length} employees`,
       });
     } catch (error) {
       toast({
@@ -243,8 +254,29 @@ export const PayrollDashboard: React.FC = () => {
 
   // Handle individual payment marking
   const handleMarkAsPaid = (employee: PayrollEmployee) => {
+    // Prevent duplicate payments - check if already paid for this period
+    if (employee.status === 'paid') {
+      toast({
+        title: "Already Paid",
+        description: `${employee.employeeName} has already been paid for this period`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentPeriod = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
+    
     // Create a payment for EACH salary record
     for (const salaryRecordId of employee.salaryRecordIds) {
+      // Check if payment already exists for this salary record and period
+      const existingPayment = businessSalaryPayments.find(
+        p => p.salaryRecordId === salaryRecordId && p.period === currentPeriod
+      );
+      
+      if (existingPayment) {
+        continue; // Skip if already paid for this record
+      }
+
       const salaryRecord = businessSalaryRecords.find(r => r.id === salaryRecordId);
       if (!salaryRecord) continue;
 
@@ -266,9 +298,9 @@ export const PayrollDashboard: React.FC = () => {
         salaryRecordId: salaryRecordId,
         amount: convertedAmount,
         paymentDate: new Date().toISOString().split('T')[0],
-        period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+        period: currentPeriod,
         method: 'Manual Payment',
-        description: `Individual payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+        description: `Individual payment for ${currentPeriod}`,
         status: 'paid',
         createdAt: new Date().toISOString(),
       };
@@ -342,7 +374,7 @@ export const PayrollDashboard: React.FC = () => {
             </Button>
             <Button 
               onClick={handleBulkMarkAsPaid}
-              disabled={processingPayroll || stats.pendingEmployees === 0}
+              disabled={processingPayroll || (stats.pendingEmployees === 0 && stats.overdueEmployees === 0)}
               className="gap-2"
             >
               <CheckCircle className="h-4 w-4" />
