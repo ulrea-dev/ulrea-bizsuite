@@ -116,7 +116,7 @@ export interface Payment {
   status: 'pending' | 'completed';
   method?: string;
   description?: string;
-  paymentSource?: 'project' | 'salary' | 'task' | 'retainer' | 'expense';
+  paymentSource?: 'project' | 'salary' | 'task' | 'retainer' | 'expense' | 'extra';
   taskDescription?: string;
   taskType?: string;
   taskId?: string;
@@ -273,6 +273,23 @@ export interface PayrollBonus {
   type: 'performance' | 'commission' | 'overtime' | 'other';
 }
 
+export type ExtraPaymentType = 'bonus' | 'commission' | 'overtime' | 'allowance' | 'reimbursement' | 'other';
+
+export interface ExtraPayment {
+  id: string;
+  businessId: string;
+  teamMemberId: string;
+  amount: number;
+  currency: string;
+  period: string; // Format: "YYYY-MM" (e.g., "2025-12")
+  paymentDate: string;
+  type: ExtraPaymentType;
+  name: string; // e.g., "Performance Bonus", "Holiday Bonus"
+  description?: string;
+  status: 'pending' | 'paid';
+  createdAt: string;
+}
+
 export interface ExchangeRate {
   id: string;
   fromCurrency: string;
@@ -357,6 +374,7 @@ export interface AppData {
   quickTasks: QuickTask[];
   retainers: Retainer[];
   expenses: Expense[];
+  extraPayments: ExtraPayment[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;

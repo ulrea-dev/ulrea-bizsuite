@@ -33,10 +33,11 @@ export class LocalStorageRepository implements IDataRepository {
       payslips: [],
       exchangeRates: [],
       customCurrencies: [],
-      quickTasks: [],
-      retainers: [],
-      expenses: [],
-      currentBusinessId: null,
+        quickTasks: [],
+        retainers: [],
+        expenses: [],
+        extraPayments: [],
+        currentBusinessId: null,
       userSettings: {
         username: '',
         theme: 'light',
@@ -69,6 +70,7 @@ export class LocalStorageRepository implements IDataRepository {
         quickTasks: data.quickTasks || [],
         retainers: data.retainers || [],
         expenses: data.expenses || [],
+        extraPayments: data.extraPayments || [],
         // Ensure projects have clientPayments field (for backward compatibility)
         projects: (data.projects || []).map(project => ({
           ...project,

@@ -67,6 +67,26 @@ export const salaryReducer = (state: AppData, action: BusinessAction): AppData |
     case 'ADD_PAYSLIP':
       return { ...state, payslips: [...(state.payslips || []), action.payload] };
 
+    // Extra Payment actions
+    case 'ADD_EXTRA_PAYMENT':
+      return { ...state, extraPayments: [...(state.extraPayments || []), action.payload] };
+
+    case 'UPDATE_EXTRA_PAYMENT':
+      return {
+        ...state,
+        extraPayments: (state.extraPayments || []).map(payment =>
+          payment.id === action.payload.id
+            ? { ...payment, ...action.payload.updates }
+            : payment
+        ),
+      };
+
+    case 'DELETE_EXTRA_PAYMENT':
+      return {
+        ...state,
+        extraPayments: (state.extraPayments || []).filter(payment => payment.id !== action.payload),
+      };
+
     default:
       return null; // Not handled by this reducer
   }

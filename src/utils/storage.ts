@@ -29,6 +29,7 @@ const getInitialData = (): AppData => ({
   quickTasks: [],
   retainers: [],
   expenses: [],
+  extraPayments: [],
   currentBusinessId: null,
   userSettings: {
     username: '',
