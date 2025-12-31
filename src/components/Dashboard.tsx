@@ -117,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
           onCreateBusiness={onCreateBusiness}
         />
         <SidebarInset>
-          <div className="p-6 overflow-y-auto">
+          <div className="p-3 sm:p-4 md:p-6 overflow-y-auto">
             {renderPage()}
           </div>
         </SidebarInset>

@@ -107,21 +107,23 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage your account settings and preferences.
         </p>
       </div>
 
       <Tabs defaultValue="account" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="businesses">Businesses</TabsTrigger>
-          <TabsTrigger value="currency">Currency</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-4">
+            <TabsTrigger value="account" className="text-xs sm:text-sm">Account</TabsTrigger>
+            <TabsTrigger value="businesses" className="text-xs sm:text-sm">Businesses</TabsTrigger>
+            <TabsTrigger value="currency" className="text-xs sm:text-sm">Currency</TabsTrigger>
+            <TabsTrigger value="advanced" className="text-xs sm:text-sm">Advanced</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="account" className="space-y-4">
           {/* General Settings */}

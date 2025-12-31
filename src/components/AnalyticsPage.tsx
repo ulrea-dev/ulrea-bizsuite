@@ -82,25 +82,25 @@ export const AnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold dashboard-text-primary">Analytics</h1>
-        <p className="dashboard-text-secondary">Business insights for {currentBusiness.name}</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold dashboard-text-primary">Analytics</h1>
+        <p className="text-sm sm:text-base dashboard-text-secondary">Business insights for {currentBusiness.name}</p>
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Project Value</CardTitle>
             <DollarSign className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">
               {formatCurrency(totalProjectValue, currentBusiness.currency)}
             </div>
             <p className="text-xs dashboard-text-secondary">
-              Across {currentProjects.length} projects
+              {currentProjects.length} projects
             </p>
           </CardContent>
         </Card>
@@ -111,9 +111,9 @@ export const AnalyticsPage: React.FC = () => {
             <FolderOpen className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeProjects}</div>
+            <div className="text-lg sm:text-xl md:text-2xl font-bold">{activeProjects}</div>
             <p className="text-xs dashboard-text-secondary">
-              {completedProjects} completed
+              {completedProjects} done
             </p>
           </CardContent>
         </Card>
@@ -124,11 +124,11 @@ export const AnalyticsPage: React.FC = () => {
             <Users className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">
               {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
             </div>
             <p className="text-xs dashboard-text-secondary">
-              Across all projects
+              Allocated
             </p>
           </CardContent>
         </Card>
@@ -139,18 +139,18 @@ export const AnalyticsPage: React.FC = () => {
             <TrendingDown className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold truncate">
               {formatCurrency(totalOutstanding, currentBusiness.currency)}
             </div>
             <p className="text-xs dashboard-text-secondary">
-              Pending payments
+              Pending
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Project Status Distribution */}
         {projectStatusData.length > 0 && (
           <Card>

@@ -51,20 +51,20 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold dashboard-text-primary">Clients</h1>
-          <p className="dashboard-text-secondary">Manage your clients across all businesses</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold dashboard-text-primary">Clients</h1>
+          <p className="text-sm sm:text-base dashboard-text-secondary">Manage your clients</p>
         </div>
-        <Button onClick={handleCreateClient}>
+        <Button onClick={handleCreateClient} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Add Client
         </Button>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex gap-3 sm:gap-4 items-center">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 dashboard-text-secondary" />
           <Input
             placeholder="Search clients..."
