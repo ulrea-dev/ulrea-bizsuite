@@ -6,6 +6,8 @@ import { ExpensesPage } from './ExpensesPage';
 import { SalariesPage } from './SalariesPage';
 import { RetainersPage } from './RetainersPage';
 import { DollarSign, TrendingUp, Receipt, Users, Repeat } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle } from 'lucide-react';
 
 interface FinancialsPageProps {
   onNavigate?: (page: string, itemId?: string) => void;
@@ -17,12 +19,12 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Financials</h1>
         <p className="text-muted-foreground">
-          Complete financial management hub for revenue, payments, expenses, and payroll
+          Manage revenue, payments, expenses, and payroll
         </p>
       </div>
 
       <Tabs defaultValue="revenue" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
           <TabsTrigger value="revenue" className="gap-2">
             <TrendingUp className="h-4 w-4" />
             Revenue
@@ -37,11 +39,21 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
           </TabsTrigger>
           <TabsTrigger value="salaries" className="gap-2">
             <Users className="h-4 w-4" />
-            Salaries
+            Payroll
           </TabsTrigger>
-          <TabsTrigger value="retainers" className="gap-2">
+          <TabsTrigger value="retainers" className="gap-2 items-center">
             <Repeat className="h-4 w-4" />
             Retainers
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">Recurring subscription-based revenue from clients on monthly or annual contracts.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </TabsTrigger>
         </TabsList>
 

@@ -168,8 +168,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold dashboard-text-primary">Team Members</h1>
-          <p className="dashboard-text-secondary">Manage your team members across all businesses</p>
+          <h1 className="text-3xl font-bold dashboard-text-primary">Team</h1>
+          <p className="dashboard-text-secondary">Manage employees and contractors across your businesses</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowBulkPaymentModal(true)}>
@@ -178,7 +178,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
           </Button>
           <Button onClick={handleCreateMember}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Member
+            Add Team Member
           </Button>
         </div>
       </div>
@@ -209,16 +209,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
             <div className="p-4 dashboard-surface-elevated rounded-full mb-4">
               <Plus className="h-8 w-8 dashboard-text-secondary" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No Team Members Found</h3>
-            <p className="text-muted-foreground text-center mb-6">
+            <h3 className="text-lg font-medium mb-2">No Team Members Yet</h3>
+            <p className="text-muted-foreground text-center mb-2 max-w-md">
               {searchTerm 
                 ? 'No team members match your search'
-                : 'Add your first team member to get started'
+                : 'Add employees and contractors to assign them to projects and manage their payments.'
               }
             </p>
-            <Button onClick={handleCreateMember}>
+            <Button onClick={handleCreateMember} className="mt-4">
               <Plus className="h-4 w-4 mr-2" />
-              Add Member
+              Add First Team Member
             </Button>
           </CardContent>
         </Card>

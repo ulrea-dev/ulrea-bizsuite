@@ -22,9 +22,7 @@ import { SalarySettings } from '@/components/SalarySettings';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
 import { Plus } from 'lucide-react';
-import { TeamPage } from './TeamPage';
 import { PartnersPage } from './PartnersPage';
-import { ClientsPage } from './ClientsPage';
 import { BusinessManagement } from './BusinessManagement';
 
 export const SettingsPage: React.FC = () => {
@@ -51,7 +49,6 @@ export const SettingsPage: React.FC = () => {
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
     dispatch({ type: 'SET_THEME', payload: theme });
-    // Apply theme immediately
     document.documentElement.className = theme;
     toast({
       title: "Success",
@@ -71,7 +68,6 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleDeleteCustomCurrency = (currencyCode: string) => {
-    // Check if this currency is currently the default
     if (data.userSettings.defaultCurrency.code === currencyCode) {
       toast({
         title: "Error",
@@ -91,7 +87,6 @@ export const SettingsPage: React.FC = () => {
   const handleFontChange = (font: FontOption) => {
     setSelectedFont(font);
     dispatch({ type: 'SET_FONT', payload: font });
-    // Font will be applied automatically by useAppearance hook
     toast({
       title: "Success",
       description: `Font changed to ${font.name}.`,
@@ -101,7 +96,6 @@ export const SettingsPage: React.FC = () => {
   const handlePaletteChange = (palette: ColorPalette) => {
     setSelectedPalette(palette);
     dispatch({ type: 'SET_COLOR_PALETTE', payload: palette });
-    // Color palette will be applied automatically by useAppearance hook
     toast({
       title: "Success",
       description: `Color palette changed to ${palette.name}.`,
@@ -109,7 +103,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleCurrencyAdded = (currency: Currency) => {
-    // The dispatch is already handled in the modal, just show success
+    // The dispatch is already handled in the modal
   };
 
   return (
@@ -121,48 +115,45 @@ export const SettingsPage: React.FC = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="people">People</TabsTrigger>
+      <Tabs defaultValue="account" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="businesses">Businesses</TabsTrigger>
-          <TabsTrigger value="clients">Clients</TabsTrigger>
           <TabsTrigger value="currency">Currency</TabsTrigger>
-          <TabsTrigger value="salaries">Salaries</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-4">
+        <TabsContent value="account" className="space-y-4">
+          {/* General Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>General Settings</CardTitle>
+              <CardTitle>Profile</CardTitle>
               <CardDescription>
-                Configure your basic account settings.
+                Manage your account information.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Display Name</Label>
                 <div className="flex space-x-2">
                   <Input
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your username"
+                    placeholder="Enter your name"
                   />
                   <Button onClick={handleUsernameChange}>Save</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="appearance" className="space-y-4">
+          {/* Appearance Settings */}
           <Card>
             <CardHeader>
-              <CardTitle>Theme</CardTitle>
+              <CardTitle>Appearance</CardTitle>
               <CardDescription>
-                Choose your preferred color theme.
+                Customize how BizSuite looks.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -185,30 +176,23 @@ export const SettingsPage: React.FC = () => {
             selectedPalette={selectedPalette}
             onPaletteChange={handlePaletteChange}
           />
-        </TabsContent>
 
-        <TabsContent value="people" className="space-y-4">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Team Members</h2>
-              <p className="text-muted-foreground">Manage your team members across all businesses</p>
-            </div>
-            <TeamPage />
-            
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold mb-2">Partners</h2>
-              <p className="text-muted-foreground">Manage your sales and managing partners</p>
-            </div>
-            <PartnersPage />
-          </div>
+          {/* Partners Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Partners</CardTitle>
+              <CardDescription>
+                Manage your sales and managing partners across businesses.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PartnersPage />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="businesses" className="space-y-4">
           <BusinessManagement onCreateBusiness={() => {}} />
-        </TabsContent>
-
-        <TabsContent value="clients" className="space-y-4">
-          <ClientsPage />
         </TabsContent>
 
         <TabsContent value="currency" className="space-y-4">
@@ -276,7 +260,7 @@ export const SettingsPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="salaries" className="space-y-4">
+        <TabsContent value="advanced" className="space-y-4">
           <SalarySettings />
         </TabsContent>
       </Tabs>

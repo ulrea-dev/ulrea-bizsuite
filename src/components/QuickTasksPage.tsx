@@ -111,17 +111,17 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Quick Tasks</h1>
-          <p className="text-muted-foreground">Manage one-time tasks and payments for {currentBusiness.name}</p>
+          <h1 className="text-3xl font-bold">Freelance Tasks</h1>
+          <p className="text-muted-foreground">Manage one-time work and payments for {currentBusiness.name}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={() => onNavigateToPage('salaries')} variant="outline">
             <DollarSign className="h-4 w-4 mr-2" />
-            Go to Salaries to Pay
+            Go to Payroll
           </Button>
           <Button onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
-            New Quick Task
+            Add Freelance Task
           </Button>
         </div>
       </div>
@@ -206,11 +206,13 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
           {businessTasks.length === 0 ? (
             <div className="text-center py-8">
               <ListChecks className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">No quick tasks yet</p>
-              <p className="text-muted-foreground mb-4">Create your first quick task to get started.</p>
+              <p className="text-lg font-medium">No freelance tasks yet</p>
+              <p className="text-muted-foreground mb-4">
+                Freelance tasks are one-time paid work not tied to a regular salary.
+              </p>
               <Button onClick={() => { setEditingTask(null); setIsTaskModalOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create First Task
+                Add First Task
               </Button>
             </div>
           ) : (

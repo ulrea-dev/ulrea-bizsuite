@@ -81,16 +81,16 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
             <div className="p-4 dashboard-surface-elevated rounded-full mb-4">
               <Plus className="h-8 w-8 dashboard-text-secondary" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No Clients Found</h3>
-            <p className="text-muted-foreground text-center mb-6">
+            <h3 className="text-lg font-medium mb-2">No Clients Yet</h3>
+            <p className="text-muted-foreground text-center mb-2 max-w-md">
               {searchTerm 
                 ? 'No clients match your search'
-                : 'Add your first client to get started'
+                : 'Add clients to track projects and revenue associated with them.'
               }
             </p>
-            <Button onClick={handleCreateClient}>
+            <Button onClick={handleCreateClient} className="mt-4">
               <Plus className="h-4 w-4 mr-2" />
-              Add Client
+              Add First Client
             </Button>
           </CardContent>
         </Card>

@@ -242,9 +242,9 @@ export const SalariesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payroll Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Payroll</h1>
           <p className="text-muted-foreground">
-            Complete payroll system for {currentBusiness.name}
+            Manage salaries and payments for {currentBusiness.name}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             Default Currency: {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})
@@ -253,33 +253,33 @@ export const SalariesPage: React.FC = () => {
         <div className="flex gap-2">
           <Button onClick={handleCreateSalary}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Employee
+            Add Salary Record
           </Button>
           <Button onClick={() => setShowTaskPaymentModal(true)} variant="outline">
             <DollarSign className="mr-2 h-4 w-4" />
-            Quick Task Payment
+            Freelance Payment
           </Button>
         </div>
       </div>
 
       {/* Tabs for different views */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'payroll' | 'management' | 'pending' | 'payments')}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="payroll" className="gap-2">
             <CalendarIcon className="h-4 w-4" />
-            Monthly Payroll
+            Monthly View
           </TabsTrigger>
           <TabsTrigger value="management" className="gap-2">
             <FileText className="h-4 w-4" />
-            Salary Management
+            Salary Records
           </TabsTrigger>
           <TabsTrigger value="pending" className="gap-2">
             <TrendingUp className="h-4 w-4" />
-            Pending Payments
+            Pending
           </TabsTrigger>
           <TabsTrigger value="payments" className="gap-2">
             <DollarSign className="h-4 w-4" />
-            All Payments
+            History
           </TabsTrigger>
         </TabsList>
 

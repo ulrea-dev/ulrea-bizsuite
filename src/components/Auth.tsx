@@ -99,7 +99,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               <div>
                 <Input
                   type="text"
-                  placeholder="Enter your name or business name"
+                  placeholder="Enter your name to get started"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="h-12 text-center"
