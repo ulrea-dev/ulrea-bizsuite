@@ -15,47 +15,49 @@ interface FinancialsPageProps {
 
 export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Financials</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Financials</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage revenue, payments, expenses, and payroll
         </p>
       </div>
 
       <Tabs defaultValue="revenue" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
-          <TabsTrigger value="revenue" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Revenue
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="gap-2">
-            <DollarSign className="h-4 w-4" />
-            Payments
-          </TabsTrigger>
-          <TabsTrigger value="expenses" className="gap-2">
-            <Receipt className="h-4 w-4" />
-            Expenses
-          </TabsTrigger>
-          <TabsTrigger value="salaries" className="gap-2">
-            <Users className="h-4 w-4" />
-            Payroll
-          </TabsTrigger>
-          <TabsTrigger value="retainers" className="gap-2 items-center">
-            <Repeat className="h-4 w-4" />
-            Retainers
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="max-w-xs">Recurring subscription-based revenue from clients on monthly or annual contracts.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-5">
+            <TabsTrigger value="revenue" className="gap-1.5 text-xs sm:text-sm">
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Revenue</span>
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="gap-1.5 text-xs sm:text-sm">
+              <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Payments</span>
+            </TabsTrigger>
+            <TabsTrigger value="expenses" className="gap-1.5 text-xs sm:text-sm">
+              <Receipt className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Expenses</span>
+            </TabsTrigger>
+            <TabsTrigger value="salaries" className="gap-1.5 text-xs sm:text-sm">
+              <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Payroll</span>
+            </TabsTrigger>
+            <TabsTrigger value="retainers" className="gap-1.5 text-xs sm:text-sm items-center">
+              <Repeat className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Retainers</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground hidden sm:inline" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">Recurring subscription-based revenue from clients on monthly or annual contracts.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="revenue" className="space-y-6">
           <RevenuePage />

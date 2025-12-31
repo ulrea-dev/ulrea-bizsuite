@@ -93,33 +93,33 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Projects & Tasks</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Projects & Tasks</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage your projects and quick tasks for {currentBusiness.name}
         </p>
       </div>
 
-      <Tabs defaultValue="projects" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="quick-tasks">Quick Tasks</TabsTrigger>
+      <Tabs defaultValue="projects" className="space-y-4 sm:space-y-6">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="projects" className="flex-1 sm:flex-initial text-xs sm:text-sm">Projects</TabsTrigger>
+          <TabsTrigger value="quick-tasks" className="flex-1 sm:flex-initial text-xs sm:text-sm">Quick Tasks</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="projects" className="space-y-6">
-          <div className="flex justify-between items-center">
+        <TabsContent value="projects" className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h2 className="text-2xl font-bold">Projects</h2>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Projects</h2>
             </div>
-            <Button onClick={handleCreateProject}>
+            <Button onClick={handleCreateProject} size="sm" className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
           </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 dashboard-text-secondary" />
           <Input
             placeholder="Search projects..."
@@ -130,7 +130,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
         </div>
         
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -163,7 +163,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {filteredProjects.map(project => (
             <div key={project.id} className="relative group">
               <ProjectCard 

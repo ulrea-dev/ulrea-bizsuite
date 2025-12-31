@@ -45,22 +45,22 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold dashboard-text-primary">Dashboard</h1>
-        <p className="dashboard-text-secondary">Welcome to {currentBusiness.name}</p>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold dashboard-text-primary">Dashboard</h1>
+        <p className="text-sm sm:text-base dashboard-text-secondary">Welcome to {currentBusiness.name}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
             <FolderOpen className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeProjects.length}</div>
-            <p className="text-xs dashboard-text-secondary">
-              {formatCurrency(totalProjectValue, currentBusiness.currency)} total value
+            <div className="text-xl sm:text-2xl font-bold">{activeProjects.length}</div>
+            <p className="text-xs dashboard-text-secondary truncate">
+              {formatCurrency(totalProjectValue, currentBusiness.currency)} total
             </p>
           </CardContent>
         </Card>
@@ -71,8 +71,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <Users className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.teamMembers?.length || 0}</div>
-            <p className="text-xs dashboard-text-secondary">Active members</p>
+            <div className="text-xl sm:text-2xl font-bold">{data.teamMembers?.length || 0}</div>
+            <p className="text-xs dashboard-text-secondary">Active</p>
           </CardContent>
         </Card>
 
@@ -82,8 +82,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <Handshake className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.partners?.length || 0}</div>
-            <p className="text-xs dashboard-text-secondary">Business partners</p>
+            <div className="text-xl sm:text-2xl font-bold">{data.partners?.length || 0}</div>
+            <p className="text-xs dashboard-text-secondary">Partners</p>
           </CardContent>
         </Card>
 
@@ -93,10 +93,10 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <DollarSign className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold truncate">
               {formatCurrency(totalTeamAllocated, currentBusiness.currency)}
             </div>
-            <p className="text-xs dashboard-text-secondary">Assigned across projects</p>
+            <p className="text-xs dashboard-text-secondary">Assigned</p>
           </CardContent>
         </Card>
       </div>

@@ -63,30 +63,30 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const isReturningUser = data.userSettings.username && data.businesses.length > 0;
 
   return (
-    <div className="min-h-screen dashboard-background flex items-center justify-center p-4 theme-transition">
-      <div className="absolute top-6 right-6">
+    <div className="min-h-screen dashboard-background flex items-center justify-center p-3 sm:p-4 theme-transition">
+      <div className="absolute top-3 right-3 sm:top-6 sm:right-6">
         <Button
           variant="outline"
           size="icon"
           onClick={toggleTheme}
-          className="hover-surface"
+          className="hover-surface h-9 w-9 sm:h-10 sm:w-10"
         >
-          {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          {theme === 'light' ? <Moon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Sun className="h-4 w-4 sm:h-5 sm:w-5" />}
         </Button>
       </div>
       
-      <div className="w-full max-w-md space-y-4">
+      <div className="w-full max-w-md space-y-3 sm:space-y-4">
         <Card className="dashboard-surface border-dashboard-border shadow-lg card-hover">
-          <CardHeader className="text-center pb-8">
-            <div className="flex justify-center mb-4">
-              <div className="p-3 dashboard-surface-elevated rounded-xl border dashboard-border">
-                <Building2 className="h-8 w-8 dashboard-text-primary" />
+          <CardHeader className="text-center pb-4 sm:pb-8">
+            <div className="flex justify-center mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 dashboard-surface-elevated rounded-xl border dashboard-border">
+                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 dashboard-text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold dashboard-text-primary">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold dashboard-text-primary">
               {isReturningUser ? 'Welcome Back' : 'Welcome to BizSuite'}
             </CardTitle>
-            <CardDescription className="dashboard-text-secondary">
+            <CardDescription className="text-sm sm:text-base dashboard-text-secondary">
               {isReturningUser 
                 ? `Continue as ${data.userSettings.username}` 
                 : 'Your multi-business management platform'
@@ -95,21 +95,21 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </CardHeader>
           
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
                 <Input
                   type="text"
                   placeholder="Enter your name to get started"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-12 text-center"
+                  className="h-10 sm:h-12 text-center text-sm sm:text-base"
                   required
                 />
               </div>
               
               <Button 
                 type="submit" 
-                className="w-full h-12 font-medium"
+                className="w-full h-10 sm:h-12 font-medium text-sm sm:text-base"
                 disabled={!username.trim()}
               >
                 {isReturningUser ? 'Continue' : 'Get Started'}
@@ -129,22 +129,22 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
         {/* Demo & Import Options */}
         <Card className="dashboard-surface border-dashboard-border shadow-lg card-hover">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-lg font-semibold dashboard-text-primary flex items-center justify-center gap-2">
-              <Upload className="h-5 w-5" />
+          <CardHeader className="text-center pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-semibold dashboard-text-primary flex items-center justify-center gap-2">
+              <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
               Quick Start Options
             </CardTitle>
-            <CardDescription className="dashboard-text-secondary">
+            <CardDescription className="text-xs sm:text-sm dashboard-text-secondary">
               Load demo data or restore your backup
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             {/* Load Demo Button */}
             <Button 
               onClick={handleLoadDemo} 
               variant="default" 
-              className="w-full flex items-center gap-2"
+              className="w-full flex items-center gap-2 h-10 sm:h-11 text-sm sm:text-base"
             >
               <Building2 className="h-4 w-4" />
               Load Demo Data
