@@ -48,7 +48,18 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
     data.salaryRecords.filter(record => record.teamMemberId === salaryRecord.teamMemberId && record.businessId === currentBusiness?.id) : [];
   
   const primaryRecord = memberSalaryRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
-  const secondaryRecord = memberSalaryRecords.find(r => (r as any).salaryType === 'secondary');
+  const secondaryRecords = memberSalaryRecords.filter(r => (r as any).salaryType === 'secondary');
+
+  // Helper function to convert to monthly equivalent
+  const getMonthlyEquivalent = (amount: number, frequency: string): number => {
+    switch (frequency) {
+      case 'weekly': return amount * 4.33;
+      case 'bi-weekly': return amount * 2.17;
+      case 'quarterly': return amount / 3;
+      case 'annually': return amount / 12;
+      default: return amount;
+    }
+  };
 
   // Calculate combined monthly equivalent salary
   const calculateCombinedSalary = () => {
@@ -56,51 +67,18 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
 
     if (primaryRecord) {
       const primaryCurrency = allCurrencies.find(c => c.code === primaryRecord.currency) || data.userSettings.defaultCurrency;
-      let monthlyAmount = primaryRecord.amount;
-      
-      // Convert to monthly equivalent
-      switch (primaryRecord.frequency) {
-        case 'weekly':
-          monthlyAmount = primaryRecord.amount * 4.33;
-          break;
-        case 'bi-weekly':
-          monthlyAmount = primaryRecord.amount * 2.17;
-          break;
-        case 'quarterly':
-          monthlyAmount = primaryRecord.amount / 3;
-          break;
-        case 'annually':
-          monthlyAmount = primaryRecord.amount / 12;
-          break;
-      }
-
+      const monthlyAmount = getMonthlyEquivalent(primaryRecord.amount, primaryRecord.frequency);
       const converted = convertCurrency(monthlyAmount, primaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
       total += converted;
     }
 
-    if (secondaryRecord) {
+    // Process ALL secondary records
+    secondaryRecords.forEach(secondaryRecord => {
       const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
-      let monthlyAmount = secondaryRecord.amount;
-      
-      // Convert to monthly equivalent
-      switch (secondaryRecord.frequency) {
-        case 'weekly':
-          monthlyAmount = secondaryRecord.amount * 4.33;
-          break;
-        case 'bi-weekly':
-          monthlyAmount = secondaryRecord.amount * 2.17;
-          break;
-        case 'quarterly':
-          monthlyAmount = secondaryRecord.amount / 3;
-          break;
-        case 'annually':
-          monthlyAmount = secondaryRecord.amount / 12;
-          break;
-      }
-
+      const monthlyAmount = getMonthlyEquivalent(secondaryRecord.amount, secondaryRecord.frequency);
       const converted = convertCurrency(monthlyAmount, secondaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
       total += converted;
-    }
+    });
 
     return total;
   };
@@ -136,23 +114,46 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       return;
     }
 
-    const payment: SalaryPayment = {
-      id: generateId(),
-      salaryRecordId: salaryRecord.id,
-      amount: parseFloat(amount),
-      paymentDate: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-      period: `${paymentDate?.toLocaleDateString()} Payment`,
-      method: paymentMethod || undefined,
-      description: notes || undefined,
-      status: 'paid',
-      createdAt: new Date().toISOString(),
-    };
+    // Collect all salary record IDs for this team member
+    const allSalaryRecordIds: string[] = [];
+    if (primaryRecord) allSalaryRecordIds.push(primaryRecord.id);
+    secondaryRecords.forEach(sr => allSalaryRecordIds.push(sr.id));
 
-    dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+    // Calculate proportional amounts for each salary record
+    const totalAmount = parseFloat(amount);
+    const combinedTotal = calculateCombinedSalary();
+
+    // Create a payment for each salary record proportionally
+    allSalaryRecordIds.forEach(recordId => {
+      const record = memberSalaryRecords.find(r => r.id === recordId);
+      if (!record) return;
+
+      const recordCurrency = allCurrencies.find(c => c.code === record.currency) || data.userSettings.defaultCurrency;
+      const monthlyAmount = getMonthlyEquivalent(record.amount, record.frequency);
+      const convertedAmount = convertCurrency(monthlyAmount, recordCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+      
+      // Calculate proportional payment amount
+      const proportion = combinedTotal > 0 ? convertedAmount / combinedTotal : 1 / allSalaryRecordIds.length;
+      const paymentAmount = totalAmount * proportion;
+
+      const payment: SalaryPayment = {
+        id: generateId(),
+        salaryRecordId: recordId,
+        amount: paymentAmount,
+        paymentDate: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        period: `${paymentDate?.toLocaleDateString()} Payment`,
+        method: paymentMethod || undefined,
+        description: notes || undefined,
+        status: 'paid',
+        createdAt: new Date().toISOString(),
+      };
+
+      dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+    });
 
     toast({
       title: "Success",
-      description: "Salary payment recorded successfully",
+      description: `Recorded ${allSalaryRecordIds.length} payment(s) successfully`,
     });
 
     onClose();
@@ -176,15 +177,16 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       });
     }
     
-    if (secondaryRecord) {
+    // Include ALL secondary records
+    secondaryRecords.forEach((secondaryRecord, index) => {
       const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
       breakdown.push({
-        type: 'Secondary',
+        type: `Secondary ${secondaryRecords.length > 1 ? `#${index + 1}` : ''}`,
         position: secondaryRecord.position,
         amount: formatCurrency(secondaryRecord.amount, secondaryCurrency),  
         frequency: secondaryRecord.frequency,
       });
-    }
+    });
     
     return breakdown;
   };
