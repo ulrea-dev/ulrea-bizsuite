@@ -80,8 +80,8 @@ export const ExpensesPage: React.FC = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">Expenses</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Track and manage all business expenses
         </p>
       </div>
@@ -152,7 +152,7 @@ export const ExpensesPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(periodTotal, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -169,7 +169,7 @@ export const ExpensesPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-lg md:text-xl font-bold text-green-600">
                   {formatCurrency(periodPaid, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -186,7 +186,7 @@ export const ExpensesPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-lg md:text-xl font-bold text-orange-600">
                   {formatCurrency(periodPending, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -205,7 +205,7 @@ export const ExpensesPage: React.FC = () => {
               <CardContent>
                 {topCategories.length > 0 ? (
                   <>
-                    <div className="text-xl font-bold capitalize">
+                    <div className="text-base md:text-lg font-bold capitalize">
                       {topCategories[0][0]}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">

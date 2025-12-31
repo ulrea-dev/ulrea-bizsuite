@@ -93,8 +93,8 @@ export const RevenuePage: React.FC = () => {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Revenue</h1>
-          <p className="text-muted-foreground">Track income from all sources</p>
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Revenue</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Track income from all sources</p>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ export const RevenuePage: React.FC = () => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(totalRevenue, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -160,7 +160,7 @@ export const RevenuePage: React.FC = () => {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(projectRevenue, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -175,7 +175,7 @@ export const RevenuePage: React.FC = () => {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(taskRevenue, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -190,7 +190,7 @@ export const RevenuePage: React.FC = () => {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(retainerRevenue, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">

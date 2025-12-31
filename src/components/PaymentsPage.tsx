@@ -80,8 +80,8 @@ export const PaymentsPage: React.FC = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">Payments</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">
           Comprehensive payment management and analytics
         </p>
       </div>
@@ -153,7 +153,7 @@ export const PaymentsPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-lg md:text-xl font-bold">
                   {formatCurrency(periodTotal, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -170,7 +170,7 @@ export const PaymentsPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-lg md:text-xl font-bold text-green-600">
                   {formatCurrency(periodCompleted, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -187,7 +187,7 @@ export const PaymentsPage: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-lg md:text-xl font-bold text-orange-600">
                   {formatCurrency(periodPending, currentBusiness.currency)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
