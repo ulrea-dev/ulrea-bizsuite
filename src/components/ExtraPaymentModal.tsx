@@ -81,9 +81,14 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
 
   if (!currentBusiness) return null;
 
-  // Get team members for this business
+  // Get team members for this business - check both businessIds array AND salary records
+  const businessSalaryRecords = (data.salaryRecords || []).filter(
+    record => record.businessId === currentBusiness.id
+  );
+  const teamMemberIdsFromSalary = new Set(businessSalaryRecords.map(r => r.teamMemberId));
+  
   const businessTeamMembers = data.teamMembers.filter(member =>
-    member.businessIds?.includes(currentBusiness.id)
+    member.businessIds?.includes(currentBusiness.id) || teamMemberIdsFromSalary.has(member.id)
   );
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
