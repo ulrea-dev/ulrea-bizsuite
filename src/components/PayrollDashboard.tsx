@@ -22,7 +22,7 @@ interface PayrollEmployee {
   frequency: string;
   status: 'pending' | 'paid' | 'overdue';
   lastPayment?: string;
-  salaryRecord: SalaryRecord;
+  salaryRecordIds: string[]; // All salary record IDs for this employee
 }
 
 export const PayrollDashboard: React.FC = () => {
@@ -76,69 +76,42 @@ export const PayrollDashboard: React.FC = () => {
       // Get all salary records for this team member
       const memberRecords = businessSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
       const primaryRecord = memberRecords.find(r => r.salaryType === 'primary' || !r.salaryType);
-      const secondaryRecord = memberRecords.find(r => r.salaryType === 'secondary');
+      const secondaryRecords = memberRecords.filter(r => r.salaryType === 'secondary');
 
       // Calculate total monthly amount in default currency
       let totalAmount = 0;
       let currency = data.userSettings.defaultCurrency.code;
 
+      // Helper function to convert to monthly equivalent
+      const getMonthlyEquivalent = (amount: number, frequency: string): number => {
+        switch (frequency) {
+          case 'weekly': return amount * 4.33;
+          case 'bi-weekly': return amount * 2.17;
+          case 'quarterly': return amount / 3;
+          case 'annually': return amount / 12;
+          default: return amount;
+        }
+      };
+
+      // Collect all salary record IDs
+      const salaryRecordIds: string[] = [];
+
       if (primaryRecord) {
+        salaryRecordIds.push(primaryRecord.id);
         const primaryCurrency = allCurrencies.find(c => c.code === primaryRecord.currency) || data.userSettings.defaultCurrency;
-        let monthlyAmount = primaryRecord.amount;
-        
-        // Convert to monthly equivalent
-        switch (primaryRecord.frequency) {
-          case 'weekly':
-            monthlyAmount = primaryRecord.amount * 4.33;
-            break;
-          case 'bi-weekly':
-            monthlyAmount = primaryRecord.amount * 2.17;
-            break;
-          case 'quarterly':
-            monthlyAmount = primaryRecord.amount / 3;
-            break;
-          case 'annually':
-            monthlyAmount = primaryRecord.amount / 12;
-            break;
-        }
-
-        const converted = convertCurrency(
-          monthlyAmount,
-          primaryCurrency,
-          data.userSettings.defaultCurrency,
-          data.exchangeRates || []
-        );
+        const monthlyAmount = getMonthlyEquivalent(primaryRecord.amount, primaryRecord.frequency);
+        const converted = convertCurrency(monthlyAmount, primaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
         totalAmount += converted;
       }
 
-      if (secondaryRecord) {
+      // Process ALL secondary records
+      secondaryRecords.forEach(secondaryRecord => {
+        salaryRecordIds.push(secondaryRecord.id);
         const secondaryCurrency = allCurrencies.find(c => c.code === secondaryRecord.currency) || data.userSettings.defaultCurrency;
-        let monthlyAmount = secondaryRecord.amount;
-        
-        // Convert to monthly equivalent
-        switch (secondaryRecord.frequency) {
-          case 'weekly':
-            monthlyAmount = secondaryRecord.amount * 4.33;
-            break;
-          case 'bi-weekly':
-            monthlyAmount = secondaryRecord.amount * 2.17;
-            break;
-          case 'quarterly':
-            monthlyAmount = secondaryRecord.amount / 3;
-            break;
-          case 'annually':
-            monthlyAmount = secondaryRecord.amount / 12;
-            break;
-        }
-
-        const converted = convertCurrency(
-          monthlyAmount,
-          secondaryCurrency,
-          data.userSettings.defaultCurrency,
-          data.exchangeRates || []
-        );
+        const monthlyAmount = getMonthlyEquivalent(secondaryRecord.amount, secondaryRecord.frequency);
+        const converted = convertCurrency(monthlyAmount, secondaryCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
         totalAmount += converted;
-      }
+      });
 
       // Check payment status for current period
       const periodStart = new Date(selectedYear, selectedMonth - 1, 1);
@@ -167,12 +140,12 @@ export const PayrollDashboard: React.FC = () => {
         status = isOverdue ? 'overdue' : 'pending';
       }
 
-      const positions = [];
+      const positions: string[] = [];
       if (primaryRecord) positions.push(primaryRecord.position);
-      if (secondaryRecord) positions.push(secondaryRecord.position);
+      secondaryRecords.forEach(sr => positions.push(sr.position));
 
       employees.push({
-        id: primaryRecord?.id || secondaryRecord?.id || record.id,
+        id: primaryRecord?.id || secondaryRecords[0]?.id || record.id,
         teamMemberId: record.teamMemberId,
         employeeName: getTeamMemberName(record.teamMemberId),
         position: positions.join(' + '),
@@ -181,7 +154,7 @@ export const PayrollDashboard: React.FC = () => {
         frequency: 'monthly',
         status,
         lastPayment,
-        salaryRecord: primaryRecord || secondaryRecord || record,
+        salaryRecordIds,
       });
     });
 
@@ -215,26 +188,47 @@ export const PayrollDashboard: React.FC = () => {
     setProcessingPayroll(true);
     try {
       const pendingEmployees = payrollEmployees.filter(emp => emp.status === 'pending');
+      let totalPayments = 0;
       
       for (const employee of pendingEmployees) {
-        const payment: SalaryPayment = {
-          id: generateId(),
-          salaryRecordId: employee.salaryRecord.id,
-          amount: employee.amount,
-          paymentDate: new Date().toISOString().split('T')[0],
-          period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
-          method: 'Bulk Payment',
-          description: `Payroll payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
-          status: 'paid',
-          createdAt: new Date().toISOString(),
-        };
-        
-        dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+        // Create a payment for EACH salary record
+        for (const salaryRecordId of employee.salaryRecordIds) {
+          const salaryRecord = businessSalaryRecords.find(r => r.id === salaryRecordId);
+          if (!salaryRecord) continue;
+
+          const recordCurrency = allCurrencies.find(c => c.code === salaryRecord.currency) || data.userSettings.defaultCurrency;
+          const getMonthlyEquivalent = (amount: number, frequency: string): number => {
+            switch (frequency) {
+              case 'weekly': return amount * 4.33;
+              case 'bi-weekly': return amount * 2.17;
+              case 'quarterly': return amount / 3;
+              case 'annually': return amount / 12;
+              default: return amount;
+            }
+          };
+          const monthlyAmount = getMonthlyEquivalent(salaryRecord.amount, salaryRecord.frequency);
+          const convertedAmount = convertCurrency(monthlyAmount, recordCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+
+          const payment: SalaryPayment = {
+            id: generateId(),
+            salaryRecordId: salaryRecordId,
+            amount: convertedAmount,
+            paymentDate: new Date().toISOString().split('T')[0],
+            period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+            method: 'Bulk Payment',
+            description: `Payroll payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+            status: 'paid',
+            createdAt: new Date().toISOString(),
+          };
+          
+          dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+          totalPayments++;
+        }
       }
 
       toast({
         title: "Success",
-        description: `Marked ${pendingEmployees.length} employees as paid for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+        description: `Created ${totalPayments} payment records for ${pendingEmployees.length} employees`,
       });
     } catch (error) {
       toast({
@@ -249,19 +243,38 @@ export const PayrollDashboard: React.FC = () => {
 
   // Handle individual payment marking
   const handleMarkAsPaid = (employee: PayrollEmployee) => {
-    const payment: SalaryPayment = {
-      id: generateId(),
-      salaryRecordId: employee.salaryRecord.id,
-      amount: employee.amount,
-      paymentDate: new Date().toISOString().split('T')[0],
-      period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
-      method: 'Manual Payment',
-      description: `Individual payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
-      status: 'paid',
-      createdAt: new Date().toISOString(),
-    };
-    
-    dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+    // Create a payment for EACH salary record
+    for (const salaryRecordId of employee.salaryRecordIds) {
+      const salaryRecord = businessSalaryRecords.find(r => r.id === salaryRecordId);
+      if (!salaryRecord) continue;
+
+      const recordCurrency = allCurrencies.find(c => c.code === salaryRecord.currency) || data.userSettings.defaultCurrency;
+      const getMonthlyEquivalent = (amount: number, frequency: string): number => {
+        switch (frequency) {
+          case 'weekly': return amount * 4.33;
+          case 'bi-weekly': return amount * 2.17;
+          case 'quarterly': return amount / 3;
+          case 'annually': return amount / 12;
+          default: return amount;
+        }
+      };
+      const monthlyAmount = getMonthlyEquivalent(salaryRecord.amount, salaryRecord.frequency);
+      const convertedAmount = convertCurrency(monthlyAmount, recordCurrency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+
+      const payment: SalaryPayment = {
+        id: generateId(),
+        salaryRecordId: salaryRecordId,
+        amount: convertedAmount,
+        paymentDate: new Date().toISOString().split('T')[0],
+        period: `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+        method: 'Manual Payment',
+        description: `Individual payment for ${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`,
+        status: 'paid',
+        createdAt: new Date().toISOString(),
+      };
+      
+      dispatch({ type: 'ADD_SALARY_PAYMENT', payload: payment });
+    }
 
     toast({
       title: "Success",
