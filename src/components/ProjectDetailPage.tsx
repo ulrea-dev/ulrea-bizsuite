@@ -60,12 +60,24 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
     : project.totalValue;
 
-  // Only show allocations if project has actual allocations created
-  const totalTeamAllocated = project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const totalPartnerAllocated = project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
-  const companyAllocated = project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  // Include BOTH new phase-based allocations AND legacy allocations for consistency with TeamPage
+  const phaseTeamAllocated = project.allocationTeamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const legacyTeamAllocated = project.teamAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const totalTeamAllocated = phaseTeamAllocated + legacyTeamAllocated;
+  
+  const phasePartnerAllocated = project.allocationPartnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const legacyPartnerAllocated = project.partnerAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const totalPartnerAllocated = phasePartnerAllocated + legacyPartnerAllocated;
+  
+  const phaseCompanyAllocated = project.allocationCompanyAllocations?.reduce((sum, alloc) => sum + alloc.totalAllocated, 0) || 0;
+  const legacyCompanyAllocated = project.companyAllocation?.totalAllocated || 0;
+  const companyAllocated = phaseCompanyAllocated + legacyCompanyAllocated;
   
   const totalAllocated = totalTeamAllocated + totalPartnerAllocated + companyAllocated;
+  
+  // Check if project has legacy allocations that need to be displayed
+  const hasLegacyTeamAllocations = (project.teamAllocations?.length || 0) > 0;
+  const hasLegacyPartnerAllocations = (project.partnerAllocations?.length || 0) > 0;
   const clientPaymentsReceived = project.clientPayments || 0;
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   
@@ -495,7 +507,111 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                   </Card>
                 );
               })}
+              
+              {/* Also show legacy allocations if they exist alongside phase allocations */}
+              {hasLegacyTeamAllocations && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Legacy Team Allocations</CardTitle>
+                    <CardDescription>
+                      Team allocations from before the phase-based system - these are also counted in team member outstanding
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {project.teamAllocations?.map((teamAlloc) => {
+                        const member = teamMembers.find(m => m.id === teamAlloc.memberId);
+                        const memberOutstanding = teamAlloc.totalAllocated - teamAlloc.paidAmount;
+
+                        if (!member) return null;
+
+                        return (
+                          <div key={teamAlloc.memberId} className="flex items-center justify-between p-4 border rounded-lg dashboard-surface">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2 dashboard-surface rounded-lg">
+                                <Users className="h-4 w-4 dashboard-text-primary" />
+                              </div>
+                              <div>
+                                <div className="font-semibold dashboard-text-primary">{member.name}</div>
+                                <div className="text-sm dashboard-text-secondary">
+                                  Allocated: {formatCurrency(teamAlloc.totalAllocated, currentBusiness.currency)} • 
+                                  Paid: {formatCurrency(teamAlloc.paidAmount, currentBusiness.currency)} • 
+                                  <span className={memberOutstanding > 0 ? 'text-orange-600 font-medium' : ''}>
+                                    Outstanding: {formatCurrency(memberOutstanding, currentBusiness.currency)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {memberOutstanding > 0 && (
+                                <Badge variant="outline" className="text-orange-600 border-orange-600">
+                                  Needs Payment
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
+          ) : hasLegacyTeamAllocations ? (
+            // Show legacy team allocations
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Legacy Team Allocations</CardTitle>
+                <CardDescription>
+                  Team allocations from before the phase-based system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {project.teamAllocations?.map((teamAlloc) => {
+                    const member = teamMembers.find(m => m.id === teamAlloc.memberId);
+                    const memberPayments = payments.filter(p => 
+                      p.recipientType === 'team' && 
+                      p.memberId === teamAlloc.memberId &&
+                      !p.allocationId
+                    );
+                    const memberPaid = memberPayments
+                      .filter(p => p.status === 'completed')
+                      .reduce((sum, p) => sum + p.amount, 0);
+                    const memberOutstanding = teamAlloc.totalAllocated - teamAlloc.paidAmount;
+
+                    if (!member) return null;
+
+                    return (
+                      <div key={teamAlloc.memberId} className="flex items-center justify-between p-4 border rounded-lg dashboard-surface">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 dashboard-surface rounded-lg">
+                            <Users className="h-4 w-4 dashboard-text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-semibold dashboard-text-primary">{member.name}</div>
+                            <div className="text-sm dashboard-text-secondary">
+                              Allocated: {formatCurrency(teamAlloc.totalAllocated, currentBusiness.currency)} • 
+                              Paid: {formatCurrency(teamAlloc.paidAmount, currentBusiness.currency)} • 
+                              <span className={memberOutstanding > 0 ? 'text-orange-600 font-medium' : ''}>
+                                Outstanding: {formatCurrency(memberOutstanding, currentBusiness.currency)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {memberOutstanding > 0 && (
+                            <Badge variant="outline" className="text-orange-600 border-orange-600">
+                              Needs Payment
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
