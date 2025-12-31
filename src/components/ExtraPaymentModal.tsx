@@ -83,7 +83,7 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
 
   // Get team members for this business
   const businessTeamMembers = data.teamMembers.filter(member =>
-    member.businessIds.includes(currentBusiness.id)
+    member.businessIds?.includes(currentBusiness.id)
   );
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
