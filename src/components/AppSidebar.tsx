@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download } from 'lucide-react';
+import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -30,7 +30,10 @@ interface AppSidebarProps {
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
   { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'team', label: 'Team', icon: Users },
+  { id: 'clients', label: 'Clients', icon: UserCheck },
   { id: 'financials', label: 'Financials', icon: DollarSign },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -59,13 +62,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       URL.revokeObjectURL(url);
       
       toast({
-        title: "Backup Downloaded",
-        description: "Your data has been successfully backed up and downloaded.",
+        title: "Data Exported",
+        description: "Your data has been successfully exported and downloaded.",
       });
     } catch (error) {
       toast({
-        title: "Backup Failed",
-        description: "There was an error creating your backup. Please try again.",
+        title: "Export Failed",
+        description: "There was an error exporting your data. Please try again.",
         variant: "destructive",
       });
     }
@@ -128,9 +131,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleBackupDownload} tooltip="Download Backup">
+            <SidebarMenuButton onClick={handleBackupDownload} tooltip="Export Data">
               <Download className="h-4 w-4" />
-              {sidebarOpen && <span>Backup</span>}
+              {sidebarOpen && <span>Export Data</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -140,9 +143,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={onLogout} tooltip="Sign Out">
+            <SidebarMenuButton onClick={onLogout} tooltip="Log Out">
               <LogOut className="h-4 w-4" />
-              {sidebarOpen && <span>Sign Out</span>}
+              {sidebarOpen && <span>Log Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

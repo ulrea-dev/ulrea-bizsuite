@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { DashboardHome } from './DashboardHome';
 import { ProjectsPage } from './ProjectsPage';
@@ -9,6 +8,8 @@ import { ProjectDetailPage } from './ProjectDetailPage';
 import { AppSidebar } from './AppSidebar';
 import { FinancialsPage } from './FinancialsPage';
 import { RetainerDetailPage } from './RetainerDetailPage';
+import { TeamPage } from './TeamPage';
+import { ClientsPage } from './ClientsPage';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 interface DashboardProps {
@@ -28,11 +29,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
 
   const onNavigateToPage = (page: string, itemId?: string) => {
     if (page === 'projects' && itemId) {
-      // Navigate to specific project detail
       setSelectedProjectId(itemId);
       setCurrentPage('project-detail');
     } else {
-      // Navigate to regular page
       setCurrentPage(page);
       setSelectedProjectId(null);
     }
@@ -44,7 +43,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
   };
 
   const handleSelectBusiness = (businessId: string) => {
-    // This could be enhanced for business switching functionality
     console.log('Business selected:', businessId);
   };
 
@@ -70,6 +68,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, onCreateBusiness
         ) : (
           <ProjectsPage onNavigateToPage={onNavigateToPage} />
         );
+      case 'team':
+        return <TeamPage />;
+      case 'clients':
+        return <ClientsPage />;
       case 'financials':
         return <FinancialsPage onNavigate={(page, id) => {
           if (page === 'retainer-detail' && id) {

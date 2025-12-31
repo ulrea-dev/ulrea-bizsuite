@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { format } from 'date-fns';
-import { Plus, Eye, Edit, Pause, Play, X } from 'lucide-react';
+import { Plus, Eye, Edit, Pause, Play, X, HelpCircle } from 'lucide-react';
 import { RetainerModal } from './RetainerModal';
 import { useNavigate } from 'react-router-dom';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RetainersPageProps {
   onNavigate?: (page: string, retainerId?: string) => void;
@@ -71,8 +72,20 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Retainers</h1>
-          <p className="text-muted-foreground">Manage subscription-based revenue</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Retainers</h1>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-5 w-5 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>Retainers are recurring subscription-based revenue from clients on monthly, quarterly, or annual contracts.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <p className="text-muted-foreground">Manage recurring client contracts</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="h-4 w-4 mr-2" />
@@ -93,7 +106,19 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Recurring Revenue</CardTitle>
+            <div className="flex items-center gap-1">
+              <CardTitle className="text-sm font-medium">Monthly Recurring</CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>MRR: Total predictable revenue per month from all active retainers</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(mrr, currentBusiness.currency)}</div>
@@ -142,8 +167,11 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
             <TableBody>
               {retainers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No retainers yet. Add your first retainer to get started.
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="text-muted-foreground">No retainers yet</p>
+                      <p className="text-sm text-muted-foreground">Add retainers to track recurring client revenue</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (

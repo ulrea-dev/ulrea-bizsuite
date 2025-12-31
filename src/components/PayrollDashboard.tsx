@@ -413,7 +413,7 @@ export const PayrollDashboard: React.FC = () => {
             className="gap-2"
           >
             <Gift className="h-4 w-4" />
-            Add Bonus
+            Add Extra Payment
           </Button>
             <Button
               variant="outline"
