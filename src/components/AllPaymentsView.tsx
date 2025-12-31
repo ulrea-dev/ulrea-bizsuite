@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
-import { Payment } from '@/types/business';
-import { Search, Calendar, User, Briefcase, CheckCircle, Clock, DollarSign, Trash2, MoreHorizontal } from 'lucide-react';
+import { Payment, ExtraPayment } from '@/types/business';
+import { Search, Calendar, User, Briefcase, CheckCircle, Clock, DollarSign, Trash2, MoreHorizontal, Gift } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -28,7 +28,7 @@ export const AllPaymentsView: React.FC = () => {
     );
   }
 
-  // Get all payments (including salary payments, expense payments, retainer payments)
+  // Get all payments (including salary payments, expense payments, retainer payments, extra payments)
   const allPayments: (Payment & { displayName?: string; source?: string })[] = [
     // Regular payments (outgoing and incoming)
     ...data.payments.filter(payment => {
@@ -95,6 +95,27 @@ export const AllPaymentsView: React.FC = () => {
         source: 'salary',
       };
     }),
+
+    // Extra payments converted to Payment format
+    ...(data.extraPayments || []).filter(extraPayment => 
+      extraPayment.businessId === currentBusiness.id
+    ).map(extraPayment => {
+      const member = data.teamMembers.find(m => m.id === extraPayment.teamMemberId);
+      
+      return {
+        id: extraPayment.id,
+        amount: extraPayment.amount,
+        date: extraPayment.paymentDate,
+        type: 'outgoing' as const,
+        recipientType: 'team' as const,
+        status: extraPayment.status === 'paid' ? 'completed' as const : 'pending' as const,
+        memberId: extraPayment.teamMemberId,
+        description: `${extraPayment.name} - ${extraPayment.period}`,
+        paymentSource: 'extra' as const,
+        displayName: member?.name || 'Unknown',
+        source: 'extra',
+      };
+    }),
   ];
 
   // Apply filters
@@ -125,6 +146,7 @@ export const AllPaymentsView: React.FC = () => {
       case 'task': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'retainer': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
       case 'expense': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'extra': return 'bg-pink-100 text-pink-800 border-pink-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -136,6 +158,7 @@ export const AllPaymentsView: React.FC = () => {
       case 'task': return <CheckCircle className="h-3 w-3" />;
       case 'retainer': return <DollarSign className="h-3 w-3" />;
       case 'expense': return <DollarSign className="h-3 w-3" />;
+      case 'extra': return <Gift className="h-3 w-3" />;
       default: return <DollarSign className="h-3 w-3" />;
     }
   };
@@ -150,6 +173,16 @@ export const AllPaymentsView: React.FC = () => {
       toast({
         title: "Payment Deleted",
         description: `Salary payment for ${payment.displayName} has been deleted.`,
+      });
+    } else if (payment.source === 'extra') {
+      // For extra payments, delete the extra payment record
+      dispatch({
+        type: 'DELETE_EXTRA_PAYMENT',
+        payload: payment.id
+      });
+      toast({
+        title: "Payment Deleted",
+        description: `Extra payment for ${payment.displayName} has been deleted.`,
       });
     } else {
       // For regular payments, delete the payment record
@@ -240,6 +273,7 @@ export const AllPaymentsView: React.FC = () => {
                 <SelectItem value="task">Task Payments</SelectItem>
                 <SelectItem value="retainer">Retainer Payments</SelectItem>
                 <SelectItem value="expense">Expense Payments</SelectItem>
+                <SelectItem value="extra">Extra/Bonus Payments</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>

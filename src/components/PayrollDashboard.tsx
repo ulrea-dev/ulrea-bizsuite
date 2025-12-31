@@ -1,16 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, Users, CheckCircle, AlertCircle, Clock, DollarSign, FileText, Download, History } from 'lucide-react';
+import { Calendar, Users, CheckCircle, AlertCircle, Clock, DollarSign, FileText, Download, History, Gift, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency, generateId } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
-import { PayrollPeriod, SalaryRecord, SalaryPayment } from '@/types/business';
+import { PayrollPeriod, SalaryRecord, SalaryPayment, ExtraPayment } from '@/types/business';
 import { SUPPORTED_CURRENCIES } from '@/types/business';
 import { PaymentHistoryModal } from './PaymentHistoryModal';
+import { ExtraPaymentModal } from './ExtraPaymentModal';
 
 interface PayrollEmployee {
   id: string;
@@ -33,6 +35,8 @@ export const PayrollDashboard: React.FC = () => {
   const [processingPayroll, setProcessingPayroll] = useState(false);
   const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
   const [selectedEmployeeForHistory, setSelectedEmployeeForHistory] = useState<string | undefined>();
+  const [extraPaymentModalOpen, setExtraPaymentModalOpen] = useState(false);
+  const [editingExtraPayment, setEditingExtraPayment] = useState<ExtraPayment | null>(null);
 
   if (!currentBusiness) {
     return (
@@ -160,16 +164,47 @@ export const PayrollDashboard: React.FC = () => {
     return employees;
   }, [businessSalaryRecords, businessSalaryPayments, selectedYear, selectedMonth, allCurrencies, data.userSettings.defaultCurrency, data.exchangeRates]);
 
+  // Get extra payments for the selected period
+  const currentPeriodStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
+  const periodExtraPayments = useMemo(() => {
+    return (data.extraPayments || []).filter(
+      payment => payment.businessId === currentBusiness.id && payment.period === currentPeriodStr
+    );
+  }, [data.extraPayments, currentBusiness.id, currentPeriodStr]);
+
+  // Calculate extra payments total
+  const extraPaymentsTotal = useMemo(() => {
+    return periodExtraPayments.reduce((sum, payment) => {
+      const currency = allCurrencies.find(c => c.code === payment.currency) || data.userSettings.defaultCurrency;
+      const converted = convertCurrency(payment.amount, currency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+      return sum + converted;
+    }, 0);
+  }, [periodExtraPayments, allCurrencies, data.userSettings.defaultCurrency, data.exchangeRates]);
+
+  const extraPaymentsPaidTotal = useMemo(() => {
+    return periodExtraPayments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, payment) => {
+        const currency = allCurrencies.find(c => c.code === payment.currency) || data.userSettings.defaultCurrency;
+        const converted = convertCurrency(payment.amount, currency, data.userSettings.defaultCurrency, data.exchangeRates || []);
+        return sum + converted;
+      }, 0);
+  }, [periodExtraPayments, allCurrencies, data.userSettings.defaultCurrency, data.exchangeRates]);
+
   // Calculate statistics
   const stats = useMemo(() => {
     const totalEmployees = payrollEmployees.length;
     const paidEmployees = payrollEmployees.filter(emp => emp.status === 'paid').length;
     const pendingEmployees = payrollEmployees.filter(emp => emp.status === 'pending').length;
     const overdueEmployees = payrollEmployees.filter(emp => emp.status === 'overdue').length;
-    const totalAmount = payrollEmployees.reduce((sum, emp) => sum + emp.amount, 0);
-    const paidAmount = payrollEmployees
+    const salaryAmount = payrollEmployees.reduce((sum, emp) => sum + emp.amount, 0);
+    const salaryPaidAmount = payrollEmployees
       .filter(emp => emp.status === 'paid')
       .reduce((sum, emp) => sum + emp.amount, 0);
+
+    // Include extra payments in totals
+    const totalAmount = salaryAmount + extraPaymentsTotal;
+    const paidAmount = salaryPaidAmount + extraPaymentsPaidTotal;
 
     return {
       totalEmployees,
@@ -179,8 +214,11 @@ export const PayrollDashboard: React.FC = () => {
       totalAmount,
       paidAmount,
       pendingAmount: totalAmount - paidAmount,
+      salaryAmount,
+      extraPaymentsTotal,
+      extraPaymentsCount: periodExtraPayments.length,
     };
-  }, [payrollEmployees]);
+  }, [payrollEmployees, extraPaymentsTotal, extraPaymentsPaidTotal, periodExtraPayments.length]);
 
   // Handle bulk payment marking
   const handleBulkMarkAsPaid = async () => {
@@ -313,6 +351,15 @@ export const PayrollDashboard: React.FC = () => {
     });
   };
 
+  // Handle delete extra payment
+  const handleDeleteExtraPayment = (paymentId: string) => {
+    dispatch({ type: 'DELETE_EXTRA_PAYMENT', payload: paymentId });
+    toast({
+      title: 'Extra Payment Deleted',
+      description: 'The extra payment has been removed',
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -360,6 +407,14 @@ export const PayrollDashboard: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setExtraPaymentModalOpen(true)}
+            className="gap-2"
+          >
+            <Gift className="h-4 w-4" />
+            Add Bonus
+          </Button>
             <Button
               variant="outline"
               onClick={() => {
@@ -419,19 +474,132 @@ export const PayrollDashboard: React.FC = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Payments</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <CardTitle className="text-sm font-medium">Bonuses/Extras</CardTitle>
+            <Gift className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.overdueEmployees}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.extraPaymentsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {formatCurrency(stats.extraPaymentsTotal, data.userSettings.defaultCurrency)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Monthly Total Summary */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Payroll for {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+              <p className="text-3xl font-bold">
+                {formatCurrency(stats.totalAmount, data.userSettings.defaultCurrency)}
+              </p>
+            </div>
+            <div className="text-right text-sm text-muted-foreground">
+              <p>Salaries: {formatCurrency(stats.salaryAmount, data.userSettings.defaultCurrency)}</p>
+              <p>Bonuses/Extras: {formatCurrency(stats.extraPaymentsTotal, data.userSettings.defaultCurrency)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Extra Payments Section */}
+      {periodExtraPayments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-purple-600" />
+              Extra Payments This Month
+            </CardTitle>
+            <CardDescription>
+              Bonuses, commissions, and other extra payments for {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {periodExtraPayments.map((payment) => {
+                const member = data.teamMembers.find(m => m.id === payment.teamMemberId);
+                const currency = allCurrencies.find(c => c.code === payment.currency) || data.userSettings.defaultCurrency;
+                
+                return (
+                  <div
+                    key={payment.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <h3 className="font-medium">{member?.name || 'Unknown'}</h3>
+                        <p className="text-sm text-muted-foreground">{payment.name}</p>
+                      </div>
+                      <Badge variant="outline" className="bg-purple-100 text-purple-800 border-purple-200">
+                        {payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}
+                      </Badge>
+                      <Badge variant={payment.status === 'paid' ? 'default' : 'secondary'}>
+                        {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {currency.symbol}{payment.amount.toLocaleString('en-US', { 
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2 
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(payment.paymentDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingExtraPayment(payment);
+                            setExtraPaymentModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Extra Payment</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this {payment.type} payment for {member?.name}?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteExtraPayment(payment.id)}
+                                className="bg-destructive text-destructive-foreground"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Payroll Calendar/List */}
       <Card>
         <CardHeader>
-          <CardTitle>Payroll for {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</CardTitle>
+          <CardTitle>Salaries for {new Date(selectedYear, selectedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</CardTitle>
           <CardDescription>
             Employee payment status and management
           </CardDescription>
@@ -514,6 +682,17 @@ export const PayrollDashboard: React.FC = () => {
           setSelectedEmployeeForHistory(undefined);
         }}
         teamMemberId={selectedEmployeeForHistory}
+      />
+
+      {/* Extra Payment Modal */}
+      <ExtraPaymentModal
+        isOpen={extraPaymentModalOpen}
+        onClose={() => {
+          setExtraPaymentModalOpen(false);
+          setEditingExtraPayment(null);
+        }}
+        existingPayment={editingExtraPayment}
+        defaultPeriod={currentPeriodStr}
       />
     </div>
   );

@@ -22,6 +22,7 @@ import {
   Expense,
   QuickTask,
   Retainer,
+  ExtraPayment,
 } from '@/types/business';
 
 /**
@@ -116,4 +117,8 @@ export type BusinessAction =
   // Retainer actions
   | { type: 'ADD_RETAINER'; payload: Retainer }
   | { type: 'UPDATE_RETAINER'; payload: { id: string; updates: Partial<Retainer> } }
-  | { type: 'DELETE_RETAINER'; payload: string };
+  | { type: 'DELETE_RETAINER'; payload: string }
+  // Extra Payment actions
+  | { type: 'ADD_EXTRA_PAYMENT'; payload: ExtraPayment }
+  | { type: 'UPDATE_EXTRA_PAYMENT'; payload: { id: string; updates: Partial<ExtraPayment> } }
+  | { type: 'DELETE_EXTRA_PAYMENT'; payload: string };
