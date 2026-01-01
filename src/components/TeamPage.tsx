@@ -89,8 +89,23 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     const projectOutstanding = totalAllocated - totalPaid;
     
     // 2. Salary outstanding (current month's salary minus payments made this month)
+    // Helper to check if a salary record is expired
+    const isSalaryExpired = (record: typeof data.salaryRecords[0]): boolean => {
+      const now = new Date();
+      if (record.endDate) {
+        return new Date(record.endDate) < now;
+      }
+      if (record.contractDuration && record.startDate) {
+        const startDate = new Date(record.startDate);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + record.contractDuration);
+        return endDate < now;
+      }
+      return false;
+    };
+    
     const memberSalaryRecords = data.salaryRecords.filter(
-      r => r.teamMemberId === memberId && r.businessId === currentBusiness.id
+      r => r.teamMemberId === memberId && r.businessId === currentBusiness.id && !isSalaryExpired(r)
     );
     
     // Calculate combined monthly salary (like PayrollDashboard does)
