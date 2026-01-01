@@ -51,7 +51,9 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     taskDescription: '',
     description: '',
   });
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(() => new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [bulkDatePickerOpen, setBulkDatePickerOpen] = useState(false);
 
   // Helper to check if a task has been paid (via paidAt field set when payment is recorded)
   const isTaskPaid = (task: QuickTask) => {
@@ -487,7 +489,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                   
                   <div className="space-y-2">
                     <Label htmlFor="date">Payment Date</Label>
-                    <Popover>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
@@ -501,11 +503,16 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={paymentDate}
-                          onSelect={setPaymentDate}
-                        />
+                        <div className="pointer-events-auto">
+                          <Calendar
+                            mode="single"
+                            selected={paymentDate}
+                            onSelect={(date) => {
+                              setPaymentDate(date);
+                              setDatePickerOpen(false);
+                            }}
+                          />
+                        </div>
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -581,7 +588,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bulkDate">Payment Date</Label>
-                      <Popover>
+                      <Popover open={bulkDatePickerOpen} onOpenChange={setBulkDatePickerOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -595,11 +602,16 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={paymentDate}
-                            onSelect={setPaymentDate}
-                          />
+                          <div className="pointer-events-auto">
+                            <Calendar
+                              mode="single"
+                              selected={paymentDate}
+                              onSelect={(date) => {
+                                setPaymentDate(date);
+                                setBulkDatePickerOpen(false);
+                              }}
+                            />
+                          </div>
                         </PopoverContent>
                       </Popover>
                     </div>
