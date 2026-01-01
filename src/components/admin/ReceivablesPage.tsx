@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ReceivableModal } from '@/components/ReceivableModal';
 import { Receivable, SUPPORTED_CURRENCIES } from '@/types/business';
@@ -43,12 +44,24 @@ export const ReceivablesPage: React.FC = () => {
   const [receivableModalOpen, setReceivableModalOpen] = useState(false);
   const [selectedReceivable, setSelectedReceivable] = useState<Receivable | null>(null);
   const [deleteReceivableId, setDeleteReceivableId] = useState<string | null>(null);
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
   const receivables = useMemo(() => 
     data.receivables.filter((r) => r.businessId === currentBusiness?.id),
     [data.receivables, currentBusiness?.id]
+  );
+
+  // Get unique currencies from receivables
+  const availableCurrencies = useMemo(() => 
+    [...new Set(receivables.map(r => r.currency))],
+    [receivables]
+  );
+
+  const filteredReceivables = useMemo(() => 
+    currencyFilter === 'all' ? receivables : receivables.filter(r => r.currency === currencyFilter),
+    [receivables, currencyFilter]
   );
 
   const pendingReceivables = useMemo(() =>
@@ -142,7 +155,7 @@ export const ReceivablesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Receivables Table */}
+      {/* Currency Filter & Receivables Table */}
       {receivables.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
@@ -151,6 +164,24 @@ export const ReceivablesPage: React.FC = () => {
         </Card>
       ) : (
         <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">All Receivables</CardTitle>
+              <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Filter by currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Currencies</SelectItem>
+                  {availableCurrencies.map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
           <Table>
             <TableHeader>
               <TableRow>
@@ -164,7 +195,7 @@ export const ReceivablesPage: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {receivables.map((receivable) => (
+              {filteredReceivables.map((receivable) => (
                 <TableRow key={receivable.id}>
                   <TableCell className="font-medium">
                     {receivable.sourceName}
