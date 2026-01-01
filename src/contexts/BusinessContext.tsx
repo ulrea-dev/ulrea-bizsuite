@@ -74,6 +74,9 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
   // Save to repository whenever data changes
   useEffect(() => {
     repository.save(data);
+    
+    // Dispatch custom event for Google Drive sync
+    window.dispatchEvent(new CustomEvent('bizsuite-data-change', { detail: data }));
   }, [data, repository]);
 
   const currentBusiness = useMemo(

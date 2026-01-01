@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink } from 'lucide-react';
+import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { exportData } from '@/utils/storage';
 import {
   Sidebar,
@@ -20,6 +20,8 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
 
 interface AppSidebarProps {
   onLogout: () => void;
@@ -41,16 +43,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onCreateBusiness 
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { currentBusiness } = useBusiness();
+  const { currentBusiness, data } = useBusiness();
+  const { isConnected, isSyncing, syncNow, settings } = useGoogleDrive();
   const { toast } = useToast();
   const { open: sidebarOpen } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleBackupDownload = () => {
+  const handleBackupDownload = async () => {
     try {
-      const data = exportData();
-      const blob = new Blob([data], { type: 'application/json' });
+      // Local backup
+      const localData = exportData();
+      const blob = new Blob([localData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -60,9 +64,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
+      // Also sync to Google Drive if connected
+      if (isConnected) {
+        await syncNow(data);
+      }
+      
       toast({
         title: "Data Exported",
-        description: "Your data has been successfully exported and downloaded.",
+        description: isConnected 
+          ? "Your data has been downloaded and backed up to Google Drive."
+          : "Your data has been successfully downloaded.",
       });
     } catch (error) {
       toast({
@@ -72,6 +83,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       });
     }
   };
+
+  const lastSyncLabel = settings.lastSyncTime
+    ? `Last synced ${formatDistanceToNow(new Date(settings.lastSyncTime), { addSuffix: true })}`
+    : 'Not synced yet';
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -158,10 +173,27 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleBackupDownload} tooltip="Export Data">
-              <Download className="h-4 w-4" />
-              {sidebarOpen && <span>Export Data</span>}
-            </SidebarMenuButton>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton onClick={handleBackupDownload} tooltip="Export Data">
+                    {isSyncing ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : isConnected ? (
+                      <Cloud className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {sidebarOpen && <span>{isSyncing ? 'Syncing...' : 'Export Data'}</span>}
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                {isConnected && (
+                  <TooltipContent side="right">
+                    <p>{lastSyncLabel}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>

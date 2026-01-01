@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,19 +14,24 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { CustomCurrencyModal } from '@/components/CustomCurrencyModal';
 import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
+import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
+import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus } from 'lucide-react';
+import { Plus, RotateCcw } from 'lucide-react';
 import { PartnersPage } from './PartnersPage';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
+  const { isConnected } = useGoogleDrive();
   const { toast } = useToast();
   const [showCustomCurrencyModal, setShowCustomCurrencyModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [username, setUsername] = useState(data.userSettings.username);
   const [selectedFont, setSelectedFont] = useState<FontOption>(
     data.userSettings.fontFamily || getDefaultFont()
@@ -116,8 +120,9 @@ export const SettingsPage: React.FC = () => {
 
       <Tabs defaultValue="account" className="space-y-4">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-3">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-4">
             <TabsTrigger value="account" className="text-xs sm:text-sm">Account</TabsTrigger>
+            <TabsTrigger value="backup" className="text-xs sm:text-sm">Backup</TabsTrigger>
             <TabsTrigger value="currency" className="text-xs sm:text-sm">Currency</TabsTrigger>
             <TabsTrigger value="advanced" className="text-xs sm:text-sm">Advanced</TabsTrigger>
           </TabsList>
@@ -189,6 +194,31 @@ export const SettingsPage: React.FC = () => {
               <PartnersPage />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="backup" className="space-y-4">
+          <GoogleDriveBackupCard />
+          
+          {/* Restore Card */}
+          {isConnected && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Restore from Google Drive</CardTitle>
+                <CardDescription>
+                  Restore your data from a previous backup stored in Google Drive.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowRestoreModal(true)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Browse Backups
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="currency" className="space-y-4">
@@ -265,6 +295,11 @@ export const SettingsPage: React.FC = () => {
         isOpen={showCustomCurrencyModal}
         onClose={() => setShowCustomCurrencyModal(false)}
         onCurrencyAdded={handleCurrencyAdded}
+      />
+
+      <RestoreFromDriveModal
+        isOpen={showRestoreModal}
+        onClose={() => setShowRestoreModal(false)}
       />
     </div>
   );
