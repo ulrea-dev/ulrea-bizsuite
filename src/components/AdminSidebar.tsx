@@ -1,9 +1,18 @@
-
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  Briefcase, 
+  LayoutDashboard, 
+  Building2, 
+  Wallet, 
+  ArrowUpRight, 
+  ArrowDownLeft,
+  ArrowLeft,
+  Moon,
+  Sun,
+  Download
+} from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { exportData } from '@/utils/storage';
 import {
@@ -21,31 +30,23 @@ import {
 } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 
-interface AppSidebarProps {
-  onLogout: () => void;
-  onCreateBusiness: () => void;
+interface AdminSidebarProps {
+  onBackToApp: () => void;
 }
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/projects' },
-  { id: 'team', label: 'Team', icon: Users, path: '/team' },
-  { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
-  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/business-management' },
+  { id: 'businesses', label: 'Businesses', icon: Building2, path: '/business-management/businesses' },
+  { id: 'bank-accounts', label: 'Bank Accounts', icon: Wallet, path: '/business-management/bank-accounts' },
+  { id: 'payables', label: 'Payables', icon: ArrowUpRight, path: '/business-management/payables' },
+  { id: 'receivables', label: 'Receivables', icon: ArrowDownLeft, path: '/business-management/receivables' },
 ];
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ 
-  onLogout, 
-  onCreateBusiness 
-}) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
   const { theme, toggleTheme } = useTheme();
-  const { currentBusiness } = useBusiness();
   const { toast } = useToast();
   const { open: sidebarOpen } = useSidebar();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const handleBackupDownload = () => {
     try {
@@ -74,14 +75,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   };
 
   const isActive = (path: string) => {
-    if (path === '/dashboard') {
-      return location.pathname === '/dashboard' || location.pathname === '/';
+    if (path === '/business-management') {
+      return location.pathname === '/business-management';
     }
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
-  };
-
-  const handleManageBusinesses = () => {
-    navigate('/settings');
   };
 
   return (
@@ -90,26 +87,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         <div className="flex items-center gap-2 px-2 py-2">
           {sidebarOpen && (
             <>
-              <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
-                <Building2 className="h-6 w-6 dashboard-text-primary" />
+              <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                <Briefcase className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h1 className="text-base font-bold dashboard-text-primary">BizSuite</h1>
-                <p className="text-xs dashboard-text-secondary">Management Tool</p>
+                <h1 className="text-base font-bold dashboard-text-primary">Admin Console</h1>
+                <p className="text-xs dashboard-text-secondary">Business Management</p>
               </div>
             </>
           )}
           <SidebarTrigger className={sidebarOpen ? '' : 'mx-auto'} />
         </div>
-        
-        {sidebarOpen && (
-          <div className="px-4">
-            <BusinessSwitcher 
-              onCreateBusiness={onCreateBusiness}
-              onManageBusinesses={handleManageBusinesses}
-            />
-          </div>
-        )}
       </SidebarHeader>
 
       <SidebarContent>
@@ -143,18 +131,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={location.pathname.startsWith('/business-management')}
-              tooltip="Business Management"
-            >
-              <Link to="/business-management" className="flex items-center justify-between w-full">
-                <span className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  {sidebarOpen && <span>Business Management</span>}
-                </span>
-                {sidebarOpen && <ExternalLink className="h-3 w-3 opacity-50" />}
-              </Link>
+            <SidebarMenuButton onClick={onBackToApp} tooltip="Back to BizSuite">
+              <ArrowLeft className="h-4 w-4" />
+              {sidebarOpen && <span>Back to BizSuite</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
@@ -167,12 +146,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               {sidebarOpen && <span>{theme === 'light' ? 'Dark' : 'Light'}</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={onLogout} tooltip="Log Out">
-              <LogOut className="h-4 w-4" />
-              {sidebarOpen && <span>Log Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
