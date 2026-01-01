@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { PayableModal } from '@/components/PayableModal';
 import { Payable, SUPPORTED_CURRENCIES } from '@/types/business';
@@ -43,12 +44,24 @@ export const PayablesPage: React.FC = () => {
   const [payableModalOpen, setPayableModalOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState<Payable | null>(null);
   const [deletePayableId, setDeletePayableId] = useState<string | null>(null);
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
   const payables = useMemo(() => 
     data.payables.filter((p) => p.businessId === currentBusiness?.id),
     [data.payables, currentBusiness?.id]
+  );
+
+  // Get unique currencies from payables
+  const availableCurrencies = useMemo(() => 
+    [...new Set(payables.map(p => p.currency))],
+    [payables]
+  );
+
+  const filteredPayables = useMemo(() => 
+    currencyFilter === 'all' ? payables : payables.filter(p => p.currency === currencyFilter),
+    [payables, currencyFilter]
   );
 
   const pendingPayables = useMemo(() =>
@@ -142,7 +155,7 @@ export const PayablesPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Payables Table */}
+      {/* Currency Filter & Payables Table */}
       {payables.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
@@ -151,6 +164,24 @@ export const PayablesPage: React.FC = () => {
         </Card>
       ) : (
         <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">All Payables</CardTitle>
+              <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Filter by currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Currencies</SelectItem>
+                  {availableCurrencies.map((currency) => (
+                    <SelectItem key={currency} value={currency}>
+                      {currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
           <Table>
             <TableHeader>
               <TableRow>
@@ -164,7 +195,7 @@ export const PayablesPage: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payables.map((payable) => (
+              {filteredPayables.map((payable) => (
                 <TableRow key={payable.id}>
                   <TableCell className="font-medium">
                     {payable.vendorName}

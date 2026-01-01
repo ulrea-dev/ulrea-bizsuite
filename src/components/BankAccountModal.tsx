@@ -38,6 +38,7 @@ export const BankAccountModal: React.FC<BankAccountModalProps> = ({
   const [accountNumber, setAccountNumber] = useState('');
   const [description, setDescription] = useState('');
   const [isDefault, setIsDefault] = useState(false);
+  const [businessId, setBusinessId] = useState(currentBusiness?.id || '');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
@@ -50,6 +51,7 @@ export const BankAccountModal: React.FC<BankAccountModalProps> = ({
       setAccountNumber(account.accountNumber || '');
       setDescription(account.description || '');
       setIsDefault(account.isDefault);
+      setBusinessId(account.businessId);
     } else {
       setName('');
       setType('bank');
@@ -58,12 +60,13 @@ export const BankAccountModal: React.FC<BankAccountModalProps> = ({
       setAccountNumber('');
       setDescription('');
       setIsDefault(false);
+      setBusinessId(currentBusiness?.id || '');
     }
   }, [account, currentBusiness, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentBusiness || !name.trim()) return;
+    if (!businessId || !name.trim()) return;
 
     const now = new Date().toISOString();
     const balanceNum = parseFloat(balance) || 0;
@@ -87,7 +90,7 @@ export const BankAccountModal: React.FC<BankAccountModalProps> = ({
     } else {
       const newAccount: BankAccount = {
         id: crypto.randomUUID(),
-        businessId: currentBusiness.id,
+        businessId: businessId,
         name: name.trim(),
         type,
         balance: balanceNum,
@@ -111,6 +114,22 @@ export const BankAccountModal: React.FC<BankAccountModalProps> = ({
           <DialogTitle>{account ? 'Edit Account' : 'Add Account'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="business">Business *</Label>
+            <Select value={businessId} onValueChange={setBusinessId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select business" />
+              </SelectTrigger>
+              <SelectContent>
+                {data.businesses.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Account Name *</Label>
             <Input
