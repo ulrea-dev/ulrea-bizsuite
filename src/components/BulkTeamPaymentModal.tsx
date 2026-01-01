@@ -97,22 +97,13 @@ export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOp
           });
         });
 
-        // Check for unpaid tasks - either no paidAt or no payment record referencing the task
-        const unpaidTasks = data.quickTasks.filter(t => {
-          if (t.assignedToId !== member.id || t.status !== 'completed' || t.businessId !== currentBusiness.id) return false;
-          if (t.paidAt) return false;
-          // Check if a payment exists that references this task directly
-          const hasDirectPayment = data.payments?.some(p => p.taskId === t.id && p.status === 'completed');
-          if (hasDirectPayment) return false;
-          // Check for bulk task payments that include this task (by matching member + task title in description)
-          const hasBulkPayment = data.payments?.some(p => 
-            p.paymentSource === 'task' && 
-            p.memberId === t.assignedToId && 
-            p.status === 'completed' &&
-            (p.description?.includes(t.title) || p.taskDescription?.includes(t.title))
-          );
-          return !hasBulkPayment;
-        });
+        // Check for unpaid tasks - no paidAt field means not paid
+        const unpaidTasks = data.quickTasks.filter(t => 
+          t.assignedToId === member.id && 
+          t.status === 'completed' && 
+          t.businessId === currentBusiness.id && 
+          !t.paidAt
+        );
         const quickTaskOutstanding = unpaidTasks.reduce((sum, t) => sum + t.amount, 0);
         const quickTaskIds = unpaidTasks.map(t => t.id);
 
