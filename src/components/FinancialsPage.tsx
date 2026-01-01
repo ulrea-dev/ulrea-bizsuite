@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RevenuePage } from './RevenuePage';
 import { PaymentsPage } from './PaymentsPage';
@@ -10,11 +11,18 @@ import { DollarSign, TrendingUp, Receipt, Users, Repeat, ListChecks } from 'luci
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle } from 'lucide-react';
 
-interface FinancialsPageProps {
-  onNavigate?: (page: string, itemId?: string) => void;
-}
+const VALID_TABS = ['revenue', 'payments', 'expenses', 'salaries', 'tasks', 'retainers'] as const;
+type TabValue = typeof VALID_TABS[number];
 
-export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) => {
+export const FinancialsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab: TabValue = VALID_TABS.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'revenue';
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value });
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -24,7 +32,7 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
         </p>
       </div>
 
-      <Tabs defaultValue="revenue" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
           <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-6">
             <TabsTrigger value="revenue" className="gap-1.5 text-xs sm:text-sm">
@@ -85,7 +93,7 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
         </TabsContent>
 
         <TabsContent value="retainers" className="space-y-6">
-          <RetainersPage onNavigate={onNavigate || (() => {})} />
+          <RetainersPage />
         </TabsContent>
       </Tabs>
     </div>
