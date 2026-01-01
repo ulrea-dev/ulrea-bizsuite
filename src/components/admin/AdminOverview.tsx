@@ -13,20 +13,13 @@ import {
 import { SUPPORTED_CURRENCIES } from '@/types/business';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { groupByCurrency, formatCurrencyAmount } from '@/utils/currencySummary';
+import { CurrencyTotals } from './CurrencyTotals';
 
 export const AdminOverview: React.FC = () => {
   const { data, currentBusiness } = useBusiness();
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
-  
-  const getCurrencySymbol = (code: string) => {
-    return allCurrencies.find((c) => c.code === code)?.symbol || code;
-  };
-
-  const formatCurrency = (amount: number, currencyCode: string) => {
-    const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
 
   const businessCount = data.businesses.length;
 
@@ -45,11 +38,6 @@ export const AdminOverview: React.FC = () => {
     [data.receivables, currentBusiness?.id]
   );
 
-  const totalInAccounts = useMemo(() => 
-    bankAccounts.reduce((sum, a) => sum + a.balance, 0),
-    [bankAccounts]
-  );
-
   const pendingPayables = useMemo(() => 
     payables.filter((p) => p.status !== 'paid'),
     [payables]
@@ -60,14 +48,42 @@ export const AdminOverview: React.FC = () => {
     [receivables]
   );
 
-  const totalPayables = pendingPayables.reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
-  const totalReceivables = pendingReceivables.reduce((sum, r) => sum + (r.amount - r.receivedAmount), 0);
-  const netPosition = totalInAccounts + totalReceivables - totalPayables;
+  // Group totals by currency
+  const accountTotalsByCurrency = useMemo(() => 
+    groupByCurrency(bankAccounts, (a) => a.balance, (a) => a.currency),
+    [bankAccounts]
+  );
+
+  const payableTotalsByCurrency = useMemo(() => 
+    groupByCurrency(pendingPayables, (p) => p.amount - p.paidAmount, (p) => p.currency),
+    [pendingPayables]
+  );
+
+  const receivableTotalsByCurrency = useMemo(() => 
+    groupByCurrency(pendingReceivables, (r) => r.amount - r.receivedAmount, (r) => r.currency),
+    [pendingReceivables]
+  );
+
+  // Calculate net position per currency
+  const netPositionByCurrency = useMemo(() => {
+    const allCurrencyCodes = new Set([
+      ...Object.keys(accountTotalsByCurrency),
+      ...Object.keys(payableTotalsByCurrency),
+      ...Object.keys(receivableTotalsByCurrency),
+    ]);
+    
+    const result: Record<string, number> = {};
+    allCurrencyCodes.forEach((currency) => {
+      const accounts = accountTotalsByCurrency[currency] || 0;
+      const receivable = receivableTotalsByCurrency[currency] || 0;
+      const payable = payableTotalsByCurrency[currency] || 0;
+      result[currency] = accounts + receivable - payable;
+    });
+    return result;
+  }, [accountTotalsByCurrency, payableTotalsByCurrency, receivableTotalsByCurrency]);
 
   const overduePayables = pendingPayables.filter(p => p.status === 'overdue').length;
   const overdueReceivables = pendingReceivables.filter(r => r.status === 'overdue').length;
-
-  const currencyCode = currentBusiness?.currency.code || 'USD';
 
   return (
     <div className="space-y-6">
@@ -105,9 +121,11 @@ export const AdminOverview: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">
-              {formatCurrency(totalInAccounts, currencyCode)}
-            </p>
+            <CurrencyTotals 
+              totals={accountTotalsByCurrency}
+              customCurrencies={data.customCurrencies || []}
+              amountClassName="text-2xl"
+            />
             <Link to="/business-management/bank-accounts">
               <Button variant="link" className="px-0 h-auto text-xs">
                 View accounts →
@@ -124,9 +142,11 @@ export const AdminOverview: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-destructive">
-              {formatCurrency(totalPayables, currencyCode)}
-            </p>
+            <CurrencyTotals 
+              totals={payableTotalsByCurrency}
+              customCurrencies={data.customCurrencies || []}
+              amountClassName="text-2xl text-destructive"
+            />
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{pendingPayables.length} pending</span>
               {overduePayables > 0 && (
@@ -147,9 +167,11 @@ export const AdminOverview: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalReceivables, currencyCode)}
-            </p>
+            <CurrencyTotals 
+              totals={receivableTotalsByCurrency}
+              customCurrencies={data.customCurrencies || []}
+              amountClassName="text-2xl text-green-600"
+            />
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{pendingReceivables.length} pending</span>
               {overdueReceivables > 0 && (
@@ -172,20 +194,32 @@ export const AdminOverview: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-3xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                {formatCurrency(netPosition, currencyCode)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Accounts + Receivables - Payables
-              </p>
-            </div>
-            <div className="text-right text-sm text-muted-foreground space-y-1">
-              <p>Accounts: {formatCurrency(totalInAccounts, currencyCode)}</p>
-              <p className="text-green-600">+ Receivables: {formatCurrency(totalReceivables, currencyCode)}</p>
-              <p className="text-destructive">- Payables: {formatCurrency(totalPayables, currencyCode)}</p>
-            </div>
+          <div className="space-y-4">
+            {Object.keys(netPositionByCurrency).length === 0 ? (
+              <p className="text-muted-foreground">No financial data yet.</p>
+            ) : (
+              Object.entries(netPositionByCurrency).map(([currency, netPosition]) => {
+                const accounts = accountTotalsByCurrency[currency] || 0;
+                const receivable = receivableTotalsByCurrency[currency] || 0;
+                const payable = payableTotalsByCurrency[currency] || 0;
+                
+                return (
+                  <div key={currency} className="flex items-center justify-between border-b pb-3 last:border-0">
+                    <div>
+                      <p className={`text-2xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {formatCurrencyAmount(netPosition, currency, data.customCurrencies || [])}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{currency}</p>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground space-y-0.5">
+                      <p>Accounts: {formatCurrencyAmount(accounts, currency, data.customCurrencies || [])}</p>
+                      <p className="text-green-600">+ Receivables: {formatCurrencyAmount(receivable, currency, data.customCurrencies || [])}</p>
+                      <p className="text-destructive">- Payables: {formatCurrencyAmount(payable, currency, data.customCurrencies || [])}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </CardContent>
       </Card>
