@@ -8,7 +8,6 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { SalaryPaymentModal } from '@/components/SalaryPaymentModal';
 import { SalaryModal } from '@/components/SalaryModal';
 import { PendingProjectPayments } from '@/components/PendingProjectPayments';
-import { QuickTaskPaymentModal } from '@/components/QuickTaskPaymentModal';
 import { AllPaymentsView } from '@/components/AllPaymentsView';
 import { formatCurrency } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
@@ -43,7 +42,6 @@ export const SalariesPage: React.FC = () => {
   const { toast } = useToast();
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showTaskPaymentModal, setShowTaskPaymentModal] = useState(false);
   const [selectedPaymentRecordId, setSelectedPaymentRecordId] = useState<string | null>(null);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'payroll' | 'management' | 'pending' | 'payments'>('payroll');
@@ -277,10 +275,6 @@ export const SalariesPage: React.FC = () => {
             <Plus className="mr-2 h-4 w-4" />
             Add Salary Record
           </Button>
-          <Button onClick={() => setShowTaskPaymentModal(true)} variant="outline">
-            <DollarSign className="mr-2 h-4 w-4" />
-            Freelance Payment
-          </Button>
         </div>
       </div>
 
@@ -390,12 +384,6 @@ export const SalariesPage: React.FC = () => {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         salaryRecordId={selectedPaymentRecordId}
-      />
-
-      {/* Quick Task Payment Modal */}
-      <QuickTaskPaymentModal
-        isOpen={showTaskPaymentModal}
-        onClose={() => setShowTaskPaymentModal(false)}
       />
     </div>
   );
