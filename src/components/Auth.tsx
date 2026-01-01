@@ -1,22 +1,25 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Moon, Sun, Upload } from 'lucide-react';
-import { useTheme } from '@/hooks/useTheme';
+import { Card, CardContent } from '@/components/ui/card';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { importData } from '@/utils/storage';
+import { Briefcase, Upload, Play, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AuthProps {
   onLogin: (username: string) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const { theme, toggleTheme } = useTheme();
   const { data, dispatch } = useBusiness();
+  const [username, setUsername] = useState('');
+  const [showSwitchUser, setShowSwitchUser] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const existingUser = data.userSettings.username;
+  const businessCount = data.businesses.length;
+  const projectCount = data.projects.length;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,24 +28,29 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
-  const handleImportBackup = async () => {
-    if (!importFile) return;
-    
-    try {
-      const text = await importFile.text();
-      const importedData = importData(text);
-      dispatch({ type: 'LOAD_DATA', payload: importedData });
-      
-      // If the backup has a username, use it to auto-login
-      if (importedData.userSettings.username) {
-        onLogin(importedData.userSettings.username);
-      } else {
-        alert('Backup imported successfully! Please enter a username to continue.');
-      }
-      
-      setImportFile(null);
-    } catch (error) {
-      alert('Error importing backup. Please check the file format.');
+  const handleContinue = () => {
+    if (existingUser) {
+      onLogin(existingUser);
+    }
+  };
+
+  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const importedData = importData(text);
+          dispatch({ type: 'LOAD_DATA', payload: importedData });
+          if (importedData.userSettings?.username) {
+            onLogin(importedData.userSettings.username);
+          }
+        } catch (error) {
+          console.error('Failed to restore backup:', error);
+        }
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -52,138 +60,137 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       const demoData = await response.json();
       const importedData = importData(JSON.stringify(demoData));
       dispatch({ type: 'LOAD_DATA', payload: importedData });
-      
-      // Auto-login with demo user
-      onLogin(importedData.userSettings.username);
+      if (importedData.userSettings?.username) {
+        onLogin(importedData.userSettings.username);
+      }
     } catch (error) {
-      alert('Error loading demo data. Please try again.');
+      console.error('Failed to load demo data:', error);
     }
   };
 
-  const isReturningUser = data.userSettings.username && data.businesses.length > 0;
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
-    <div className="min-h-screen dashboard-background flex items-center justify-center p-3 sm:p-4 theme-transition">
-      <div className="absolute top-3 right-3 sm:top-6 sm:right-6">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleTheme}
-          className="hover-surface h-9 w-9 sm:h-10 sm:w-10"
-        >
-          {theme === 'light' ? <Moon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Sun className="h-4 w-4 sm:h-5 sm:w-5" />}
-        </Button>
-      </div>
-      
-      <div className="w-full max-w-md space-y-3 sm:space-y-4">
-        <Card className="dashboard-surface border-dashboard-border shadow-lg card-hover">
-          <CardHeader className="text-center pb-4 sm:pb-8">
-            <div className="flex justify-center mb-3 sm:mb-4">
-              <div className="p-2 sm:p-3 dashboard-surface-elevated rounded-xl border dashboard-border">
-                <Building2 className="h-6 w-6 sm:h-8 sm:w-8 dashboard-text-primary" />
+    <div className="min-h-screen flex items-center justify-center p-4 login-gradient">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 backdrop-blur-sm mb-4">
+            <Briefcase className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">BizSuite</h1>
+          <p className="text-sm text-muted-foreground mt-1">Multi-business management</p>
+        </div>
+
+        <Card className="login-card border-border/50">
+          <CardContent className="pt-6 pb-6">
+            {/* Returning User Flow */}
+            {existingUser && !showSwitchUser ? (
+              <div className="text-center space-y-6">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary text-primary-foreground text-2xl font-bold">
+                    {getInitials(existingUser)}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">
+                      Welcome back, {existingUser.split(' ')[0]}
+                    </h2>
+                    {(businessCount > 0 || projectCount > 0) && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {businessCount} {businessCount === 1 ? 'business' : 'businesses'} · {projectCount} {projectCount === 1 ? 'project' : 'projects'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button onClick={handleContinue} className="w-full h-11" size="lg">
+                  Continue
+                </Button>
+
+                <button
+                  onClick={() => setShowSwitchUser(true)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Not {existingUser.split(' ')[0]}? Switch account
+                </button>
               </div>
-            </div>
-            <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold dashboard-text-primary">
-              {isReturningUser ? 'Welcome Back' : 'Welcome to BizSuite'}
-            </CardTitle>
-            <CardDescription className="text-sm sm:text-base dashboard-text-secondary">
-              {isReturningUser 
-                ? `Continue as ${data.userSettings.username}` 
-                : 'Your multi-business management platform'
-              }
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-              <div>
+            ) : (
+              /* New User / Switch User Flow */
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="text-center mb-2">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    {showSwitchUser ? 'Switch Account' : 'Get Started'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enter your name to continue
+                  </p>
+                </div>
+
                 <Input
                   type="text"
-                  placeholder="Enter your name to get started"
+                  placeholder="Your name"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-10 sm:h-12 text-center text-sm sm:text-base"
-                  required
+                  className="h-11 text-center"
+                  autoFocus
                 />
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full h-10 sm:h-12 font-medium text-sm sm:text-base"
-                disabled={!username.trim()}
-              >
-                {isReturningUser ? 'Continue' : 'Get Started'}
-              </Button>
-            </form>
-            
-            {isReturningUser && (
-              <div className="mt-6 pt-4 border-t dashboard-border">
-                <p className="text-sm dashboard-text-muted text-center">
-                  {data.businesses.length} business{data.businesses.length !== 1 ? 'es' : ''} • 
-                  {data.projects.length} project{data.projects.length !== 1 ? 's' : ''}
-                </p>
-              </div>
+
+                <Button type="submit" className="w-full h-11" size="lg" disabled={!username.trim()}>
+                  {showSwitchUser ? 'Switch' : 'Get Started'}
+                </Button>
+
+                {showSwitchUser && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSwitchUser(false)}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Back to {existingUser?.split(' ')[0]}
+                  </button>
+                )}
+              </form>
             )}
           </CardContent>
         </Card>
 
-        {/* Demo & Import Options */}
-        <Card className="dashboard-surface border-dashboard-border shadow-lg card-hover">
-          <CardHeader className="text-center pb-3 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg font-semibold dashboard-text-primary flex items-center justify-center gap-2">
-              <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
-              Quick Start Options
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm dashboard-text-secondary">
-              Load demo data or restore your backup
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-3 sm:space-y-4">
-            {/* Load Demo Button */}
-            <Button 
-              onClick={handleLoadDemo} 
-              variant="default" 
-              className="w-full flex items-center gap-2 h-10 sm:h-11 text-sm sm:text-base"
-            >
-              <Building2 className="h-4 w-4" />
-              Load Demo Data
-            </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t dashboard-border" />
+        {/* Advanced Options */}
+        <div className="mt-6">
+          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <CollapsibleTrigger className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <span>More options</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={handleLoadDemo}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Play className="w-4 h-4" />
+                  Try demo
+                </button>
+                <span className="text-muted-foreground/50">·</span>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  Restore backup
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportBackup}
+                    className="hidden"
+                  />
+                </label>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 dashboard-text-muted">Or</span>
-              </div>
-            </div>
-            
-            {/* Import Backup Section */}
-            <div className="space-y-3">
-              <Input
-                type="file"
-                accept=".json"
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                className="text-sm"
-              />
-              
-              <Button 
-                onClick={handleImportBackup} 
-                disabled={!importFile}
-                variant="outline" 
-                className="w-full flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Restore Backup
-              </Button>
-            </div>
-            
-            <p className="text-xs dashboard-text-muted text-center">
-              Demo includes 2 businesses with projects, team members, and payments
-            </p>
-          </CardContent>
-        </Card>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </div>
     </div>
   );
