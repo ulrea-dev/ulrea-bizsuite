@@ -224,3 +224,18 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 25px -8px hsl(var(--foreground) / 0.1);
 }
+
+/* Login Page Styles */
+.login-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--background)) 0%,
+    hsl(var(--muted)) 50%,
+    hsl(var(--background)) 100%
+  );
+}
+
+.login-card {
+  backdrop-filter: blur(8px);
+  background: hsl(var(--card) / 0.9);
+}
