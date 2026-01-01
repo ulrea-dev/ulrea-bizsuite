@@ -53,11 +53,19 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   });
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
 
+  // Helper to check if a task has been paid (either via paidAt field or via existing payment record)
+  const isTaskPaid = (task: QuickTask) => {
+    if (task.paidAt) return true;
+    // Check if a payment exists that references this task
+    const hasPayment = data.payments?.some(p => p.taskId === task.id && p.status === 'completed');
+    return hasPayment;
+  };
+
   const availableTasks = useMemo(() => 
     data.quickTasks?.filter(task => 
-      task.businessId === currentBusiness?.id && !task.paidAt
+      task.businessId === currentBusiness?.id && !isTaskPaid(task)
     ) || [], 
-    [data.quickTasks, currentBusiness?.id]
+    [data.quickTasks, data.payments, currentBusiness?.id]
   );
 
   const getSelectedTasks = useMemo(() => {
