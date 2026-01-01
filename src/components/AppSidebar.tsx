@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
@@ -21,25 +22,21 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 interface AppSidebarProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
   onLogout: () => void;
   onCreateBusiness: () => void;
 }
 
 const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'projects', label: 'Projects', icon: FolderKanban },
-  { id: 'team', label: 'Team', icon: Users },
-  { id: 'clients', label: 'Clients', icon: UserCheck },
-  { id: 'financials', label: 'Financials', icon: DollarSign },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/projects' },
+  { id: 'team', label: 'Team', icon: Users, path: '/team' },
+  { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
+  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ 
-  currentPage, 
-  onPageChange, 
   onLogout, 
   onCreateBusiness 
 }) => {
@@ -47,6 +44,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { currentBusiness } = useBusiness();
   const { toast } = useToast();
   const { open: sidebarOpen } = useSidebar();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const handleBackupDownload = () => {
     try {
@@ -74,6 +73,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     }
   };
 
+  const isActive = (path: string) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard' || location.pathname === '/';
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  const handleManageBusinesses = () => {
+    navigate('/settings');
+  };
+
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
@@ -96,7 +106,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           <div className="px-4">
             <BusinessSwitcher 
               onCreateBusiness={onCreateBusiness}
-              onManageBusinesses={() => onPageChange('settings')}
+              onManageBusinesses={handleManageBusinesses}
             />
           </div>
         )}
@@ -108,17 +118,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             <SidebarMenu>
               {navigationItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentPage === item.id;
+                const active = isActive(item.path);
                 
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
-                      onClick={() => onPageChange(item.id)}
-                      isActive={isActive}
+                      asChild
+                      isActive={active}
                       tooltip={item.label}
                     >
-                      <Icon className="h-4 w-4" />
-                      {sidebarOpen && <span>{item.label}</span>}
+                      <Link to={item.path}>
+                        <Icon className="h-4 w-4" />
+                        {sidebarOpen && <span>{item.label}</span>}
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
