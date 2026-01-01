@@ -62,7 +62,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     data.quickTasks?.filter(task => 
       task.businessId === currentBusiness?.id && !isTaskPaid(task)
     ) || [], 
-    [data.quickTasks, data.payments, currentBusiness?.id]
+    [data.quickTasks, currentBusiness?.id]
   );
 
   const getSelectedTasks = useMemo(() => {
