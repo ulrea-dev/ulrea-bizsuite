@@ -72,8 +72,30 @@ export const SalariesPage: React.FC = () => {
     );
   }
 
+  // Helper to check if a salary record is expired
+  const isSalaryExpired = (record: SalaryRecord): boolean => {
+    const now = new Date();
+    // Check explicit endDate first
+    if (record.endDate) {
+      return new Date(record.endDate) < now;
+    }
+    // Check contractDuration (in months) from startDate
+    if (record.contractDuration && record.startDate) {
+      const startDate = new Date(record.startDate);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + record.contractDuration);
+      return endDate < now;
+    }
+    return false; // No expiration set
+  };
+
   const businessSalaryRecords = (data.salaryRecords || []).filter(
     record => record.businessId === currentBusiness.id
+  );
+
+  // Filter out expired salary records for display (active only)
+  const activeSalaryRecords = businessSalaryRecords.filter(
+    record => !isSalaryExpired(record)
   );
 
   const businessSalaryPayments = (data.salaryPayments || []).filter(payment =>
@@ -101,15 +123,15 @@ export const SalariesPage: React.FC = () => {
   const combinedSalaryRecords: CombinedSalaryRecord[] = [];
   const processedTeamMembers = new Set<string>();
 
-  businessSalaryRecords.forEach(record => {
+  activeSalaryRecords.forEach(record => {
     if (processedTeamMembers.has(record.teamMemberId)) {
       return; // Already processed this team member
     }
 
     processedTeamMembers.add(record.teamMemberId);
 
-    // Get all salary records for this team member
-    const memberRecords = businessSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
+    // Get all ACTIVE salary records for this team member
+    const memberRecords = activeSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
     const primaryRecord = memberRecords.find(r => (r as any).salaryType === 'primary' || !(r as any).salaryType);
     const secondaryRecords = memberRecords.filter(r => (r as any).salaryType === 'secondary');
 
