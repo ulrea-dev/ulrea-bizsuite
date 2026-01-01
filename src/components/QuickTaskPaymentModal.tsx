@@ -505,7 +505,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                           mode="single"
                           selected={paymentDate}
                           onSelect={setPaymentDate}
-                          initialFocus
                         />
                       </PopoverContent>
                     </Popover>
@@ -600,7 +599,6 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                             mode="single"
                             selected={paymentDate}
                             onSelect={setPaymentDate}
-                            initialFocus
                           />
                         </PopoverContent>
                       </Popover>
