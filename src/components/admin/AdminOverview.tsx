@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { 
   Building2, 
@@ -9,9 +11,14 @@ import {
   ArrowUpRight, 
   ArrowDownLeft, 
   TrendingUp,
+  TrendingDown,
   AlertCircle,
   Clock,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Minus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -85,6 +92,64 @@ export const AdminOverview: React.FC = () => {
     ]);
     return Array.from(currencies).sort();
   }, [accountTotalsByCurrency, payableTotalsByCurrency, receivableTotalsByCurrency]);
+
+  // Calculate financial health status
+  const healthAnalysis = useMemo(() => {
+    const currencies = Object.entries(netPositionByCurrency);
+    const positive = currencies.filter(([_, v]) => v > 0).length;
+    const negative = currencies.filter(([_, v]) => v < 0).length;
+    const zero = currencies.filter(([_, v]) => v === 0).length;
+    const total = currencies.length;
+
+    let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+    if (negative > 0 && negative < total / 2) status = 'warning';
+    if (negative >= total / 2) status = 'critical';
+
+    return { status, positive, negative, zero, total };
+  }, [netPositionByCurrency]);
+
+  // Calculate asset ratio for progress bar per currency
+  const getAssetRatio = (currency: string) => {
+    const accounts = accountTotalsByCurrency[currency] || 0;
+    const receivable = receivableTotalsByCurrency[currency] || 0;
+    const payable = payableTotalsByCurrency[currency] || 0;
+    const assets = accounts + receivable;
+    const total = assets + payable;
+    if (total === 0) return 50;
+    return Math.round((assets / total) * 100);
+  };
+
+  const getHealthBadge = () => {
+    switch (healthAnalysis.status) {
+      case 'healthy':
+        return (
+          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Healthy
+          </Badge>
+        );
+      case 'warning':
+        return (
+          <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            At Risk
+          </Badge>
+        );
+      case 'critical':
+        return (
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+            <XCircle className="h-3 w-3 mr-1" />
+            Negative
+          </Badge>
+        );
+    }
+  };
+
+  const getPositionIcon = (value: number) => {
+    if (value > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (value < 0) return <TrendingDown className="h-4 w-4 text-destructive" />;
+    return <Minus className="h-4 w-4 text-muted-foreground" />;
+  };
 
   // Filter totals based on selected currency
   const filterTotals = (totals: Record<string, number>) => {
@@ -214,58 +279,96 @@ export const AdminOverview: React.FC = () => {
       {/* Net Position Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Net Financial Position
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Net Financial Position
+            </div>
+            {healthAnalysis.total > 0 && getHealthBadge()}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {Object.keys(netPositionByCurrency).length === 0 ? (
               <p className="text-muted-foreground">No financial data yet.</p>
             ) : (
-              Object.entries(netPositionByCurrency)
-                .filter(([currency]) => selectedCurrency === 'all' || currency === selectedCurrency)
-                .map(([currency, netPosition], index, arr) => {
-                  const accounts = accountTotalsByCurrency[currency] || 0;
-                  const receivable = receivableTotalsByCurrency[currency] || 0;
-                  const payable = payableTotalsByCurrency[currency] || 0;
-                  const isExpanded = selectedCurrency !== 'all';
-                  
-                  return (
-                    <Collapsible key={currency} defaultOpen={isExpanded || arr.length === 1}>
-                      <div className="border rounded-lg p-3">
-                        <CollapsibleTrigger className="w-full">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
-                              <span className="font-medium text-muted-foreground">{currency}</span>
+              <>
+                {Object.entries(netPositionByCurrency)
+                  .filter(([currency]) => selectedCurrency === 'all' || currency === selectedCurrency)
+                  .map(([currency, netPosition], index, arr) => {
+                    const accounts = accountTotalsByCurrency[currency] || 0;
+                    const receivable = receivableTotalsByCurrency[currency] || 0;
+                    const payable = payableTotalsByCurrency[currency] || 0;
+                    const isExpanded = selectedCurrency !== 'all';
+                    const assetRatio = getAssetRatio(currency);
+                    
+                    return (
+                      <Collapsible key={currency} defaultOpen={isExpanded || arr.length === 1}>
+                        <div className="border rounded-lg p-3">
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
+                                <span className="font-medium text-muted-foreground">{currency}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getPositionIcon(netPosition)}
+                                <p className={`text-xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                  {formatCurrencyAmount(netPosition, currency, data.customCurrencies || [])}
+                                </p>
+                              </div>
                             </div>
-                            <p className={`text-xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                              {formatCurrencyAmount(netPosition, currency, data.customCurrencies || [])}
-                            </p>
-                          </div>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent>
-                          <div className="pt-3 mt-3 border-t text-sm text-muted-foreground space-y-1">
-                            <div className="flex justify-between">
-                              <span>Accounts</span>
-                              <span>{formatCurrencyAmount(accounts, currency, data.customCurrencies || [])}</span>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="pt-3 mt-3 border-t space-y-3">
+                              {/* Asset/Liability Progress Bar */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>Assets vs Liabilities</span>
+                                  <span>{assetRatio}% assets</span>
+                                </div>
+                                <Progress 
+                                  value={assetRatio} 
+                                  className={`h-2 ${assetRatio >= 50 ? '[&>div]:bg-green-500' : '[&>div]:bg-destructive'}`}
+                                />
+                              </div>
+                              
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div className="flex justify-between">
+                                  <span>Accounts</span>
+                                  <span>{formatCurrencyAmount(accounts, currency, data.customCurrencies || [])}</span>
+                                </div>
+                                <div className="flex justify-between text-green-600">
+                                  <span>+ Receivables</span>
+                                  <span>{formatCurrencyAmount(receivable, currency, data.customCurrencies || [])}</span>
+                                </div>
+                                <div className="flex justify-between text-destructive">
+                                  <span>- Payables</span>
+                                  <span>{formatCurrencyAmount(payable, currency, data.customCurrencies || [])}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-green-600">
-                              <span>+ Receivables</span>
-                              <span>{formatCurrencyAmount(receivable, currency, data.customCurrencies || [])}</span>
-                            </div>
-                            <div className="flex justify-between text-destructive">
-                              <span>- Payables</span>
-                              <span>{formatCurrencyAmount(payable, currency, data.customCurrencies || [])}</span>
-                            </div>
-                          </div>
-                        </CollapsibleContent>
-                      </div>
-                    </Collapsible>
-                  );
-                })
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
+                
+                {/* Summary Analysis Footer */}
+                <div className="pt-3 border-t text-sm text-muted-foreground">
+                  {healthAnalysis.negative === 0 ? (
+                    <p className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      All {healthAnalysis.total} {healthAnalysis.total === 1 ? 'currency is' : 'currencies are'} in positive standing
+                    </p>
+                  ) : (
+                    <p className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                      {healthAnalysis.negative} of {healthAnalysis.total} {healthAnalysis.total === 1 ? 'currency shows' : 'currencies show'} negative net position
+                    </p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </CardContent>
