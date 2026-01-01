@@ -7,16 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Payment, QuickTask } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ListChecks, Calendar as CalendarIcon, User, ArrowRight, CheckCircle2, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 interface QuickTaskPaymentModalProps {
   isOpen: boolean;
@@ -51,9 +48,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
     taskDescription: '',
     description: '',
   });
-  const [paymentDate, setPaymentDate] = useState<Date | undefined>(() => new Date());
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [bulkDatePickerOpen, setBulkDatePickerOpen] = useState(false);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Helper to check if a task has been paid (via paidAt field set when payment is recorded)
   const isTaskPaid = (task: QuickTask) => {
@@ -88,7 +83,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
         taskDescription: '',
         description: '',
       });
-      setPaymentDate(new Date());
+      setPaymentDate(new Date().toISOString().split('T')[0]);
     }
   }, [isOpen]);
 
@@ -153,6 +148,8 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
       return;
     }
 
+    const dateToUse = paymentDate || new Date().toISOString().split('T')[0];
+
     if (bulkMode && selectedTaskIds.length > 0) {
       // Handle bulk payment
       const totalAmount = getTotalAmount;
@@ -169,12 +166,11 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
       // Create payment for each team member
       Object.entries(tasksByMember).forEach(([memberId, memberTasks]) => {
         const memberAmount = memberTasks.reduce((sum, task) => sum + task.amount, 0);
-        const member = data.teamMembers.find(m => m.id === memberId);
         
         const newPayment: Payment = {
           id: `bulk_task_payment_${Date.now()}_${memberId}`,
           amount: memberAmount,
-          date: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+          date: dateToUse,
           type: 'outgoing',
           recipientType: 'team',
           status: 'completed',
@@ -198,7 +194,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
             payload: { 
               id: task.id, 
               updates: { 
-                paidAt: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+                paidAt: dateToUse,
                 updatedAt: new Date().toISOString()
               }
             }
@@ -226,7 +222,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
       const newPayment: Payment = {
         id: `task_payment_${Date.now()}`,
         amount: parseFloat(formData.amount),
-        date: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+        date: dateToUse,
         type: 'outgoing',
         recipientType: 'team',
         status: 'completed',
@@ -250,7 +246,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
           payload: { 
             id: selectedTaskIds[0], 
             updates: { 
-              paidAt: paymentDate?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+              paidAt: dateToUse,
               updatedAt: new Date().toISOString()
             }
           }
@@ -404,7 +400,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                                         </div>
                                         {task.dueDate && (
                                           <div className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
+                                            <CalendarIcon className="h-3 w-3" />
                                             <span>Due: {format(new Date(task.dueDate), 'MMM dd')}</span>
                                           </div>
                                         )}
@@ -489,32 +485,13 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                   
                   <div className="space-y-2">
                     <Label htmlFor="date">Payment Date</Label>
-                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !paymentDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {paymentDate ? format(paymentDate, "MMM dd, yyyy") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <div className="pointer-events-auto">
-                          <Calendar
-                            mode="single"
-                            selected={paymentDate}
-                            onSelect={(date) => {
-                              setPaymentDate(date);
-                              setDatePickerOpen(false);
-                            }}
-                          />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      required
+                    />
                   </div>
                 </div>
 
@@ -588,32 +565,13 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bulkDate">Payment Date</Label>
-                      <Popover open={bulkDatePickerOpen} onOpenChange={setBulkDatePickerOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !paymentDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {paymentDate ? format(paymentDate, "MMM dd, yyyy") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <div className="pointer-events-auto">
-                            <Calendar
-                              mode="single"
-                              selected={paymentDate}
-                              onSelect={(date) => {
-                                setPaymentDate(date);
-                                setBulkDatePickerOpen(false);
-                              }}
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        id="bulkDate"
+                        type="date"
+                        value={paymentDate}
+                        onChange={(e) => setPaymentDate(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
                 </CardContent>
