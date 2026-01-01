@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Wallet } from 'lucide-react';
+import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -32,7 +32,6 @@ const navigationItems = [
   { id: 'team', label: 'Team', icon: Users, path: '/team' },
   { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
   { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
-  { id: 'accounts', label: 'Accounts', icon: Wallet, path: '/accounts' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
@@ -143,6 +142,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname.startsWith('/business-management')}
+              tooltip="Business Management"
+            >
+              <Link to="/business-management">
+                <Briefcase className="h-4 w-4" />
+                {sidebarOpen && <span>Business Management</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleBackupDownload} tooltip="Export Data">
               <Download className="h-4 w-4" />
