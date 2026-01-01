@@ -233,7 +233,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ onNavigateToPage }) 
         </TabsContent>
 
         <TabsContent value="quick-tasks" className="space-y-6">
-          <QuickTasksPage onNavigateToPage={onNavigateToPage || (() => {})} />
+          <QuickTasksPage />
         </TabsContent>
       </Tabs>
     </div>
