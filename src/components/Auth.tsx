@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { importData } from '@/utils/storage';
-import { Briefcase, Upload, Play, ChevronDown } from 'lucide-react';
+import { Briefcase, Upload, Play, ChevronDown, Moon, Sun } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AuthProps {
   onLogin: (username: string) => void;
@@ -13,6 +14,7 @@ interface AuthProps {
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { data, dispatch } = useBusiness();
+  const { theme, toggleTheme } = useTheme();
   const [username, setUsername] = useState('');
   const [showSwitchUser, setShowSwitchUser] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -78,7 +80,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 login-gradient">
+    <div className="min-h-screen flex items-center justify-center p-4 login-gradient relative">
+      {/* Theme Toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleTheme}
+        className="absolute top-4 right-4"
+      >
+        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </Button>
+
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
