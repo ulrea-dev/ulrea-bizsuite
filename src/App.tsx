@@ -6,6 +6,7 @@ import { RepositoryProvider } from "./repositories";
 import { BusinessProvider } from "./contexts/BusinessContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
+import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -17,7 +18,11 @@ import FinancialsPage from "./pages/FinancialsPage";
 import RetainerDetailPage from "./pages/RetainerDetailPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
-import BusinessManagementPage from "./pages/BusinessManagementPage";
+import { AdminOverview } from "./components/admin/AdminOverview";
+import { BusinessesPage } from "./components/admin/BusinessesPage";
+import { BankAccountsPage } from "./components/admin/BankAccountsPage";
+import { PayablesPage } from "./components/admin/PayablesPage";
+import { ReceivablesPage } from "./components/admin/ReceivablesPage";
 
 const App = () => (
   <BrowserRouter>
@@ -36,7 +41,13 @@ const App = () => (
             <Route path="/financials/retainers/:retainerId" element={<RetainerDetailPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/business-management" element={<BusinessManagementPage />} />
+          </Route>
+          <Route element={<BusinessManagementLayout />}>
+            <Route path="/business-management" element={<AdminOverview />} />
+            <Route path="/business-management/businesses" element={<BusinessesPage />} />
+            <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
+            <Route path="/business-management/payables" element={<PayablesPage />} />
+            <Route path="/business-management/receivables" element={<ReceivablesPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />
