@@ -74,6 +74,9 @@ export class LocalStorageRepository implements IDataRepository {
         retainers: data.retainers || [],
         expenses: data.expenses || [],
         extraPayments: data.extraPayments || [],
+        bankAccounts: data.bankAccounts || [],
+        payables: data.payables || [],
+        receivables: data.receivables || [],
         // Ensure projects have clientPayments field (for backward compatibility)
         projects: (data.projects || []).map(project => ({
           ...project,
