@@ -38,6 +38,14 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
   const businessTasks = data.quickTasks?.filter(task => task.businessId === currentBusiness.id) || [];
   const today = new Date();
 
+  // Helper to check if a task has been paid (either via paidAt field or via existing payment record)
+  const isTaskPaid = (task: QuickTask) => {
+    if (task.paidAt) return true;
+    // Check if a payment exists that references this task
+    const hasPayment = data.payments?.some(p => p.taskId === task.id && p.status === 'completed');
+    return hasPayment;
+  };
+
   // Calculate stats
   const activeTasks = businessTasks.filter(task => task.status === 'active');
   const pendingTasks = businessTasks.filter(task => task.status === 'pending');
@@ -47,10 +55,10 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
   );
 
   const totalPendingAmount = businessTasks
-    .filter(task => !task.paidAt)
+    .filter(task => !isTaskPaid(task))
     .reduce((sum, task) => sum + task.amount, 0);
   
-  const unpaidCompletedTasks = businessTasks.filter(task => task.status === 'completed' && !task.paidAt);
+  const unpaidCompletedTasks = businessTasks.filter(task => task.status === 'completed' && !isTaskPaid(task));
 
   const handleEditTask = (task: QuickTask) => {
     setEditingTask(task);
@@ -86,10 +94,11 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
   };
 
   const getStatusBadge = (task: QuickTask) => {
-    if (task.status === 'completed' && task.paidAt) {
+    const paid = isTaskPaid(task);
+    if (task.status === 'completed' && paid) {
       return <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" /><DollarSign className="h-3 w-3 mr-1" />Completed & Paid</Badge>;
     }
-    if (task.status === 'completed' && !task.paidAt) {
+    if (task.status === 'completed' && !paid) {
       return <Badge variant="secondary" className="bg-orange-100 text-orange-800"><CheckCircle className="h-3 w-3 mr-1" />Completed & Unpaid</Badge>;
     }
     if (task.dueDate && new Date(task.dueDate) < today && (task.status === 'active' || task.status === 'pending')) {
@@ -195,8 +204,8 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
       <Card>
         <CardHeader>
           <CardTitle>All Tasks</CardTitle>
-          <CardDescription>
-            {businessTasks.length} total tasks • {businessTasks.filter(t => !t.paidAt).length} awaiting payment
+            <CardDescription>
+              {businessTasks.length} total tasks • {businessTasks.filter(t => !isTaskPaid(t)).length} awaiting payment
             {unpaidCompletedTasks.length > 0 && (
               <span className="text-orange-600"> • {unpaidCompletedTasks.length} completed but unpaid</span>
             )}
@@ -257,7 +266,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
                   </div>
 
                   <div className="flex items-center gap-2 ml-4">
-                    {!task.paidAt && (
+                    {!isTaskPaid(task) && (
                       <Button 
                         size="sm" 
                         variant={task.status === 'completed' ? "default" : "outline"}
