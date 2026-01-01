@@ -11,11 +11,8 @@ import { RetainerModal } from './RetainerModal';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-interface RetainersPageProps {
-  onNavigate?: (page: string, retainerId?: string) => void;
-}
-
-export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
+export const RetainersPage: React.FC = () => {
+  const navigate = useNavigate();
   const { data, currentBusiness, dispatch } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRetainer, setSelectedRetainer] = useState<any>(null);
@@ -53,9 +50,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ onNavigate }) => {
   };
 
   const handleView = (retainer: any) => {
-    if (onNavigate) {
-      onNavigate('retainer-detail', retainer.id);
-    }
+    navigate(`/financials/retainers/${retainer.id}`);
   };
 
   const handleToggleStatus = (retainer: any) => {
