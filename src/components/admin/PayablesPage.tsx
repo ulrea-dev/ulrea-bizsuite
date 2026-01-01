@@ -45,13 +45,27 @@ export const PayablesPage: React.FC = () => {
   const [selectedPayable, setSelectedPayable] = useState<Payable | null>(null);
   const [deletePayableId, setDeletePayableId] = useState<string | null>(null);
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
+  const [businessFilter, setBusinessFilter] = useState<string>('all');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
-  const payables = useMemo(() => 
-    data.payables.filter((p) => p.businessId === currentBusiness?.id),
-    [data.payables, currentBusiness?.id]
+  // Get all payables (admin view shows all businesses)
+  const allPayables = useMemo(() => 
+    data.payables || [],
+    [data.payables]
   );
+
+  // Filter by selected business
+  const payables = useMemo(() => 
+    businessFilter === 'all' 
+      ? allPayables 
+      : allPayables.filter((p) => p.businessId === businessFilter),
+    [allPayables, businessFilter]
+  );
+
+  // Helper to get business name
+  const getBusinessName = (businessId: string) => 
+    data.businesses.find(b => b.id === businessId)?.name || 'Unknown';
 
   // Get unique currencies from payables
   const availableCurrencies = useMemo(() => 
@@ -106,27 +120,34 @@ export const PayablesPage: React.FC = () => {
     });
   };
 
-  if (!currentBusiness) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please select a business to view payables.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Payables</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Track money you owe to vendors and suppliers
+            Track money owed to vendors across all businesses
           </p>
         </div>
-        <Button onClick={() => { setSelectedPayable(null); setPayableModalOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Payable
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={businessFilter} onValueChange={setBusinessFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by business" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Businesses</SelectItem>
+              {data.businesses.map((business) => (
+                <SelectItem key={business.id} value={business.id}>
+                  {business.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => { setSelectedPayable(null); setPayableModalOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Payable
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -186,6 +207,7 @@ export const PayablesPage: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Vendor</TableHead>
+                <TableHead>Business</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Currency</TableHead>
                 <TableHead>Paid</TableHead>
@@ -202,6 +224,11 @@ export const PayablesPage: React.FC = () => {
                     {payable.invoiceRef && (
                       <span className="text-xs text-muted-foreground ml-2">({payable.invoiceRef})</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {getBusinessName(payable.businessId)}
+                    </Badge>
                   </TableCell>
                   <TableCell>{formatCurrencyAmount(payable.amount, payable.currency, data.customCurrencies || [])}</TableCell>
                   <TableCell>

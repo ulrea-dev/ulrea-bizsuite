@@ -45,13 +45,27 @@ export const ReceivablesPage: React.FC = () => {
   const [selectedReceivable, setSelectedReceivable] = useState<Receivable | null>(null);
   const [deleteReceivableId, setDeleteReceivableId] = useState<string | null>(null);
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
+  const [businessFilter, setBusinessFilter] = useState<string>('all');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
-  const receivables = useMemo(() => 
-    data.receivables.filter((r) => r.businessId === currentBusiness?.id),
-    [data.receivables, currentBusiness?.id]
+  // Get all receivables (admin view shows all businesses)
+  const allReceivables = useMemo(() => 
+    data.receivables || [],
+    [data.receivables]
   );
+
+  // Filter by selected business
+  const receivables = useMemo(() => 
+    businessFilter === 'all' 
+      ? allReceivables 
+      : allReceivables.filter((r) => r.businessId === businessFilter),
+    [allReceivables, businessFilter]
+  );
+
+  // Helper to get business name
+  const getBusinessName = (businessId: string) => 
+    data.businesses.find(b => b.id === businessId)?.name || 'Unknown';
 
   // Get unique currencies from receivables
   const availableCurrencies = useMemo(() => 
@@ -106,27 +120,34 @@ export const ReceivablesPage: React.FC = () => {
     });
   };
 
-  if (!currentBusiness) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please select a business to view receivables.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Receivables</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Track money owed to you by clients and customers
+            Track money owed to you across all businesses
           </p>
         </div>
-        <Button onClick={() => { setSelectedReceivable(null); setReceivableModalOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Receivable
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={businessFilter} onValueChange={setBusinessFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by business" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Businesses</SelectItem>
+              {data.businesses.map((business) => (
+                <SelectItem key={business.id} value={business.id}>
+                  {business.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => { setSelectedReceivable(null); setReceivableModalOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Receivable
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -186,6 +207,7 @@ export const ReceivablesPage: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Source</TableHead>
+                <TableHead>Business</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Currency</TableHead>
                 <TableHead>Received</TableHead>
@@ -202,6 +224,11 @@ export const ReceivablesPage: React.FC = () => {
                     {receivable.invoiceRef && (
                       <span className="text-xs text-muted-foreground ml-2">({receivable.invoiceRef})</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {getBusinessName(receivable.businessId)}
+                    </Badge>
                   </TableCell>
                   <TableCell>{formatCurrencyAmount(receivable.amount, receivable.currency, data.customCurrencies || [])}</TableCell>
                   <TableCell>

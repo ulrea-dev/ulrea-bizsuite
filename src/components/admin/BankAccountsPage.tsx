@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { BankAccountModal } from '@/components/BankAccountModal';
 import { BankAccount, SUPPORTED_CURRENCIES } from '@/types/business';
@@ -41,12 +42,28 @@ export const BankAccountsPage: React.FC = () => {
   const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
+  const [businessFilter, setBusinessFilter] = useState<string>('all');
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
 
+  // Get all bank accounts (admin view shows all businesses)
+  const allBankAccounts = useMemo(() => 
+    data.bankAccounts || [],
+    [data.bankAccounts]
+  );
+
+  // Filter by selected business
   const bankAccounts = useMemo(() => 
-    data.bankAccounts.filter((a) => a.businessId === currentBusiness?.id),
-    [data.bankAccounts, currentBusiness?.id]
+    businessFilter === 'all' 
+      ? allBankAccounts 
+      : allBankAccounts.filter((a) => a.businessId === businessFilter),
+    [allBankAccounts, businessFilter]
+  );
+
+  // Get businesses that have accounts
+  const businessesWithAccounts = useMemo(() => 
+    [...new Set(allBankAccounts.map(a => a.businessId))],
+    [allBankAccounts]
   );
 
   const totalsByCurrency = useMemo(() => 
@@ -57,6 +74,10 @@ export const BankAccountsPage: React.FC = () => {
     ),
     [bankAccounts]
   );
+
+  // Helper to get business name
+  const getBusinessName = (businessId: string) => 
+    data.businesses.find(b => b.id === businessId)?.name || 'Unknown';
 
   const handleEditAccount = (account: BankAccount) => {
     setSelectedAccount(account);
@@ -70,27 +91,34 @@ export const BankAccountsPage: React.FC = () => {
     }
   };
 
-  if (!currentBusiness) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please select a business to view accounts.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Bank Accounts</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Manage your payment accounts and balances
+            Manage payment accounts across all businesses
           </p>
         </div>
-        <Button onClick={() => { setSelectedAccount(null); setAccountModalOpen(true); }}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Account
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={businessFilter} onValueChange={setBusinessFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by business" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Businesses</SelectItem>
+              {data.businesses.map((business) => (
+                <SelectItem key={business.id} value={business.id}>
+                  {business.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => { setSelectedAccount(null); setAccountModalOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Account
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -137,7 +165,13 @@ export const BankAccountsPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground capitalize">{account.type}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-muted-foreground capitalize">{account.type}</p>
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {getBusinessName(account.businessId)}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold mb-2">
