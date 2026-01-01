@@ -56,9 +56,17 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
   // Helper to check if a task has been paid (either via paidAt field or via existing payment record)
   const isTaskPaid = (task: QuickTask) => {
     if (task.paidAt) return true;
-    // Check if a payment exists that references this task
-    const hasPayment = data.payments?.some(p => p.taskId === task.id && p.status === 'completed');
-    return hasPayment;
+    // Check if a payment exists that references this task directly
+    const hasDirectPayment = data.payments?.some(p => p.taskId === task.id && p.status === 'completed');
+    if (hasDirectPayment) return true;
+    // Check for bulk task payments that include this task (by matching member + task title in description)
+    const hasBulkPayment = data.payments?.some(p => 
+      p.paymentSource === 'task' && 
+      p.memberId === task.assignedToId && 
+      p.status === 'completed' &&
+      (p.description?.includes(task.title) || p.taskDescription?.includes(task.title))
+    );
+    return hasBulkPayment;
   };
 
   const availableTasks = useMemo(() => 
