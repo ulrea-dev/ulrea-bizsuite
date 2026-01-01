@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { BankAccountModal } from '@/components/BankAccountModal';
 import { BankAccount, SUPPORTED_CURRENCIES } from '@/types/business';
+import { groupByCurrency, formatCurrencyAmount } from '@/utils/currencySummary';
+import { CurrencyTotals } from './CurrencyTotals';
 import { 
   Plus, 
   Wallet, 
@@ -41,23 +43,18 @@ export const BankAccountsPage: React.FC = () => {
   const [deleteAccountId, setDeleteAccountId] = useState<string | null>(null);
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
-  
-  const getCurrencySymbol = (code: string) => {
-    return allCurrencies.find((c) => c.code === code)?.symbol || code;
-  };
-
-  const formatCurrency = (amount: number, currencyCode: string) => {
-    const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
 
   const bankAccounts = useMemo(() => 
     data.bankAccounts.filter((a) => a.businessId === currentBusiness?.id),
     [data.bankAccounts, currentBusiness?.id]
   );
 
-  const totalInAccounts = useMemo(() => 
-    bankAccounts.reduce((sum, a) => sum + a.balance, 0),
+  const totalsByCurrency = useMemo(() => 
+    groupByCurrency(
+      bankAccounts,
+      (a) => a.balance,
+      (a) => a.currency
+    ),
     [bankAccounts]
   );
 
@@ -105,10 +102,12 @@ export const BankAccountsPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">
-            {formatCurrency(totalInAccounts, currentBusiness.currency.code)}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
+          <CurrencyTotals 
+            totals={totalsByCurrency}
+            customCurrencies={data.customCurrencies || []}
+            amountClassName="text-3xl"
+          />
+          <p className="text-sm text-muted-foreground mt-2">
             Across {bankAccounts.length} account{bankAccounts.length !== 1 ? 's' : ''}
           </p>
         </CardContent>
@@ -131,15 +130,18 @@ export const BankAccountsPage: React.FC = () => {
                     {ACCOUNT_TYPE_ICONS[account.type]}
                     <CardTitle className="text-base">{account.name}</CardTitle>
                   </div>
-                  {account.isDefault && (
-                    <Badge variant="secondary" className="text-xs">Default</Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">{account.currency}</Badge>
+                    {account.isDefault && (
+                      <Badge variant="secondary" className="text-xs">Default</Badge>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground capitalize">{account.type}</p>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold mb-2">
-                  {formatCurrency(account.balance, account.currency)}
+                  {formatCurrencyAmount(account.balance, account.currency, data.customCurrencies || [])}
                 </p>
                 {account.accountNumber && (
                   <p className="text-xs text-muted-foreground">•••• {account.accountNumber}</p>

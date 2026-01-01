@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ReceivableModal } from '@/components/ReceivableModal';
 import { Receivable, SUPPORTED_CURRENCIES } from '@/types/business';
+import { groupByCurrency, formatCurrencyAmount } from '@/utils/currencySummary';
+import { CurrencyTotals } from './CurrencyTotals';
 import { 
   Plus, 
   ArrowDownLeft, 
@@ -43,24 +45,24 @@ export const ReceivablesPage: React.FC = () => {
   const [deleteReceivableId, setDeleteReceivableId] = useState<string | null>(null);
 
   const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
-  
-  const getCurrencySymbol = (code: string) => {
-    return allCurrencies.find((c) => c.code === code)?.symbol || code;
-  };
-
-  const formatCurrency = (amount: number, currencyCode: string) => {
-    const symbol = getCurrencySymbol(currencyCode);
-    return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
 
   const receivables = useMemo(() => 
     data.receivables.filter((r) => r.businessId === currentBusiness?.id),
     [data.receivables, currentBusiness?.id]
   );
 
-  const totalReceivables = useMemo(() => 
-    receivables.filter((r) => r.status !== 'paid').reduce((sum, r) => sum + (r.amount - r.receivedAmount), 0),
+  const pendingReceivables = useMemo(() =>
+    receivables.filter((r) => r.status !== 'paid'),
     [receivables]
+  );
+
+  const totalsByCurrency = useMemo(() => 
+    groupByCurrency(
+      pendingReceivables,
+      (r) => r.amount - r.receivedAmount,
+      (r) => r.currency
+    ),
+    [pendingReceivables]
   );
 
   const pendingCount = receivables.filter(r => r.status === 'pending').length;
@@ -123,9 +125,11 @@ export const ReceivablesPage: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-green-600">
-            {formatCurrency(totalReceivables, currentBusiness.currency.code)}
-          </p>
+          <CurrencyTotals 
+            totals={totalsByCurrency}
+            customCurrencies={data.customCurrencies || []}
+            amountClassName="text-3xl text-green-600"
+          />
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
             <span>{pendingCount} pending</span>
             {overdueCount > 0 && (
@@ -152,6 +156,7 @@ export const ReceivablesPage: React.FC = () => {
               <TableRow>
                 <TableHead>Source</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Currency</TableHead>
                 <TableHead>Received</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
@@ -167,8 +172,11 @@ export const ReceivablesPage: React.FC = () => {
                       <span className="text-xs text-muted-foreground ml-2">({receivable.invoiceRef})</span>
                     )}
                   </TableCell>
-                  <TableCell>{formatCurrency(receivable.amount, receivable.currency)}</TableCell>
-                  <TableCell>{formatCurrency(receivable.receivedAmount, receivable.currency)}</TableCell>
+                  <TableCell>{formatCurrencyAmount(receivable.amount, receivable.currency, data.customCurrencies || [])}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{receivable.currency}</Badge>
+                  </TableCell>
+                  <TableCell>{formatCurrencyAmount(receivable.receivedAmount, receivable.currency, data.customCurrencies || [])}</TableCell>
                   <TableCell>{format(new Date(receivable.dueDate), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_STYLES[receivable.status]?.variant} className="gap-1">
