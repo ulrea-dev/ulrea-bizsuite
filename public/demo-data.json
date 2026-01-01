@@ -1896,6 +1896,32 @@
       "isDefault": false,
       "createdAt": "2023-05-01T00:00:00Z",
       "updatedAt": "2024-11-15T00:00:00Z"
+    },
+    {
+      "id": "bank006",
+      "businessId": "1735315200000-abc123def",
+      "name": "Credit Line Account",
+      "type": "bank",
+      "balance": -45000,
+      "currency": "USD",
+      "accountNumber": "****3421",
+      "description": "Business line of credit - overdrawn",
+      "isDefault": false,
+      "createdAt": "2024-01-15T00:00:00Z",
+      "updatedAt": "2024-12-20T00:00:00Z"
+    },
+    {
+      "id": "bank007",
+      "businessId": "1735315200001-xyz789ghi",
+      "name": "Emergency Fund EUR",
+      "type": "bank",
+      "balance": -12500,
+      "currency": "EUR",
+      "accountNumber": "****9087",
+      "description": "Emergency overdraft facility",
+      "isDefault": false,
+      "createdAt": "2024-06-01T00:00:00Z",
+      "updatedAt": "2024-12-18T00:00:00Z"
     }
   ],
   "payables": [
