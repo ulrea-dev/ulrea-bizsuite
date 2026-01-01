@@ -23,7 +23,6 @@ import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/type
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
 import { Plus } from 'lucide-react';
 import { PartnersPage } from './PartnersPage';
-import { BusinessManagement } from './BusinessManagement';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -117,9 +116,8 @@ export const SettingsPage: React.FC = () => {
 
       <Tabs defaultValue="account" className="space-y-4">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-4">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-3">
             <TabsTrigger value="account" className="text-xs sm:text-sm">Account</TabsTrigger>
-            <TabsTrigger value="businesses" className="text-xs sm:text-sm">Businesses</TabsTrigger>
             <TabsTrigger value="currency" className="text-xs sm:text-sm">Currency</TabsTrigger>
             <TabsTrigger value="advanced" className="text-xs sm:text-sm">Advanced</TabsTrigger>
           </TabsList>
@@ -191,10 +189,6 @@ export const SettingsPage: React.FC = () => {
               <PartnersPage />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="businesses" className="space-y-4">
-          <BusinessManagement onCreateBusiness={() => {}} />
         </TabsContent>
 
         <TabsContent value="currency" className="space-y-4">
