@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,11 +14,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-interface QuickTasksPageProps {
-  onNavigateToPage: (page: string) => void;
-}
-
-export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage }) => {
+export const QuickTasksPage: React.FC = () => {
+  const navigate = useNavigate();
   const { data, currentBusiness, dispatch } = useBusiness();
   const { toast } = useToast();
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -121,7 +119,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
           <p className="text-xs sm:text-sm text-muted-foreground">Manage one-time work and payments for {currentBusiness.name}</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => onNavigateToPage('salaries')} variant="outline">
+          <Button onClick={() => navigate('/financials?tab=salaries')} variant="outline">
             <DollarSign className="h-4 w-4 mr-2" />
             Go to Payroll
           </Button>
@@ -267,7 +265,7 @@ export const QuickTasksPage: React.FC<QuickTasksPageProps> = ({ onNavigateToPage
                       <Button 
                         size="sm" 
                         variant={task.status === 'completed' ? "default" : "outline"}
-                        onClick={() => onNavigateToPage('salaries')}
+                        onClick={() => navigate('/financials?tab=salaries')}
                       >
                         <DollarSign className="h-3 w-3 mr-1" />
                         {task.status === 'completed' ? 'Pay Now' : 'Pay'}
