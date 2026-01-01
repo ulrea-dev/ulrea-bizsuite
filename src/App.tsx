@@ -17,6 +17,7 @@ import FinancialsPage from "./pages/FinancialsPage";
 import RetainerDetailPage from "./pages/RetainerDetailPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
+import AccountsPage from "./pages/AccountsPage";
 
 const App = () => (
   <BrowserRouter>
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/financials" element={<FinancialsPage />} />
             <Route path="/financials/retainers/:retainerId" element={<RetainerDetailPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
