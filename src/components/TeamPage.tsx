@@ -64,117 +64,32 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     setShowMemberModal(true);
   };
 
-  // Calculate comprehensive outstanding amounts (projects + salaries + quick tasks)
+  // Calculate project allocation totals and outstanding (ONLY phase-based allocationTeamAllocations)
   const getMemberAllocations = (memberId: string) => {
     if (!currentBusiness) {
-      return { totalAllocated: 0, totalPaid: 0, projectOutstanding: 0, salaryOutstanding: 0, quickTaskOutstanding: 0, totalOutstanding: 0 };
+      return { totalAllocated: 0, totalPaid: 0, projectOutstanding: 0, totalOutstanding: 0 };
     }
     
-    // 1. Project allocations outstanding
+    // ONLY use phase-based allocationTeamAllocations - these are the source of truth
+    // Legacy teamAllocations are deprecated and should not contribute to outstanding
     const phaseAllocations = data.projects
       .filter(project => project.businessId === currentBusiness.id)
       .flatMap(project => 
         project.allocationTeamAllocations?.filter(alloc => alloc.memberId === memberId) || []
       );
     
-    const legacyAllocations = data.projects
-      .filter(project => project.businessId === currentBusiness.id)
-      .flatMap(project => 
-        project.teamAllocations.filter(alloc => alloc.memberId === memberId)
-      );
-    
-    const allAllocations = [...phaseAllocations, ...legacyAllocations];
-    const totalAllocated = allAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
-    const totalPaid = allAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
+    const totalAllocated = phaseAllocations.reduce((sum, alloc) => sum + alloc.totalAllocated, 0);
+    const totalPaid = phaseAllocations.reduce((sum, alloc) => sum + alloc.paidAmount, 0);
     const projectOutstanding = totalAllocated - totalPaid;
     
-    // 2. Salary outstanding (current month's salary minus payments made this month)
-    // Helper to check if a salary record is expired
-    const isSalaryExpired = (record: typeof data.salaryRecords[0]): boolean => {
-      const now = new Date();
-      if (record.endDate) {
-        return new Date(record.endDate) < now;
-      }
-      if (record.contractDuration && record.startDate) {
-        const startDate = new Date(record.startDate);
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + record.contractDuration);
-        return endDate < now;
-      }
-      return false;
-    };
-    
-    const memberSalaryRecords = data.salaryRecords.filter(
-      r => r.teamMemberId === memberId && r.businessId === currentBusiness.id && !isSalaryExpired(r)
-    );
-    
-    // Calculate combined monthly salary (like PayrollDashboard does)
-    let monthlySalaryAmount = 0;
-    const allCurrencies = [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
-    
-    memberSalaryRecords.forEach(record => {
-      const recordCurrency = allCurrencies.find(c => c.code === record.currency) || data.userSettings.defaultCurrency;
-      let monthlyAmount = record.amount;
-      
-      // Convert to monthly equivalent based on frequency
-      switch (record.frequency) {
-        case 'weekly':
-          monthlyAmount = record.amount * 4.33;
-          break;
-        case 'bi-weekly':
-          monthlyAmount = record.amount * 2.17;
-          break;
-        case 'quarterly':
-          monthlyAmount = record.amount / 3;
-          break;
-        case 'annually':
-          monthlyAmount = record.amount / 12;
-          break;
-        // 'monthly' stays as is
-      }
-      
-      // Convert to default currency
-      const converted = convertCurrency(
-        monthlyAmount, 
-        recordCurrency, 
-        data.userSettings.defaultCurrency, 
-        data.exchangeRates || []
-      );
-      monthlySalaryAmount += converted;
-    });
-    
-    // Check if paid this month
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    const salaryRecordIds = memberSalaryRecords.map(r => r.id);
-    
-    const paidThisMonth = data.salaryPayments.some(p => {
-      if (!salaryRecordIds.includes(p.salaryRecordId)) return false;
-      const paymentDate = new Date(p.paymentDate);
-      return paymentDate.getMonth() === currentMonth && 
-             paymentDate.getFullYear() === currentYear;
-    });
-    
-    const salaryOutstanding = paidThisMonth ? 0 : monthlySalaryAmount;
-    
-    // 3. Quick tasks outstanding (completed but unpaid)
-    const unpaidTasks = data.quickTasks.filter(
-      t => t.assignedToId === memberId && 
-           t.status === 'completed' && 
-           !t.paidAt &&
-           t.businessId === currentBusiness.id
-    );
-    const quickTaskOutstanding = unpaidTasks.reduce((sum, t) => sum + t.amount, 0);
-    
-    const totalOutstanding = projectOutstanding + salaryOutstanding + quickTaskOutstanding;
+    // Only project allocations contribute to outstanding
+    // Salary and tasks have their own tracking systems (Payroll, Quick Tasks pages)
+    const totalOutstanding = projectOutstanding;
     
     return { 
       totalAllocated, 
       totalPaid, 
       projectOutstanding,
-      salaryOutstanding,
-      quickTaskOutstanding,
       totalOutstanding 
     };
   };
@@ -336,11 +251,9 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
                             <span className={allocations.totalOutstanding > 0 ? 'text-orange-600 font-medium' : 'dashboard-text-secondary'}>
                               {currentBusiness ? formatCurrency(allocations.totalOutstanding, currentBusiness.currency) : '-'}
                             </span>
-                            {allocations.totalOutstanding > 0 && (
+                            {allocations.projectOutstanding > 0 && (
                               <div className="text-xs dashboard-text-secondary mt-1">
-                                {allocations.projectOutstanding > 0 && <div>Projects: {formatCurrency(allocations.projectOutstanding, currentBusiness!.currency)}</div>}
-                                {allocations.salaryOutstanding > 0 && <div>Salary: {formatCurrency(allocations.salaryOutstanding, currentBusiness!.currency)}</div>}
-                                {allocations.quickTaskOutstanding > 0 && <div>Tasks: {formatCurrency(allocations.quickTaskOutstanding, currentBusiness!.currency)}</div>}
+                                Projects: {formatCurrency(allocations.projectOutstanding, currentBusiness!.currency)}
                               </div>
                             )}
                           </div>
