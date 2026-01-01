@@ -92,8 +92,8 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
 
   useEffect(() => {
     // Auto-fill form when a single task is selected in non-bulk mode
-    if (selectedTaskIds.length === 1 && !manualMode && !bulkMode && availableTasks.length > 0) {
-      const selectedTask = availableTasks.find(task => task.id === selectedTaskIds[0]);
+    if (selectedTaskIds.length === 1 && !manualMode && !bulkMode) {
+      const selectedTask = data.quickTasks?.find(task => task.id === selectedTaskIds[0]);
       if (selectedTask) {
         setFormData(prev => ({
           ...prev,
@@ -105,7 +105,7 @@ export const QuickTaskPaymentModal: React.FC<QuickTaskPaymentModalProps> = ({
         }));
       }
     }
-  }, [selectedTaskIds, manualMode, bulkMode, availableTasks]);
+  }, [selectedTaskIds, manualMode, bulkMode, data.quickTasks]);
 
   const handleTaskSelection = useCallback((taskId: string, checked: boolean) => {
     if (bulkMode) {
