@@ -88,18 +88,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-          <SidebarTrigger />
           {sidebarOpen && (
             <>
               <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
                 <Building2 className="h-6 w-6 dashboard-text-primary" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-base font-bold dashboard-text-primary">BizSuite</h1>
                 <p className="text-xs dashboard-text-secondary">Management Tool</p>
               </div>
             </>
           )}
+          <SidebarTrigger className={sidebarOpen ? '' : 'mx-auto'} />
         </div>
         
         {sidebarOpen && (
