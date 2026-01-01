@@ -5,7 +5,8 @@ import { PaymentsPage } from './PaymentsPage';
 import { ExpensesPage } from './ExpensesPage';
 import { SalariesPage } from './SalariesPage';
 import { RetainersPage } from './RetainersPage';
-import { DollarSign, TrendingUp, Receipt, Users, Repeat } from 'lucide-react';
+import { QuickTaskPaymentsPage } from './QuickTaskPaymentsPage';
+import { DollarSign, TrendingUp, Receipt, Users, Repeat, ListChecks } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle } from 'lucide-react';
 
@@ -25,7 +26,7 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
 
       <Tabs defaultValue="revenue" className="space-y-6">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-5">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-6">
             <TabsTrigger value="revenue" className="gap-1.5 text-xs sm:text-sm">
               <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Revenue</span>
@@ -41,6 +42,10 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
             <TabsTrigger value="salaries" className="gap-1.5 text-xs sm:text-sm">
               <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Payroll</span>
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm">
+              <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Tasks</span>
             </TabsTrigger>
             <TabsTrigger value="retainers" className="gap-1.5 text-xs sm:text-sm items-center">
               <Repeat className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -73,6 +78,10 @@ export const FinancialsPage: React.FC<FinancialsPageProps> = ({ onNavigate }) =>
 
         <TabsContent value="salaries" className="space-y-6">
           <SalariesPage />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="space-y-6">
+          <QuickTaskPaymentsPage />
         </TabsContent>
 
         <TabsContent value="retainers" className="space-y-6">
