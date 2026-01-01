@@ -119,7 +119,7 @@ export const QuickTasksPage: React.FC = () => {
           <p className="text-xs sm:text-sm text-muted-foreground">Manage one-time work and payments for {currentBusiness.name}</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => navigate('/financials?tab=salaries')} variant="outline">
+          <Button onClick={() => navigate('/financials?tab=tasks')} variant="outline">
             <DollarSign className="h-4 w-4 mr-2" />
             Go to Payroll
           </Button>
@@ -265,7 +265,7 @@ export const QuickTasksPage: React.FC = () => {
                       <Button 
                         size="sm" 
                         variant={task.status === 'completed' ? "default" : "outline"}
-                        onClick={() => navigate('/financials?tab=salaries')}
+                        onClick={() => navigate('/financials?tab=tasks')}
                       >
                         <DollarSign className="h-3 w-3 mr-1" />
                         {task.status === 'completed' ? 'Pay Now' : 'Pay'}
