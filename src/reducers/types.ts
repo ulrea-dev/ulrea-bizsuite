@@ -23,6 +23,9 @@ import {
   QuickTask,
   Retainer,
   ExtraPayment,
+  BankAccount,
+  Payable,
+  Receivable,
 } from '@/types/business';
 
 /**
@@ -121,4 +124,16 @@ export type BusinessAction =
   // Extra Payment actions
   | { type: 'ADD_EXTRA_PAYMENT'; payload: ExtraPayment }
   | { type: 'UPDATE_EXTRA_PAYMENT'; payload: { id: string; updates: Partial<ExtraPayment> } }
-  | { type: 'DELETE_EXTRA_PAYMENT'; payload: string };
+  | { type: 'DELETE_EXTRA_PAYMENT'; payload: string }
+  // Bank Account actions
+  | { type: 'ADD_BANK_ACCOUNT'; payload: BankAccount }
+  | { type: 'UPDATE_BANK_ACCOUNT'; payload: { id: string; updates: Partial<BankAccount> } }
+  | { type: 'DELETE_BANK_ACCOUNT'; payload: string }
+  // Payable actions
+  | { type: 'ADD_PAYABLE'; payload: Payable }
+  | { type: 'UPDATE_PAYABLE'; payload: { id: string; updates: Partial<Payable> } }
+  | { type: 'DELETE_PAYABLE'; payload: string }
+  // Receivable actions
+  | { type: 'ADD_RECEIVABLE'; payload: Receivable }
+  | { type: 'UPDATE_RECEIVABLE'; payload: { id: string; updates: Partial<Receivable> } }
+  | { type: 'DELETE_RECEIVABLE'; payload: string };

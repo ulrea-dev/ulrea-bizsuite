@@ -358,6 +358,63 @@ export interface ColorPalette {
   };
 }
 
+// Bank/Payment Account types
+export type BankAccountType = 'bank' | 'stripe' | 'paypal' | 'cash' | 'crypto' | 'other';
+
+export interface BankAccount {
+  id: string;
+  businessId: string;
+  name: string;
+  type: BankAccountType;
+  balance: number;
+  currency: string;
+  accountNumber?: string;
+  description?: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PayableStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+
+export interface Payable {
+  id: string;
+  businessId: string;
+  accountId?: string;
+  vendorName: string;
+  amount: number;
+  paidAmount: number;
+  currency: string;
+  dueDate: string;
+  status: PayableStatus;
+  category?: string;
+  description?: string;
+  invoiceRef?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ReceivableStatus = 'pending' | 'partial' | 'paid' | 'overdue';
+
+export interface Receivable {
+  id: string;
+  businessId: string;
+  accountId?: string;
+  clientId?: string;
+  projectId?: string;
+  retainerId?: string;
+  sourceName: string;
+  amount: number;
+  receivedAmount: number;
+  currency: string;
+  dueDate: string;
+  status: ReceivableStatus;
+  description?: string;
+  invoiceRef?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   businesses: Business[];
   projects: Project[];
@@ -375,6 +432,9 @@ export interface AppData {
   retainers: Retainer[];
   expenses: Expense[];
   extraPayments: ExtraPayment[];
+  bankAccounts: BankAccount[];
+  payables: Payable[];
+  receivables: Receivable[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;
