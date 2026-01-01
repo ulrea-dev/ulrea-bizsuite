@@ -46,8 +46,29 @@ export const PayrollDashboard: React.FC = () => {
     );
   }
 
+  // Helper to check if a salary record is expired
+  const isSalaryExpired = (record: SalaryRecord, checkDate: Date = new Date()): boolean => {
+    // Check explicit endDate first
+    if (record.endDate) {
+      return new Date(record.endDate) < checkDate;
+    }
+    // Check contractDuration (in months) from startDate
+    if (record.contractDuration && record.startDate) {
+      const startDate = new Date(record.startDate);
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + record.contractDuration);
+      return endDate < checkDate;
+    }
+    return false; // No expiration set
+  };
+
   const businessSalaryRecords = (data.salaryRecords || []).filter(
     record => record.businessId === currentBusiness.id
+  );
+
+  // Filter out expired salary records for active payroll
+  const activeSalaryRecords = businessSalaryRecords.filter(
+    record => !isSalaryExpired(record)
   );
 
   const businessSalaryPayments = (data.salaryPayments || []).filter(payment =>
@@ -71,14 +92,14 @@ export const PayrollDashboard: React.FC = () => {
     const processedTeamMembers = new Set<string>();
     const employees: PayrollEmployee[] = [];
 
-    businessSalaryRecords.forEach(record => {
+    activeSalaryRecords.forEach(record => {
       if (processedTeamMembers.has(record.teamMemberId)) {
         return;
       }
       processedTeamMembers.add(record.teamMemberId);
 
-      // Get all salary records for this team member
-      const memberRecords = businessSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
+      // Get all ACTIVE salary records for this team member
+      const memberRecords = activeSalaryRecords.filter(r => r.teamMemberId === record.teamMemberId);
       const primaryRecord = memberRecords.find(r => r.salaryType === 'primary' || !r.salaryType);
       const secondaryRecords = memberRecords.filter(r => r.salaryType === 'secondary');
 
@@ -162,7 +183,7 @@ export const PayrollDashboard: React.FC = () => {
     });
 
     return employees;
-  }, [businessSalaryRecords, businessSalaryPayments, selectedYear, selectedMonth, allCurrencies, data.userSettings.defaultCurrency, data.exchangeRates]);
+  }, [activeSalaryRecords, businessSalaryPayments, selectedYear, selectedMonth, allCurrencies, data.userSettings.defaultCurrency, data.exchangeRates]);
 
   // Get extra payments for the selected period
   const currentPeriodStr = `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`;
