@@ -8,6 +8,7 @@ const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000; // 5 seconds
 
 // Google OAuth Client ID (public key - safe to include in client-side code)
+// Exported for use in Auth component
 const GOOGLE_CLIENT_ID = "63460396574-lmeqr2hf2ucbj11vbmkr0m2va98ngt1a.apps.googleusercontent.com";
 
 interface GoogleDriveContextValue {
