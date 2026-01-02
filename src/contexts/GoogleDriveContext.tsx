@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { useGoogleLogin, googleLogout, hasGrantedAllScopesGoogle } from '@react-oauth/google';
 import { googleDriveService } from '@/services/googleDriveService';
 import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS } from '@/types/googleDrive';
 import { AppData } from '@/types/business';
@@ -8,10 +7,15 @@ import { useToast } from '@/hooks/use-toast';
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000; // 5 seconds
 
+// Check if Google OAuth is configured
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const isGoogleConfigured = !!GOOGLE_CLIENT_ID;
+
 interface GoogleDriveContextValue {
   isConnected: boolean;
   isLoading: boolean;
   isSyncing: boolean;
+  isConfigured: boolean;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
   connect: () => void;
@@ -55,6 +59,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   });
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
 
   const isConnected = !!settings.accessToken;
 
@@ -70,59 +75,94 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
+  // Load Google Identity Services script
+  useEffect(() => {
+    if (!isGoogleConfigured) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      tokenClientRef.current = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) {
+            console.error('Google login error:', tokenResponse.error);
+            toast({
+              title: 'Connection Failed',
+              description: 'Could not connect to Google Drive. Please try again.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          try {
+            // Get user info
+            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+            });
+            const userInfo = await userInfoResponse.json();
+
+            googleDriveService.setAccessToken(tokenResponse.access_token);
+            
+            updateSettings({
+              accessToken: tokenResponse.access_token,
+              connectedEmail: userInfo.email,
+            });
+
+            toast({
+              title: 'Connected to Google Drive',
+              description: `Signed in as ${userInfo.email}`,
+            });
+          } catch (error) {
+            console.error('Failed to get user info:', error);
+            toast({
+              title: 'Connection Failed',
+              description: 'Could not connect to Google Drive. Please try again.',
+              variant: 'destructive',
+            });
+          } finally {
+            setIsLoading(false);
+          }
+        },
+      });
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [toast]);
+
   const updateSettings = useCallback((updates: Partial<GoogleDriveSettings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const login = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        // Get user info
-        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-        const userInfo = await userInfoResponse.json();
-
-        googleDriveService.setAccessToken(tokenResponse.access_token);
-        
-        updateSettings({
-          accessToken: tokenResponse.access_token,
-          connectedEmail: userInfo.email,
-        });
-
-        toast({
-          title: 'Connected to Google Drive',
-          description: `Signed in as ${userInfo.email}`,
-        });
-      } catch (error) {
-        console.error('Failed to get user info:', error);
-        toast({
-          title: 'Connection Failed',
-          description: 'Could not connect to Google Drive. Please try again.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: (error) => {
-      console.error('Google login error:', error);
+  const connect = useCallback(() => {
+    if (!isGoogleConfigured) {
       toast({
-        title: 'Connection Failed',
-        description: 'Could not connect to Google Drive. Please try again.',
+        title: 'Not Configured',
+        description: 'Google Drive integration is not configured. Please set VITE_GOOGLE_CLIENT_ID.',
         variant: 'destructive',
       });
-    },
-    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
-  });
+      return;
+    }
 
-  const connect = useCallback(() => {
-    login();
-  }, [login]);
+    if (tokenClientRef.current) {
+      setIsLoading(true);
+      tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
+    }
+  }, [toast]);
 
   const disconnect = useCallback(() => {
-    googleLogout();
+    if (settings.accessToken) {
+      google.accounts.oauth2.revoke(settings.accessToken, () => {
+        console.log('Token revoked');
+      });
+    }
     googleDriveService.setAccessToken(null);
     updateSettings({
       accessToken: null,
@@ -134,7 +174,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       title: 'Disconnected',
       description: 'Google Drive has been disconnected.',
     });
-  }, [updateSettings, toast]);
+  }, [settings.accessToken, updateSettings, toast]);
 
   const syncNow = useCallback(async (data: AppData) => {
     if (!isConnected) return;
@@ -249,6 +289,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     isConnected,
     isLoading,
     isSyncing,
+    isConfigured: isGoogleConfigured,
     settings,
     backups,
     connect,
@@ -266,3 +307,25 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     </GoogleDriveContext.Provider>
   );
 };
+
+// Add type declaration for Google Identity Services
+declare global {
+  interface Window {
+    google?: typeof google;
+  }
+  namespace google {
+    namespace accounts {
+      namespace oauth2 {
+        function initTokenClient(config: {
+          client_id: string;
+          scope: string;
+          callback: (response: { access_token?: string; error?: string }) => void;
+        }): TokenClient;
+        function revoke(token: string, callback: () => void): void;
+        interface TokenClient {
+          requestAccessToken(options?: { prompt?: string }): void;
+        }
+      }
+    }
+  }
+}

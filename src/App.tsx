@@ -1,8 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { RepositoryProvider } from "./repositories";
 import { BusinessProvider } from "./contexts/BusinessContext";
 import { GoogleDriveProvider } from "./contexts/GoogleDriveContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -25,10 +23,7 @@ import { BankAccountsPage } from "./components/admin/BankAccountsPage";
 import { PayablesPage } from "./components/admin/PayablesPage";
 import { ReceivablesPage } from "./components/admin/ReceivablesPage";
 
-// Replace with your Google OAuth Client ID from Google Cloud Console
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-
-const AppContent = () => (
+const App = () => (
   <BrowserRouter>
     <BusinessProvider>
       <GoogleDriveProvider>
@@ -63,18 +58,5 @@ const AppContent = () => (
     </BusinessProvider>
   </BrowserRouter>
 );
-
-const App = () => {
-  // Only wrap with GoogleOAuthProvider if client ID is configured
-  if (GOOGLE_CLIENT_ID) {
-    return (
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <AppContent />
-      </GoogleOAuthProvider>
-    );
-  }
-  
-  return <AppContent />;
-};
 
 export default App;
