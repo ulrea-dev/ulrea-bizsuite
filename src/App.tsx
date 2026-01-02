@@ -28,42 +28,53 @@ import { ReceivablesPage } from "./components/admin/ReceivablesPage";
 // Replace with your Google OAuth Client ID from Google Cloud Console
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-const App = () => (
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <BrowserRouter>
-      <BusinessProvider>
-        <GoogleDriveProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-                <Route path="/team" element={<TeamPage />} />
-                <Route path="/clients" element={<ClientsPage />} />
-                <Route path="/financials" element={<FinancialsPage />} />
-                <Route path="/financials/retainers/:retainerId" element={<RetainerDetailPage />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Route>
-              <Route element={<BusinessManagementLayout />}>
-                <Route path="/business-management" element={<AdminOverview />} />
-                <Route path="/business-management/businesses" element={<BusinessesPage />} />
-                <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
-                <Route path="/business-management/payables" element={<PayablesPage />} />
-                <Route path="/business-management/receivables" element={<ReceivablesPage />} />
-              </Route>
+const AppContent = () => (
+  <BrowserRouter>
+    <BusinessProvider>
+      <GoogleDriveProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/team" element={<TeamPage />} />
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/financials" element={<FinancialsPage />} />
+              <Route path="/financials/retainers/:retainerId" element={<RetainerDetailPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-          <Sonner />
-        </GoogleDriveProvider>
-      </BusinessProvider>
-    </BrowserRouter>
-  </GoogleOAuthProvider>
+            <Route element={<BusinessManagementLayout />}>
+              <Route path="/business-management" element={<AdminOverview />} />
+              <Route path="/business-management/businesses" element={<BusinessesPage />} />
+              <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
+              <Route path="/business-management/payables" element={<PayablesPage />} />
+              <Route path="/business-management/receivables" element={<ReceivablesPage />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+        <Sonner />
+      </GoogleDriveProvider>
+    </BusinessProvider>
+  </BrowserRouter>
 );
+
+const App = () => {
+  // Only wrap with GoogleOAuthProvider if client ID is configured
+  if (GOOGLE_CLIENT_ID) {
+    return (
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AppContent />
+      </GoogleOAuthProvider>
+    );
+  }
+  
+  return <AppContent />;
+};
 
 export default App;
