@@ -7,9 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000; // 5 seconds
 
-// Check if Google OAuth is configured
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-const isGoogleConfigured = !!GOOGLE_CLIENT_ID;
+// Google OAuth Client ID (public key - safe to include in client-side code)
+const GOOGLE_CLIENT_ID = "63460396574-lmeqr2hf2ucbj11vbmkr0m2va98ngt1a.apps.googleusercontent.com";
 
 interface GoogleDriveContextValue {
   isConnected: boolean;
@@ -77,7 +76,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   // Load Google Identity Services script
   useEffect(() => {
-    if (!isGoogleConfigured) return;
+    
 
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -142,15 +141,6 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   }, []);
 
   const connect = useCallback(() => {
-    if (!isGoogleConfigured) {
-      toast({
-        title: 'Not Configured',
-        description: 'Google Drive integration is not configured. Please set VITE_GOOGLE_CLIENT_ID.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     if (tokenClientRef.current) {
       setIsLoading(true);
       tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
@@ -289,7 +279,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     isConnected,
     isLoading,
     isSyncing,
-    isConfigured: isGoogleConfigured,
+    isConfigured: true,
     settings,
     backups,
     connect,

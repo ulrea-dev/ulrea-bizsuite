@@ -50,22 +50,7 @@ export const GoogleDriveBackupCard: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!isConfigured ? (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 mt-0.5 text-amber-500" />
-                <div>
-                  <p className="font-medium text-sm">Google Drive Not Configured</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    To enable Google Drive backup, add your Google OAuth Client ID to the environment:
-                  </p>
-                  <code className="text-xs bg-muted px-2 py-1 rounded mt-2 block">
-                    VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-                  </code>
-                </div>
-              </div>
-            </div>
-          ) : isConnected ? (
+          {isConnected ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
                 <div className="flex items-center gap-2">
