@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { useBusiness } from '@/contexts/BusinessContext';
+import { useBusiness, setRestoringData } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { importData } from '@/utils/storage';
 import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff } from 'lucide-react';
@@ -84,6 +84,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   const handleRestoreBackup = async (fileId: string) => {
     setIsRestoring(true);
+    setRestoringData(true); // Prevent auto-sync during restore
     try {
       const restoredData = await restoreBackup(fileId);
       if (restoredData?.userSettings?.username) {
@@ -96,6 +97,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       console.error('Failed to restore backup:', error);
     } finally {
       setIsRestoring(false);
+      // Re-enable sync after a short delay to ensure data is fully loaded
+      setTimeout(() => setRestoringData(false), 1000);
     }
   };
 
@@ -122,14 +125,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
+          setRestoringData(true); // Prevent auto-sync during restore
           const text = e.target?.result as string;
           const importedData = importData(text);
           dispatch({ type: 'LOAD_DATA', payload: importedData });
           if (importedData.userSettings?.username) {
             onLogin(importedData.userSettings.username);
           }
+          setTimeout(() => setRestoringData(false), 1000);
         } catch (error) {
           console.error('Failed to restore backup:', error);
+          setRestoringData(false);
         }
       };
       reader.readAsText(file);
