@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Auth } from '@/components/Auth';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ThemeProvider } from '@/hooks/useTheme';
-import { GoogleDriveProvider } from '@/contexts/GoogleDriveContext';
 
 const LoginContent: React.FC = () => {
   const navigate = useNavigate();
@@ -20,9 +19,7 @@ const LoginContent: React.FC = () => {
 const LoginPage: React.FC = () => {
   return (
     <ThemeProvider>
-      <GoogleDriveProvider>
-        <LoginContent />
-      </GoogleDriveProvider>
+      <LoginContent />
     </ThemeProvider>
   );
 };
