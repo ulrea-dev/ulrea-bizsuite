@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
 import {
   AppData,
   Business,
@@ -26,6 +26,11 @@ import {
 } from '@/types/business';
 import { rootReducer, BusinessAction } from '@/reducers';
 import { useRepository } from '@/repositories';
+
+// Flag to prevent sync during restore operations
+let isRestoringData = false;
+export const setRestoringData = (value: boolean) => { isRestoringData = value; };
+export const getIsRestoringData = () => isRestoringData;
 
 // Re-export BusinessAction for backward compatibility
 export type { BusinessAction } from '@/reducers';
@@ -71,12 +76,21 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
   // Initialize state from repository
   const [data, dispatch] = useReducer(rootReducer, repository.load());
 
+  const isInitialMount = useRef(true);
+
   // Save to repository whenever data changes
   useEffect(() => {
     repository.save(data);
     
-    // Dispatch custom event for Google Drive sync
-    window.dispatchEvent(new CustomEvent('bizsuite-data-change', { detail: data }));
+    // Only dispatch sync event if not restoring and not initial mount
+    if (!isRestoringData && !isInitialMount.current) {
+      window.dispatchEvent(new CustomEvent('bizsuite-data-change', { detail: data }));
+    }
+    
+    // After first render, mark as not initial
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    }
   }, [data, repository]);
 
   const currentBusiness = useMemo(
