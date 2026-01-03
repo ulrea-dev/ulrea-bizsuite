@@ -32,12 +32,35 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const businessCount = data.businesses.length;
   const projectCount = data.projects.length;
 
-  // Handle Google connection success
+  // Handle Google connection success - auto-restore latest backup
   useEffect(() => {
     if (isConnected && view === 'main') {
-      handleLoadGoogleBackups();
+      handleAutoRestoreFromGoogle();
     }
   }, [isConnected]);
+
+  const handleAutoRestoreFromGoogle = async () => {
+    setIsLoadingBackups(true);
+    try {
+      await loadBackups();
+      // After loadBackups, check if there are backups to auto-restore
+    } catch (error) {
+      console.error('Failed to load backups:', error);
+    } finally {
+      setIsLoadingBackups(false);
+    }
+  };
+
+  // Auto-restore latest backup when backups are loaded and connected
+  useEffect(() => {
+    if (isConnected && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups) {
+      // Auto-restore the latest backup
+      handleRestoreBackup(backups[0].id);
+    } else if (isConnected && backups.length === 0 && !isLoadingBackups && view === 'main') {
+      // No backups found, proceed to backup selection to show options
+      setView('backupSelection');
+    }
+  }, [isConnected, backups, view, isRestoring, isLoadingBackups]);
 
   const handleLoadGoogleBackups = async () => {
     setIsLoadingBackups(true);
