@@ -396,6 +396,15 @@ export interface Payable {
 
 export type ReceivableStatus = 'pending' | 'partial' | 'paid' | 'overdue';
 
+// Individual payment record within a receivable
+export interface ReceivablePaymentRecord {
+  id: string;
+  amount: number;
+  date: string;
+  paymentId?: string; // Links to the Payment entity if synced from client payments
+  description?: string;
+}
+
 export interface Receivable {
   id: string;
   businessId: string;
@@ -411,6 +420,8 @@ export interface Receivable {
   status: ReceivableStatus;
   description?: string;
   invoiceRef?: string;
+  paymentRecords?: ReceivablePaymentRecord[]; // Track individual payments with dates
+  isProjectSynced?: boolean; // True if this receivable is auto-synced with a project
   createdAt: string;
   updatedAt: string;
 }
