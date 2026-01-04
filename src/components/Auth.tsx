@@ -32,12 +32,15 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const businessCount = data.businesses.length;
   const projectCount = data.projects.length;
 
-  // Handle Google connection success - auto-restore latest backup
+  // Track if user explicitly connected (to differentiate from returning to login after logout)
+  const [hasExplicitlyConnected, setHasExplicitlyConnected] = useState(false);
+
+  // Handle Google connection success - auto-restore latest backup (only when user explicitly connects)
   useEffect(() => {
-    if (isConnected && view === 'main') {
+    if (isConnected && hasExplicitlyConnected && view === 'main') {
       handleAutoRestoreFromGoogle();
     }
-  }, [isConnected]);
+  }, [isConnected, hasExplicitlyConnected]);
 
   const handleAutoRestoreFromGoogle = async () => {
     setIsLoadingBackups(true);
@@ -46,6 +49,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       // After loadBackups, check if there are backups to auto-restore
     } catch (error) {
       console.error('Failed to load backups:', error);
+      // If loading fails, reset the explicit connection flag
+      setHasExplicitlyConnected(false);
     } finally {
       setIsLoadingBackups(false);
     }
@@ -53,14 +58,14 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
   // Auto-restore latest backup when backups are loaded and connected
   useEffect(() => {
-    if (isConnected && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups) {
+    if (isConnected && hasExplicitlyConnected && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups) {
       // Auto-restore the latest backup
       handleRestoreBackup(backups[0].id);
-    } else if (isConnected && backups.length === 0 && !isLoadingBackups && view === 'main') {
+    } else if (isConnected && hasExplicitlyConnected && backups.length === 0 && !isLoadingBackups && view === 'main') {
       // No backups found, proceed to backup selection to show options
       setView('backupSelection');
     }
-  }, [isConnected, backups, view, isRestoring, isLoadingBackups]);
+  }, [isConnected, hasExplicitlyConnected, backups, view, isRestoring, isLoadingBackups]);
 
   const handleLoadGoogleBackups = async () => {
     setIsLoadingBackups(true);
@@ -75,6 +80,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   };
 
   const handleGoogleLogin = () => {
+    setHasExplicitlyConnected(true);
     if (isConnected) {
       handleLoadGoogleBackups();
     } else {
