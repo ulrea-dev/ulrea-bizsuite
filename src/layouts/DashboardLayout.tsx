@@ -5,14 +5,20 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { ThemeProvider } from '@/hooks/useTheme';
 import { useAppearance } from '@/hooks/useAppearance';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
   const { dispatch } = useBusiness();
+  const { disconnect, isConnected } = useGoogleDrive();
   
   useAppearance();
 
   const handleLogout = () => {
+    // Disconnect Google Drive on logout to clear stale tokens
+    if (isConnected) {
+      disconnect();
+    }
     navigate('/login');
   };
 
