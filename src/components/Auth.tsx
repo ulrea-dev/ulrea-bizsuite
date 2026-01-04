@@ -93,6 +93,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setRestoringData(true); // Prevent auto-sync during restore
     try {
       const restoredData = await restoreBackup(fileId);
+      
+      // CRITICAL: Load the restored data into the app state
+      if (restoredData) {
+        dispatch({ type: 'LOAD_DATA', payload: restoredData });
+      }
+      
       if (restoredData?.userSettings?.username) {
         onLogin(restoredData.userSettings.username);
       } else {
