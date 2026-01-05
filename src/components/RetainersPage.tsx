@@ -11,7 +11,11 @@ import { RetainerModal } from './RetainerModal';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export const RetainersPage: React.FC = () => {
+interface RetainersPageProps {
+  isEmbedded?: boolean;
+}
+
+export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
   const { data, currentBusiness, dispatch } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,7 +54,7 @@ export const RetainersPage: React.FC = () => {
   };
 
   const handleView = (retainer: any) => {
-    navigate(`/financials/retainers/${retainer.id}`);
+    navigate(`/works/retainers/${retainer.id}`);
   };
 
   const handleToggleStatus = (retainer: any) => {
@@ -64,7 +68,7 @@ export const RetainersPage: React.FC = () => {
   };
 
   return (
-    <div className="p-8 space-y-6">
+    <div className={isEmbedded ? "space-y-6" : "p-8 space-y-6"}>
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">

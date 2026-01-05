@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BusinessSetup } from './BusinessSetup';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { formatCurrency } from '@/utils/storage';
-import { TrendingUp, FolderOpen, Users, DollarSign, Handshake } from 'lucide-react';
+import { Briefcase, Users, DollarSign, Handshake } from 'lucide-react';
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
@@ -54,8 +54,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <FolderOpen className="h-4 w-4 dashboard-text-secondary" />
+            <CardTitle className="text-sm font-medium">Active Works</CardTitle>
+            <Briefcase className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-xl font-bold">{activeProjects.length}</div>
@@ -104,7 +104,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       {activeProjects.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Active Projects</CardTitle>
+            <CardTitle>Active Works</CardTitle>
             <CardDescription>Your currently active projects</CardDescription>
           </CardHeader>
           <CardContent>

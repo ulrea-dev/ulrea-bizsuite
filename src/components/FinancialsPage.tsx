@@ -5,13 +5,10 @@ import { RevenuePage } from './RevenuePage';
 import { PaymentsPage } from './PaymentsPage';
 import { ExpensesPage } from './ExpensesPage';
 import { SalariesPage } from './SalariesPage';
-import { RetainersPage } from './RetainersPage';
 import { QuickTaskPaymentsPage } from './QuickTaskPaymentsPage';
-import { DollarSign, TrendingUp, Receipt, Users, Repeat, ListChecks } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { HelpCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, Receipt, Users, ListChecks } from 'lucide-react';
 
-const VALID_TABS = ['revenue', 'payments', 'expenses', 'salaries', 'tasks', 'retainers'] as const;
+const VALID_TABS = ['revenue', 'payments', 'expenses', 'salaries', 'tasks'] as const;
 type TabValue = typeof VALID_TABS[number];
 
 export const FinancialsPage: React.FC = () => {
@@ -34,7 +31,7 @@ export const FinancialsPage: React.FC = () => {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-6">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-5">
             <TabsTrigger value="revenue" className="gap-1.5 text-xs sm:text-sm">
               <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Revenue</span>
@@ -54,20 +51,6 @@ export const FinancialsPage: React.FC = () => {
             <TabsTrigger value="tasks" className="gap-1.5 text-xs sm:text-sm">
               <ListChecks className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Tasks</span>
-            </TabsTrigger>
-            <TabsTrigger value="retainers" className="gap-1.5 text-xs sm:text-sm items-center">
-              <Repeat className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Retainers</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <HelpCircle className="h-3 w-3 text-muted-foreground hidden sm:inline" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">Recurring subscription-based revenue from clients on monthly or annual contracts.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -90,10 +73,6 @@ export const FinancialsPage: React.FC = () => {
 
         <TabsContent value="tasks" className="space-y-6">
           <QuickTaskPaymentsPage />
-        </TabsContent>
-
-        <TabsContent value="retainers" className="space-y-6">
-          <RetainersPage />
         </TabsContent>
       </Tabs>
     </div>

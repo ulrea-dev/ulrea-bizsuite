@@ -30,7 +30,7 @@ interface AppSidebarProps {
 
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/projects' },
+  { id: 'works', label: 'Works', icon: Briefcase, path: '/works' },
   { id: 'team', label: 'Team', icon: Users, path: '/team' },
   { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
   { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },

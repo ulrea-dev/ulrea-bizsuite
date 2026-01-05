@@ -7,14 +7,14 @@ const RetainerDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   if (!retainerId) {
-    navigate('/financials');
+    navigate('/works?tab=retainers');
     return null;
   }
 
   return (
     <RetainerDetailComponent 
       retainerId={retainerId}
-      onBack={() => navigate('/financials')}
+      onBack={() => navigate('/works?tab=retainers')}
     />
   );
 };

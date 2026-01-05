@@ -9,7 +9,7 @@ import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import ProjectsPage from "./pages/ProjectsPage";
+import WorksPage from "./pages/WorksPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import TeamPage from "./pages/TeamPage";
 import ClientsPage from "./pages/ClientsPage";
@@ -33,12 +33,16 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/works" element={<WorksPage />} />
+              <Route path="/works/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/works/retainers/:retainerId" element={<RetainerDetailPage />} />
+              {/* Redirect old routes for backwards compatibility */}
+              <Route path="/projects" element={<Navigate to="/works" replace />} />
+              <Route path="/projects/:projectId" element={<Navigate to="/works" replace />} />
+              <Route path="/financials/retainers/:retainerId" element={<Navigate to="/works?tab=retainers" replace />} />
               <Route path="/team" element={<TeamPage />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/financials" element={<FinancialsPage />} />
-              <Route path="/financials/retainers/:retainerId" element={<RetainerDetailPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
