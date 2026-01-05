@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BusinessSetup } from './BusinessSetup';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { formatCurrency } from '@/utils/storage';
-import { Briefcase, Users, DollarSign, Handshake } from 'lucide-react';
+import { Briefcase, Users, DollarSign, Handshake, FolderKanban, ListChecks, Repeat, ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
@@ -21,6 +23,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   onNavigateToProject
 }) => {
   const { data, currentBusiness } = useBusiness();
+  const navigate = useNavigate();
 
   if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
     return (
@@ -44,6 +47,76 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     sum + (project.teamAllocations?.reduce((allocSum, alloc) => allocSum + alloc.totalAllocated, 0) || 0), 0
   );
 
+  // Quick tasks
+  const currentQuickTasks = data.quickTasks?.filter(task => task.businessId === currentBusiness.id) || [];
+  const activeQuickTasks = currentQuickTasks.filter(task => task.status === 'active' || task.status === 'pending');
+
+  // Retainers
+  const currentRetainers = data.retainers?.filter(retainer => retainer.businessId === currentBusiness.id) || [];
+  const activeRetainers = currentRetainers.filter(retainer => retainer.status === 'active');
+  const retainerMRR = activeRetainers.reduce((sum, retainer) => sum + retainer.amount, 0);
+
+  // Recent works - combine and sort by most recent
+  const recentWorks = [
+    ...activeProjects.map(p => ({ 
+      type: 'project' as const, 
+      id: p.id, 
+      name: p.name, 
+      description: p.description,
+      value: p.totalValue,
+      date: p.updatedAt || p.createdAt,
+      status: p.status
+    })),
+    ...activeQuickTasks.slice(0, 5).map(t => ({ 
+      type: 'task' as const, 
+      id: t.id, 
+      name: t.title, 
+      description: t.description || '',
+      value: t.amount,
+      date: t.updatedAt || t.createdAt,
+      status: t.status
+    })),
+    ...activeRetainers.slice(0, 5).map(r => ({ 
+      type: 'retainer' as const, 
+      id: r.id, 
+      name: r.name, 
+      description: `${formatCurrency(r.amount, currentBusiness.currency)}/${r.frequency}`,
+      value: r.amount,
+      date: r.updatedAt || r.createdAt,
+      status: r.status
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
+
+  const getWorkIcon = (type: 'project' | 'task' | 'retainer') => {
+    switch (type) {
+      case 'project': return <FolderKanban className="h-4 w-4" />;
+      case 'task': return <ListChecks className="h-4 w-4" />;
+      case 'retainer': return <Repeat className="h-4 w-4" />;
+    }
+  };
+
+  const getWorkBadge = (type: 'project' | 'task' | 'retainer') => {
+    switch (type) {
+      case 'project': return <Badge variant="secondary" className="text-xs">Project</Badge>;
+      case 'task': return <Badge variant="outline" className="text-xs">Task</Badge>;
+      case 'retainer': return <Badge className="text-xs bg-primary/10 text-primary hover:bg-primary/20">Retainer</Badge>;
+    }
+  };
+
+  const handleWorkClick = (work: typeof recentWorks[0]) => {
+    switch (work.type) {
+      case 'project':
+        onNavigateToProject(work.id);
+        break;
+      case 'task':
+        navigate('/works?tab=quick-tasks');
+        break;
+      case 'retainer':
+        navigate(`/works/retainers/${work.id}`);
+        break;
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -58,9 +131,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             <Briefcase className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-xl font-bold">{activeProjects.length}</div>
+            <div className="text-lg sm:text-xl font-bold">{activeProjects.length + activeQuickTasks.length + activeRetainers.length}</div>
             <p className="text-xs dashboard-text-secondary truncate">
-              {formatCurrency(totalProjectValue, currentBusiness.currency)} total
+              {activeProjects.length} projects, {activeQuickTasks.length} tasks, {activeRetainers.length} retainers
             </p>
           </CardContent>
         </Card>
@@ -78,12 +151,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Partners</CardTitle>
-            <Handshake className="h-4 w-4 dashboard-text-secondary" />
+            <CardTitle className="text-sm font-medium">Retainer MRR</CardTitle>
+            <Repeat className="h-4 w-4 dashboard-text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-xl font-bold">{data.partners?.length || 0}</div>
-            <p className="text-xs dashboard-text-secondary">Partners</p>
+            <div className="text-lg sm:text-xl font-bold truncate">
+              {formatCurrency(retainerMRR, currentBusiness.currency)}
+            </div>
+            <p className="text-xs dashboard-text-secondary">{activeRetainers.length} active retainers</p>
           </CardContent>
         </Card>
 
@@ -101,35 +176,43 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         </Card>
       </div>
 
-      {activeProjects.length > 0 && (
+      {recentWorks.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>Active Works</CardTitle>
-            <CardDescription>Your currently active projects</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Works</CardTitle>
+              <CardDescription>Your latest projects, tasks, and retainers</CardDescription>
+            </div>
+            <button 
+              onClick={() => navigate('/works')}
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {activeProjects.slice(0, 5).map(project => (
+            <div className="space-y-3">
+              {recentWorks.map(work => (
                 <div 
-                  key={project.id} 
-                  className="flex items-center justify-between p-4 dashboard-surface-elevated rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-                  onClick={() => onNavigateToProject(project.id)}
+                  key={`${work.type}-${work.id}`} 
+                  className="flex items-center justify-between p-3 sm:p-4 dashboard-surface-elevated rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => handleWorkClick(work)}
                 >
-                  <div>
-                    <h4 className="font-medium">{project.name}</h4>
-                    <p className="text-sm dashboard-text-secondary">{project.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">
-                      {formatCurrency(
-                        project.isMultiPhase && project.allocations?.length 
-                          ? project.allocations.reduce((sum, allocation) => sum + allocation.budget, 0)
-                          : project.totalValue,
-                        currentBusiness.currency
-                      )}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="p-2 rounded-md bg-muted">
+                      {getWorkIcon(work.type)}
                     </div>
-                    <div className="text-sm dashboard-text-secondary">
-                      {project.teamAllocations?.length || 0} team members
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium truncate">{work.name}</h4>
+                        {getWorkBadge(work.type)}
+                      </div>
+                      <p className="text-sm dashboard-text-secondary truncate">{work.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-right ml-4 shrink-0">
+                    <div className="font-semibold">
+                      {formatCurrency(work.value, currentBusiness.currency)}
                     </div>
                   </div>
                 </div>

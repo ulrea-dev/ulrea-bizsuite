@@ -13,7 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuickTasksPage } from './QuickTasksPage';
 import { RetainersPage } from './RetainersPage';
-
+import { formatCurrency } from '@/utils/storage';
 interface WorksPageProps {
   onNavigateToPage?: (page: string, itemId?: string) => void;
 }
@@ -104,6 +104,14 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
     );
   }
 
+  // Calculate summary stats
+  const activeProjects = currentProjects.filter(p => p.status === 'active');
+  const currentQuickTasks = data.quickTasks?.filter(task => task.businessId === currentBusiness.id) || [];
+  const activeQuickTasks = currentQuickTasks.filter(task => task.status === 'active' || task.status === 'pending');
+  const currentRetainers = data.retainers?.filter(retainer => retainer.businessId === currentBusiness.id) || [];
+  const activeRetainers = currentRetainers.filter(retainer => retainer.status === 'active');
+  const retainerMRR = activeRetainers.reduce((sum, retainer) => sum + retainer.amount, 0);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -111,6 +119,45 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
         <p className="text-sm sm:text-base text-muted-foreground">
           Manage projects, quick tasks, and retainers for {currentBusiness.name}
         </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-blue-500/20">
+              <FolderKanban className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Active Projects</p>
+              <p className="text-2xl font-bold">{activeProjects.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-amber-500/20">
+              <ListChecks className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Active Tasks</p>
+              <p className="text-2xl font-bold">{activeQuickTasks.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 rounded-full bg-emerald-500/20">
+              <Repeat className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Retainer MRR</p>
+              <p className="text-2xl font-bold">{formatCurrency(retainerMRR, currentBusiness.currency)}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
