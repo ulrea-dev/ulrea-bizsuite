@@ -1,12 +1,9 @@
-import { Retainer, RetainerRenewal, Client, RenewalPayment } from '@/types/business';
+import { Renewal, Client, RenewalPayment } from '@/types/business';
 import { differenceInDays, parseISO, isValid, addMonths, addYears, format } from 'date-fns';
 
 export type RenewalStatus = 'overdue' | 'urgent' | 'warning' | 'upcoming';
 
-export interface EnrichedRenewal extends RetainerRenewal {
-  retainerId: string;
-  retainerName: string;
-  clientId: string;
+export interface EnrichedRenewal extends Renewal {
   clientName: string;
   daysUntilDue: number;
   status: RenewalStatus;
@@ -32,46 +29,40 @@ export const getRenewalStatus = (daysUntilDue: number): RenewalStatus => {
 };
 
 /**
- * Get all renewals across all retainers, enriched with retainer/client info
+ * Get all renewals for a business, enriched with client info
  */
 export const getAllRenewals = (
-  retainers: Retainer[],
-  clients: Client[]
+  renewals: Renewal[],
+  clients: Client[],
+  businessId?: string
 ): EnrichedRenewal[] => {
-  const renewals: EnrichedRenewal[] = [];
+  const filteredRenewals = businessId 
+    ? renewals.filter(r => r.businessId === businessId)
+    : renewals;
 
-  retainers.forEach((retainer) => {
-    if (!retainer.renewals || retainer.renewals.length === 0) return;
-
-    const client = clients.find((c) => c.id === retainer.clientId);
-
-    retainer.renewals.forEach((renewal) => {
-      const daysUntilDue = getDaysUntilDue(renewal.nextRenewalDate);
-      renewals.push({
-        ...renewal,
-        retainerId: retainer.id,
-        retainerName: retainer.name,
-        clientId: retainer.clientId,
-        clientName: client?.name || 'Unknown Client',
-        daysUntilDue,
-        status: getRenewalStatus(daysUntilDue),
-      });
-    });
-  });
-
-  // Sort by days until due (overdue first, then soonest)
-  return renewals.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+  return filteredRenewals.map((renewal) => {
+    const client = clients.find((c) => c.id === renewal.clientId);
+    const daysUntilDue = getDaysUntilDue(renewal.nextRenewalDate);
+    
+    return {
+      ...renewal,
+      clientName: client?.name || 'Unknown Client',
+      daysUntilDue,
+      status: getRenewalStatus(daysUntilDue),
+    };
+  }).sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 };
 
 /**
  * Get renewals due within a certain number of days
  */
 export const getUpcomingRenewals = (
-  retainers: Retainer[],
+  renewals: Renewal[],
   clients: Client[],
-  daysAhead: number = 30
+  daysAhead: number = 30,
+  businessId?: string
 ): EnrichedRenewal[] => {
-  const allRenewals = getAllRenewals(retainers, clients);
+  const allRenewals = getAllRenewals(renewals, clients, businessId);
   return allRenewals.filter((r) => r.daysUntilDue <= daysAhead);
 };
 
@@ -79,10 +70,11 @@ export const getUpcomingRenewals = (
  * Get only overdue renewals
  */
 export const getOverdueRenewals = (
-  retainers: Retainer[],
-  clients: Client[]
+  renewals: Renewal[],
+  clients: Client[],
+  businessId?: string
 ): EnrichedRenewal[] => {
-  const allRenewals = getAllRenewals(retainers, clients);
+  const allRenewals = getAllRenewals(renewals, clients, businessId);
   return allRenewals.filter((r) => r.status === 'overdue');
 };
 

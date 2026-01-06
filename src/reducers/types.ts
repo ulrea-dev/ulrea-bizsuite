@@ -22,7 +22,7 @@ import {
   Expense,
   QuickTask,
   Retainer,
-  RetainerRenewal,
+  Renewal,
   ExtraPayment,
   BankAccount,
   Payable,
@@ -139,10 +139,10 @@ export type BusinessAction =
   | { type: 'ADD_RECEIVABLE'; payload: Receivable }
   | { type: 'UPDATE_RECEIVABLE'; payload: { id: string; updates: Partial<Receivable> } }
   | { type: 'DELETE_RECEIVABLE'; payload: string }
-  // Renewal actions (adding to existing retainer)
-  | { type: 'ADD_RENEWAL_TO_RETAINER'; payload: { retainerId: string; renewal: RetainerRenewal } }
-  | { type: 'UPDATE_RENEWAL_IN_RETAINER'; payload: { retainerId: string; renewalId: string; updates: Partial<RetainerRenewal> } }
-  | { type: 'DELETE_RENEWAL_FROM_RETAINER'; payload: { retainerId: string; renewalId: string } }
+  // Renewal actions (standalone)
+  | { type: 'ADD_RENEWAL'; payload: Renewal }
+  | { type: 'UPDATE_RENEWAL'; payload: { id: string; updates: Partial<Renewal> } }
+  | { type: 'DELETE_RENEWAL'; payload: string }
   // Renewal Payment actions
   | { type: 'ADD_RENEWAL_PAYMENT'; payload: RenewalPayment }
   | { type: 'UPDATE_RENEWAL_PAYMENT'; payload: { id: string; updates: Partial<RenewalPayment> } }

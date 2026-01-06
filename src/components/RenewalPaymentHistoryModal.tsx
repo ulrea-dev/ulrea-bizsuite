@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { RetainerRenewal, RenewalPayment } from '@/types/business';
+import { Renewal, RenewalPayment } from '@/types/business';
 import { format, parseISO } from 'date-fns';
 import { getCurrencySymbol } from '@/utils/currencyConversion';
 import { ExternalLink, Pencil, Trash2, Receipt, DollarSign } from 'lucide-react';
@@ -23,15 +23,13 @@ import {
 interface RenewalPaymentHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  renewal: RetainerRenewal;
-  retainerId: string;
+  renewal: Renewal;
 }
 
 export const RenewalPaymentHistoryModal: React.FC<RenewalPaymentHistoryModalProps> = ({
   isOpen,
   onClose,
   renewal,
-  retainerId,
 }) => {
   const { data, dispatch } = useBusiness();
   const [editingPayment, setEditingPayment] = useState<RenewalPayment | null>(null);
@@ -62,10 +60,9 @@ export const RenewalPaymentHistoryModal: React.FC<RenewalPaymentHistoryModalProp
       // Update the renewal's totalPaid
       const newTotalPaid = (renewal.totalPaid || 0) - paymentToDelete.amount;
       dispatch({
-        type: 'UPDATE_RENEWAL_IN_RETAINER',
+        type: 'UPDATE_RENEWAL',
         payload: {
-          retainerId,
-          renewalId: renewal.id,
+          id: renewal.id,
           updates: { totalPaid: Math.max(0, newTotalPaid) },
         },
       });
@@ -186,7 +183,6 @@ export const RenewalPaymentHistoryModal: React.FC<RenewalPaymentHistoryModalProp
           isOpen={!!editingPayment}
           onClose={() => setEditingPayment(null)}
           renewal={renewal}
-          retainerId={retainerId}
           existingPayment={editingPayment}
         />
       )}

@@ -25,19 +25,29 @@ import {
   Mail,
   MoreHorizontal,
   Plus,
-  ExternalLink,
   DollarSign,
   History,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { getAllRenewals, getRenewalSummary, EnrichedRenewal, RenewalStatus } from '@/utils/renewalUtils';
-import { RenewalType, RetainerRenewal } from '@/types/business';
+import { RenewalType, Renewal } from '@/types/business';
 import { format, parseISO } from 'date-fns';
 import { getCurrencySymbol, convertAmountWithRate } from '@/utils/currencyConversion';
 import { AddRenewalModal } from './AddRenewalModal';
 import { RenewalPaymentModal } from './RenewalPaymentModal';
 import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const RENEWAL_TYPE_ICONS: Record<RenewalType, React.ReactNode> = {
   domain: <Globe className="h-4 w-4" />,
@@ -82,21 +92,22 @@ const STATUS_CONFIG: Record<RenewalStatus, { label: string; color: string; icon:
 
 export const RenewalsDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
   const [isAddingRenewal, setIsAddingRenewal] = useState(false);
-  const [paymentRenewal, setPaymentRenewal] = useState<{ renewal: RetainerRenewal; retainerId: string } | null>(null);
-  const [historyRenewal, setHistoryRenewal] = useState<{ renewal: RetainerRenewal; retainerId: string } | null>(null);
+  const [paymentRenewal, setPaymentRenewal] = useState<Renewal | null>(null);
+  const [historyRenewal, setHistoryRenewal] = useState<Renewal | null>(null);
+  const [deletingRenewalId, setDeletingRenewalId] = useState<string | null>(null);
 
-  const businessRetainers = useMemo(() => {
+  const businessRenewals = useMemo(() => {
     if (!currentBusiness) return [];
-    return data.retainers?.filter((r) => r.businessId === currentBusiness.id) || [];
-  }, [data.retainers, currentBusiness]);
+    return data.renewals?.filter((r) => r.businessId === currentBusiness.id) || [];
+  }, [data.renewals, currentBusiness]);
 
   const allRenewals = useMemo(() => {
-    return getAllRenewals(businessRetainers, data.clients);
-  }, [businessRetainers, data.clients]);
+    return getAllRenewals(businessRenewals, data.clients);
+  }, [businessRenewals, data.clients]);
 
   const summary = useMemo(() => getRenewalSummary(allRenewals), [allRenewals]);
 
@@ -156,19 +167,17 @@ export const RenewalsDashboard: React.FC = () => {
     return (data.renewalPayments || []).filter((p) => p.renewalId === renewalId).length;
   };
 
-  const getRenewalFromEnriched = (enrichedRenewal: EnrichedRenewal): RetainerRenewal => {
-    const retainer = businessRetainers.find((r) => r.id === enrichedRenewal.retainerId);
-    const renewal = retainer?.renewals?.find((r) => r.id === enrichedRenewal.id);
-    return renewal || {
-      id: enrichedRenewal.id,
-      name: enrichedRenewal.name,
-      type: enrichedRenewal.type,
-      amount: enrichedRenewal.amount,
-      currency: enrichedRenewal.currency,
-      frequency: enrichedRenewal.frequency,
-      nextRenewalDate: enrichedRenewal.nextRenewalDate,
-      description: enrichedRenewal.description,
-    };
+  const handleDeleteRenewal = () => {
+    if (!deletingRenewalId) return;
+    
+    // Delete associated payments first
+    const paymentsToDelete = (data.renewalPayments || []).filter(p => p.renewalId === deletingRenewalId);
+    paymentsToDelete.forEach(payment => {
+      dispatch({ type: 'DELETE_RENEWAL_PAYMENT', payload: payment.id });
+    });
+    
+    dispatch({ type: 'DELETE_RENEWAL', payload: deletingRenewalId });
+    setDeletingRenewalId(null);
   };
 
   if (!currentBusiness) {
@@ -188,9 +197,9 @@ export const RenewalsDashboard: React.FC = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Renewals Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Renewals</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Track all upcoming renewals across your retainers
+            Track all upcoming renewals for your clients
           </p>
         </div>
         <Button onClick={() => setIsAddingRenewal(true)}>
@@ -282,7 +291,7 @@ export const RenewalsDashboard: React.FC = () => {
             <h3 className="text-lg font-medium mb-2">No Renewals Found</h3>
             <p className="text-muted-foreground text-center mb-4">
               {allRenewals.length === 0
-                ? 'Add renewal items to your retainers to track them here'
+                ? 'Add renewals to track services for your clients'
                 : 'No renewals match your current filters'}
             </p>
             {allRenewals.length === 0 && (
@@ -313,16 +322,12 @@ export const RenewalsDashboard: React.FC = () => {
               <TableBody>
                 {filteredRenewals.map((renewal) => {
                   const statusConfig = STATUS_CONFIG[renewal.status];
-                  const fullRenewal = getRenewalFromEnriched(renewal);
                   const paymentCount = getPaymentCount(renewal.id);
                   
                   return (
                     <TableRow key={renewal.id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{renewal.name}</div>
-                          <div className="text-sm text-muted-foreground">{renewal.retainerName}</div>
-                        </div>
+                        <div className="font-medium">{renewal.name}</div>
                       </TableCell>
                       <TableCell>{renewal.clientName}</TableCell>
                       <TableCell>
@@ -342,9 +347,9 @@ export const RenewalsDashboard: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {fullRenewal.lastPaidDate ? (
+                        {renewal.lastPaidDate ? (
                           <div>
-                            <div>{format(parseISO(fullRenewal.lastPaidDate), 'MMM d, yyyy')}</div>
+                            <div>{format(parseISO(renewal.lastPaidDate), 'MMM d, yyyy')}</div>
                             {paymentCount > 0 && (
                               <div className="text-xs text-muted-foreground">
                                 {paymentCount} payment{paymentCount !== 1 ? 's' : ''}
@@ -369,18 +374,21 @@ export const RenewalsDashboard: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setPaymentRenewal({ renewal: fullRenewal, retainerId: renewal.retainerId })}>
+                            <DropdownMenuItem onClick={() => setPaymentRenewal(renewal)}>
                               <DollarSign className="h-4 w-4 mr-2" />
                               Record Payment
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setHistoryRenewal({ renewal: fullRenewal, retainerId: renewal.retainerId })}>
+                            <DropdownMenuItem onClick={() => setHistoryRenewal(renewal)}>
                               <History className="h-4 w-4 mr-2" />
                               Payment History
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => navigate(`/works/retainers/${renewal.retainerId}`)}>
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              View Retainer
+                            <DropdownMenuItem 
+                              onClick={() => setDeletingRenewalId(renewal.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -406,8 +414,7 @@ export const RenewalsDashboard: React.FC = () => {
         <RenewalPaymentModal
           isOpen={!!paymentRenewal}
           onClose={() => setPaymentRenewal(null)}
-          renewal={paymentRenewal.renewal}
-          retainerId={paymentRenewal.retainerId}
+          renewal={paymentRenewal}
         />
       )}
 
@@ -415,10 +422,27 @@ export const RenewalsDashboard: React.FC = () => {
         <RenewalPaymentHistoryModal
           isOpen={!!historyRenewal}
           onClose={() => setHistoryRenewal(null)}
-          renewal={historyRenewal.renewal}
-          retainerId={historyRenewal.retainerId}
+          renewal={historyRenewal}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deletingRenewalId} onOpenChange={() => setDeletingRenewalId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Renewal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this renewal? This will also delete all associated payment history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRenewal} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
