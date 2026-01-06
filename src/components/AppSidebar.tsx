@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, FolderKanban, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { Building2, Home, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown, FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt, CreditCard } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { exportData } from '@/utils/storage';
+import { useRenewalReminders } from '@/hooks/useRenewalReminders';
 import {
   Sidebar,
   SidebarContent,
@@ -16,11 +17,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 
 interface AppSidebarProps {
@@ -28,12 +34,27 @@ interface AppSidebarProps {
   onCreateBusiness: () => void;
 }
 
+const worksSubItems = [
+  { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/works/projects' },
+  { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks, path: '/works/quick-tasks' },
+  { id: 'retainers', label: 'Retainers', icon: Repeat, path: '/works/retainers' },
+  { id: 'renewals', label: 'Renewals', icon: Calendar, path: '/works/renewals' },
+];
+
+const financialsSubItems = [
+  { id: 'revenue', label: 'Revenue', icon: TrendingUp, path: '/financials/revenue' },
+  { id: 'payments', label: 'Payments', icon: CreditCard, path: '/financials/payments' },
+  { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/financials/expenses' },
+  { id: 'salaries', label: 'Payroll', icon: Users, path: '/financials/salaries' },
+  { id: 'tasks', label: 'Task Payments', icon: ListChecks, path: '/financials/tasks' },
+];
+
 const navigationItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { id: 'works', label: 'Works', icon: Briefcase, path: '/works' },
+  { id: 'works', label: 'Works', icon: Briefcase, path: '/works', subItems: worksSubItems },
   { id: 'team', label: 'Team', icon: Users, path: '/team' },
   { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
-  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials' },
+  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials', subItems: financialsSubItems },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
@@ -49,10 +70,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const { open: sidebarOpen } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
+  const { totalDueSoon, overdueCount } = useRenewalReminders();
+
+  // Track open state for collapsible menus
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    works: location.pathname.startsWith('/works'),
+    financials: location.pathname.startsWith('/financials'),
+  });
 
   const handleBackupDownload = async () => {
     try {
-      // Local backup
       const localData = exportData();
       const blob = new Blob([localData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -64,7 +91,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      // Also sync to Google Drive if connected
       if (isConnected) {
         await syncNow(data);
       }
@@ -92,11 +118,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     if (path === '/dashboard') {
       return location.pathname === '/dashboard' || location.pathname === '/';
     }
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+    return location.pathname === path;
+  };
+
+  const isParentActive = (path: string) => {
+    return location.pathname.startsWith(path);
   };
 
   const handleManageBusinesses = () => {
     navigate('/settings');
+  };
+
+  const toggleMenu = (menuId: string) => {
+    setOpenMenus(prev => ({ ...prev, [menuId]: !prev[menuId] }));
   };
 
   return (
@@ -133,13 +167,80 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             <SidebarMenu>
               {navigationItems.map((item) => {
                 const Icon = item.icon;
-                const active = isActive(item.path);
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                const isOpen = openMenus[item.id] || false;
+                const parentActive = isParentActive(item.path);
+                
+                if (hasSubItems) {
+                  return (
+                    <Collapsible
+                      key={item.id}
+                      open={isOpen}
+                      onOpenChange={() => toggleMenu(item.id)}
+                      className="group/collapsible"
+                    >
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={parentActive}
+                            tooltip={item.label}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {sidebarOpen && (
+                              <>
+                                <span className="flex-1">{item.label}</span>
+                                {item.id === 'works' && totalDueSoon > 0 && (
+                                  <Badge 
+                                    variant={overdueCount > 0 ? "destructive" : "secondary"}
+                                    className="h-5 min-w-5 px-1 text-xs"
+                                  >
+                                    {totalDueSoon}
+                                  </Badge>
+                                )}
+                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                              </>
+                            )}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <SidebarMenuSub>
+                            {item.subItems?.map((subItem) => {
+                              const SubIcon = subItem.icon;
+                              const subActive = isActive(subItem.path);
+                              return (
+                                <SidebarMenuSubItem key={subItem.id}>
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={subActive}
+                                  >
+                                    <Link to={subItem.path}>
+                                      <SubIcon className="h-4 w-4" />
+                                      <span>{subItem.label}</span>
+                                      {subItem.id === 'renewals' && totalDueSoon > 0 && (
+                                        <Badge 
+                                          variant={overdueCount > 0 ? "destructive" : "secondary"}
+                                          className="ml-auto h-5 min-w-5 px-1 text-xs"
+                                        >
+                                          {totalDueSoon}
+                                        </Badge>
+                                      )}
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              );
+                            })}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  );
+                }
                 
                 return (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={active}
+                      isActive={isActive(item.path)}
                       tooltip={item.label}
                     >
                       <Link to={item.path}>

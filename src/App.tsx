@@ -9,13 +9,19 @@ import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import WorksPage from "./pages/WorksPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import QuickTasksPage from "./pages/QuickTasksPage";
+import RetainersPage from "./pages/RetainersPage";
+import RenewalsDashboardPage from "./pages/RenewalsDashboardPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
+import RetainerDetailPage from "./pages/RetainerDetailPage";
 import TeamPage from "./pages/TeamPage";
 import ClientsPage from "./pages/ClientsPage";
-import FinancialsPage from "./pages/FinancialsPage";
-import RetainerDetailPage from "./pages/RetainerDetailPage";
-import RenewalsDashboardPage from "./pages/RenewalsDashboardPage";
+import RevenuePage from "./pages/RevenuePage";
+import PaymentsPage from "./pages/PaymentsPage";
+import ExpensesPage from "./pages/ExpensesPage";
+import SalariesPage from "./pages/SalariesPage";
+import TaskPaymentsPage from "./pages/TaskPaymentsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { AdminOverview } from "./components/admin/AdminOverview";
@@ -34,17 +40,30 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/works" element={<WorksPage />} />
-              <Route path="/works/:projectId" element={<ProjectDetailPage />} />
+              
+              {/* Works Section */}
+              <Route path="/works" element={<Navigate to="/works/projects" replace />} />
+              <Route path="/works/projects" element={<ProjectsPage />} />
+              <Route path="/works/projects/:projectId" element={<ProjectDetailPage />} />
+              <Route path="/works/quick-tasks" element={<QuickTasksPage />} />
+              <Route path="/works/retainers" element={<RetainersPage />} />
               <Route path="/works/retainers/:retainerId" element={<RetainerDetailPage />} />
               <Route path="/works/renewals" element={<RenewalsDashboardPage />} />
-              {/* Redirect old routes for backwards compatibility */}
-              <Route path="/projects" element={<Navigate to="/works" replace />} />
-              <Route path="/projects/:projectId" element={<Navigate to="/works" replace />} />
-              <Route path="/financials/retainers/:retainerId" element={<Navigate to="/works?tab=retainers" replace />} />
+              
+              {/* Financials Section */}
+              <Route path="/financials" element={<Navigate to="/financials/revenue" replace />} />
+              <Route path="/financials/revenue" element={<RevenuePage />} />
+              <Route path="/financials/payments" element={<PaymentsPage />} />
+              <Route path="/financials/expenses" element={<ExpensesPage />} />
+              <Route path="/financials/salaries" element={<SalariesPage />} />
+              <Route path="/financials/tasks" element={<TaskPaymentsPage />} />
+              
+              {/* Backwards compatibility redirects */}
+              <Route path="/projects" element={<Navigate to="/works/projects" replace />} />
+              <Route path="/projects/:projectId" element={<Navigate to="/works/projects" replace />} />
+              
               <Route path="/team" element={<TeamPage />} />
               <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/financials" element={<FinancialsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

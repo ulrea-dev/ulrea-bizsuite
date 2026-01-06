@@ -118,7 +118,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         onNavigateToProject(work.id);
         break;
       case 'task':
-        navigate('/works?tab=quick-tasks');
+        navigate('/works/quick-tasks');
         break;
       case 'retainer':
         navigate(`/works/retainers/${work.id}`);
