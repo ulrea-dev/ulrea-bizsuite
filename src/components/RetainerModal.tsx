@@ -13,9 +13,6 @@ import { format, addMonths, addYears } from 'date-fns';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
 import { cn } from '@/lib/utils';
-import { RetainerRenewal } from '@/types/business';
-import { RetainerRenewalForm } from './RetainerRenewalForm';
-import { Separator } from '@/components/ui/separator';
 
 interface RetainerModalProps {
   isOpen: boolean;
@@ -40,7 +37,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
     endDate: undefined as Date | undefined,
     description: '',
     status: 'active' as 'active' | 'paused' | 'cancelled',
-    renewals: [] as RetainerRenewal[],
   });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
@@ -56,7 +52,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         endDate: retainer.endDate ? new Date(retainer.endDate) : undefined,
         description: retainer.description || '',
         status: retainer.status,
-        renewals: retainer.renewals || [],
       });
     } else {
       setFormData({
@@ -68,7 +63,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         endDate: undefined,
         description: '',
         status: 'active',
-        renewals: [],
       });
     }
   }, [retainer]);
@@ -117,7 +111,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         description: formData.description.trim() || undefined,
         nextBillingDate: calculateNextBillingDate(formData.startDate, formData.frequency),
         totalReceived: 0,
-        renewals: formData.renewals,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -134,7 +127,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         description: formData.description.trim() || undefined,
         status: formData.status,
         nextBillingDate: calculateNextBillingDate(formData.startDate, formData.frequency),
-        renewals: formData.renewals,
         updatedAt: new Date().toISOString(),
       };
 
@@ -156,11 +148,10 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
 
   const isReadOnly = mode === 'view';
   const clients = data.clients.filter(c => c.id);
-  const retainerCurrency = currentBusiness?.currency.code || 'USD';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Add New Retainer' : 
@@ -330,41 +321,6 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
               disabled={isReadOnly}
             />
           </div>
-
-          {/* Renewals Section */}
-          {!isReadOnly && (
-            <>
-              <Separator className="my-4" />
-              <RetainerRenewalForm
-                renewals={formData.renewals}
-                onRenewalsChange={(renewals) => setFormData({ ...formData, renewals })}
-                retainerCurrency={retainerCurrency}
-                exchangeRates={data.exchangeRates || []}
-                customCurrencies={data.customCurrencies || []}
-                isReadOnly={isReadOnly}
-              />
-            </>
-          )}
-
-          {/* View mode renewals display */}
-          {isReadOnly && formData.renewals.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div className="space-y-3">
-                <Label className="text-base font-medium">Renewals</Label>
-                {formData.renewals.map(renewal => (
-                  <div key={renewal.id} className="p-3 bg-muted/50 rounded-lg border">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">{renewal.name}</span>
-                      <span className="text-sm">
-                        {renewal.currency} {renewal.amount.toLocaleString()} / {renewal.frequency}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
 
           <DialogFooter className="flex gap-2">
             {mode === 'view' ? (

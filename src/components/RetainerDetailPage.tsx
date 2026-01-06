@@ -1,18 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
-import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play, RefreshCw, History } from 'lucide-react';
+import { format } from 'date-fns';
+import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play } from 'lucide-react';
 import { ExpenseModal } from './ExpenseModal';
 import { RetainerModal } from './RetainerModal';
-import { RetainerRenewalItem } from './RetainerRenewalItem';
-import { RenewalPaymentModal } from './RenewalPaymentModal';
-import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
-import { getExchangeRate, getCurrencySymbol } from '@/utils/currencyConversion';
-import { RetainerRenewal } from '@/types/business';
 
 interface RetainerDetailPageProps {
   retainerId: string;
@@ -23,8 +18,6 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
   const { data, currentBusiness, dispatch } = useBusiness();
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isEditingRetainer, setIsEditingRetainer] = useState(false);
-  const [paymentRenewal, setPaymentRenewal] = useState<RetainerRenewal | null>(null);
-  const [historyRenewal, setHistoryRenewal] = useState<RetainerRenewal | null>(null);
 
   const retainer = data.retainers.find(r => r.id === retainerId);
   const client = retainer ? data.clients.find(c => c.id === retainer.clientId) : null;
@@ -53,22 +46,6 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
   const pendingExpenses = retainerExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0);
   
   const totalReceived = retainerPayments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
-  
-  // Calculate renewals total (converted to retainer currency)
-  const renewals = retainer.renewals || [];
-  const renewalsTotalConverted = renewals.reduce((sum, renewal) => {
-    let amount = renewal.amount;
-    if (renewal.currency !== retainer.currency) {
-      const rate = getExchangeRate(renewal.currency, retainer.currency, data.exchangeRates || []);
-      if (rate) {
-        amount = renewal.amount * rate;
-      }
-    }
-    // Convert to monthly for comparison
-    if (renewal.frequency === 'quarterly') amount = amount / 3;
-    if (renewal.frequency === 'yearly') amount = amount / 12;
-    return sum + amount;
-  }, 0);
 
   const netProfit = totalReceived - totalExpenses;
 
@@ -80,10 +57,6 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
         updates: { status: retainer.status === 'active' ? 'paused' : 'active' }
       }
     });
-  };
-
-  const getPaymentCount = (renewalId: string) => {
-    return (data.renewalPayments || []).filter((p) => p.renewalId === renewalId).length;
   };
 
   return (
@@ -201,82 +174,6 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
           )}
         </CardContent>
       </Card>
-
-      {/* Renewals Section */}
-      {renewals.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Renewals</CardTitle>
-              <Badge variant="secondary">{renewals.length}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Third-party services included in this retainer (domains, hosting, software)
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Renewals Summary */}
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Monthly Renewals Total (converted)</span>
-                <span className="font-medium">
-                  {currentBusiness.currency.symbol}{renewalsTotalConverted.toLocaleString(undefined, { maximumFractionDigits: 2 })} / month
-                </span>
-              </div>
-            </div>
-
-            {/* Individual Renewals */}
-            <div className="space-y-3">
-              {renewals.map(renewal => {
-                const paymentCount = getPaymentCount(renewal.id);
-                return (
-                  <div key={renewal.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <RetainerRenewalItem
-                          renewal={renewal}
-                          retainerCurrency={retainer.currency}
-                          exchangeRates={data.exchangeRates || []}
-                          isReadOnly={true}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {renewal.lastPaidDate && (
-                          <div className="text-right text-sm mr-2">
-                            <p className="text-muted-foreground">Last paid</p>
-                            <p className="font-medium">{format(parseISO(renewal.lastPaidDate), 'MMM d, yyyy')}</p>
-                          </div>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPaymentRenewal(renewal)}
-                        >
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          Pay
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setHistoryRenewal(renewal)}
-                        >
-                          <History className="h-4 w-4" />
-                          {paymentCount > 0 && (
-                            <Badge variant="secondary" className="ml-1 text-xs">
-                              {paymentCount}
-                            </Badge>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Expenses Section */}
       <Card>
@@ -414,24 +311,6 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
           onClose={() => setIsEditingRetainer(false)}
           retainer={retainer}
           mode="edit"
-        />
-      )}
-
-      {paymentRenewal && (
-        <RenewalPaymentModal
-          isOpen={!!paymentRenewal}
-          onClose={() => setPaymentRenewal(null)}
-          renewal={paymentRenewal}
-          retainerId={retainerId}
-        />
-      )}
-
-      {historyRenewal && (
-        <RenewalPaymentHistoryModal
-          isOpen={!!historyRenewal}
-          onClose={() => setHistoryRenewal(null)}
-          renewal={historyRenewal}
-          retainerId={retainerId}
         />
       )}
     </div>
