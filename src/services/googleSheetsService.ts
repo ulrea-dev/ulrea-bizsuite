@@ -126,45 +126,60 @@ class GoogleSheetsService {
     const formatDate = (dateStr?: string) => 
       dateStr ? format(new Date(dateStr), 'MMM dd, yyyy') : '';
 
+    // Ensure all arrays exist with defaults
+    const safeBusinesses = data.businesses || [];
+    const safeProjects = data.projects || [];
+    const safeQuickTasks = data.quickTasks || [];
+    const safeRetainers = data.retainers || [];
+    const safeClients = data.clients || [];
+    const safeTeamMembers = data.teamMembers || [];
+    const safePartners = data.partners || [];
+    const safePayments = data.payments || [];
+    const safeExpenses = data.expenses || [];
+    const safeSalaryRecords = data.salaryRecords || [];
+    const safeBankAccounts = data.bankAccounts || [];
+    const safePayables = data.payables || [];
+    const safeReceivables = data.receivables || [];
+
     // Dashboard
-    const activeProjects = data.projects.filter(p => p.status === 'active').length;
-    const activeTasks = data.quickTasks.filter(t => t.status === 'active' || t.status === 'pending').length;
-    const activeRetainers = data.retainers.filter(r => r.status === 'active');
+    const activeProjects = safeProjects.filter(p => p.status === 'active').length;
+    const activeTasks = safeQuickTasks.filter(t => t.status === 'active' || t.status === 'pending').length;
+    const activeRetainers = safeRetainers.filter(r => r.status === 'active');
     const totalMRR = activeRetainers.reduce((sum, r) => {
       const multiplier = r.frequency === 'yearly' ? 1/12 : r.frequency === 'quarterly' ? 1/3 : 1;
       return sum + (r.amount * multiplier);
     }, 0);
 
-    const totalRevenue = data.payments
+    const totalRevenue = safePayments
       .filter(p => p.type === 'incoming' && p.status === 'completed')
       .reduce((sum, p) => sum + p.amount, 0);
 
-    const totalExpenses = data.expenses
+    const totalExpenses = safeExpenses
       .filter(e => e.status === 'paid')
       .reduce((sum, e) => sum + e.amount, 0);
 
-    const pendingReceivables = data.receivables
+    const pendingReceivables = safeReceivables
       .filter(r => r.status !== 'paid')
       .reduce((sum, r) => sum + (r.amount - r.receivedAmount), 0);
 
-    const pendingPayables = data.payables
+    const pendingPayables = safePayables
       .filter(p => p.status !== 'paid')
       .reduce((sum, p) => sum + (p.amount - p.paidAmount), 0);
 
-    const totalBankBalance = data.bankAccounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalBankBalance = safeBankAccounts.reduce((sum, a) => sum + a.balance, 0);
 
     const dashboard: any[][] = [
       ['BizSuite Data Export', '', format(new Date(), 'MMMM dd, yyyy')],
       [],
       ['OVERVIEW'],
       ['Metric', 'Value'],
-      ['Total Businesses', data.businesses.length],
+      ['Total Businesses', safeBusinesses.length],
       ['Active Projects', activeProjects],
       ['Active Quick Tasks', activeTasks],
       ['Active Retainers', activeRetainers.length],
-      ['Team Members', data.teamMembers.length],
-      ['Partners', data.partners.length],
-      ['Clients', data.clients.length],
+      ['Team Members', safeTeamMembers.length],
+      ['Partners', safePartners.length],
+      ['Clients', safeClients.length],
       [],
       ['FINANCIAL SUMMARY'],
       ['Metric', 'Value'],
@@ -177,12 +192,12 @@ class GoogleSheetsService {
     ];
 
     // Businesses
-    const businesses: any[][] = [
+    const businessesSheet: any[][] = [
       ['Name', 'Type', 'Currency', 'Current Balance', 'Minimum Balance', 'Created'],
-      ...data.businesses.map(b => [
+      ...safeBusinesses.map(b => [
         b.name,
         b.type,
-        b.currency.code,
+        b.currency?.code || '',
         b.currentBalance,
         b.minimumBalance,
         formatDate(b.createdAt),
@@ -190,11 +205,11 @@ class GoogleSheetsService {
     ];
 
     // Projects
-    const projects: any[][] = [
+    const projectsSheet: any[][] = [
       ['Name', 'Business', 'Client', 'Total Value', 'Status', 'Start Date', 'End Date', 'Client Payments', 'Created'],
-      ...data.projects.map(p => {
-        const business = data.businesses.find(b => b.id === p.businessId);
-        const client = data.clients.find(c => c.id === p.clientId);
+      ...safeProjects.map(p => {
+        const business = safeBusinesses.find(b => b.id === p.businessId);
+        const client = safeClients.find(c => c.id === p.clientId);
         return [
           p.name,
           business?.name || '',
@@ -210,11 +225,11 @@ class GoogleSheetsService {
     ];
 
     // Quick Tasks
-    const quickTasks: any[][] = [
+    const quickTasksSheet: any[][] = [
       ['Title', 'Business', 'Amount', 'Currency', 'Assigned To', 'Status', 'Due Date', 'Created', 'Paid At'],
-      ...data.quickTasks.map(t => {
-        const business = data.businesses.find(b => b.id === t.businessId);
-        const assignee = data.teamMembers.find(m => m.id === t.assignedToId);
+      ...safeQuickTasks.map(t => {
+        const business = safeBusinesses.find(b => b.id === t.businessId);
+        const assignee = safeTeamMembers.find(m => m.id === t.assignedToId);
         return [
           t.title,
           business?.name || '',
@@ -230,11 +245,11 @@ class GoogleSheetsService {
     ];
 
     // Retainers
-    const retainers: any[][] = [
+    const retainersSheet: any[][] = [
       ['Name', 'Business', 'Client', 'Amount', 'Currency', 'Frequency', 'Status', 'Next Billing', 'Total Received', 'Start Date'],
-      ...data.retainers.map(r => {
-        const business = data.businesses.find(b => b.id === r.businessId);
-        const client = data.clients.find(c => c.id === r.clientId);
+      ...safeRetainers.map(r => {
+        const business = safeBusinesses.find(b => b.id === r.businessId);
+        const client = safeClients.find(c => c.id === r.clientId);
         return [
           r.name,
           business?.name || '',
@@ -251,24 +266,24 @@ class GoogleSheetsService {
     ];
 
     // Clients
-    const clients: any[][] = [
+    const clientsSheet: any[][] = [
       ['Name', 'Email', 'Company', 'Total Value', 'Projects', 'Created'],
-      ...data.clients.map(c => [
+      ...safeClients.map(c => [
         c.name,
         c.email,
         c.company,
         c.totalValue,
-        c.projects.length,
+        c.projects?.length || 0,
         formatDate(c.createdAt),
       ]),
     ];
 
     // Team Members
-    const teamMembers: any[][] = [
+    const teamMembersSheet: any[][] = [
       ['Name', 'Email', 'Role', 'Type', 'Businesses', 'Created'],
-      ...data.teamMembers.map(m => {
-        const businessNames = m.businessIds
-          .map(id => data.businesses.find(b => b.id === id)?.name)
+      ...safeTeamMembers.map(m => {
+        const businessNames = (m.businessIds || [])
+          .map(id => safeBusinesses.find(b => b.id === id)?.name)
           .filter(Boolean)
           .join(', ');
         return [
@@ -283,9 +298,9 @@ class GoogleSheetsService {
     ];
 
     // Partners
-    const partners: any[][] = [
+    const partnersSheet: any[][] = [
       ['Name', 'Email', 'Type', 'Created'],
-      ...data.partners.map(p => [
+      ...safePartners.map(p => [
         p.name,
         p.email,
         p.type,
@@ -294,9 +309,9 @@ class GoogleSheetsService {
     ];
 
     // Payments
-    const payments: any[][] = [
+    const paymentsSheet: any[][] = [
       ['Amount', 'Type', 'Status', 'Date', 'Source', 'Method', 'Description'],
-      ...data.payments.map(p => [
+      ...safePayments.map(p => [
         p.amount,
         p.type,
         p.status,
@@ -308,10 +323,10 @@ class GoogleSheetsService {
     ];
 
     // Expenses
-    const expenses: any[][] = [
+    const expensesSheet: any[][] = [
       ['Name', 'Business', 'Category', 'Amount', 'Status', 'Date', 'Recurring', 'Description'],
-      ...data.expenses.map(e => {
-        const business = data.businesses.find(b => b.id === e.businessId);
+      ...safeExpenses.map(e => {
+        const business = safeBusinesses.find(b => b.id === e.businessId);
         return [
           e.name,
           business?.name || '',
@@ -326,11 +341,11 @@ class GoogleSheetsService {
     ];
 
     // Salary Records
-    const salaryRecords: any[][] = [
+    const salaryRecordsSheet: any[][] = [
       ['Team Member', 'Business', 'Position', 'Amount', 'Currency', 'Frequency', 'Type', 'Start Date', 'End Date'],
-      ...data.salaryRecords.map(s => {
-        const member = data.teamMembers.find(m => m.id === s.teamMemberId);
-        const business = data.businesses.find(b => b.id === s.businessId);
+      ...safeSalaryRecords.map(s => {
+        const member = safeTeamMembers.find(m => m.id === s.teamMemberId);
+        const business = safeBusinesses.find(b => b.id === s.businessId);
         return [
           member?.name || '',
           business?.name || '',
@@ -346,10 +361,10 @@ class GoogleSheetsService {
     ];
 
     // Bank Accounts
-    const bankAccounts: any[][] = [
+    const bankAccountsSheet: any[][] = [
       ['Name', 'Business', 'Type', 'Balance', 'Currency', 'Account Number', 'Default', 'Description'],
-      ...data.bankAccounts.map(a => {
-        const business = data.businesses.find(b => b.id === a.businessId);
+      ...safeBankAccounts.map(a => {
+        const business = safeBusinesses.find(b => b.id === a.businessId);
         return [
           a.name,
           business?.name || '',
@@ -364,10 +379,10 @@ class GoogleSheetsService {
     ];
 
     // Payables
-    const payables: any[][] = [
+    const payablesSheet: any[][] = [
       ['Vendor', 'Business', 'Amount', 'Paid', 'Currency', 'Due Date', 'Status', 'Category', 'Invoice Ref'],
-      ...data.payables.map(p => {
-        const business = data.businesses.find(b => b.id === p.businessId);
+      ...safePayables.map(p => {
+        const business = safeBusinesses.find(b => b.id === p.businessId);
         return [
           p.vendorName,
           business?.name || '',
@@ -383,11 +398,11 @@ class GoogleSheetsService {
     ];
 
     // Receivables
-    const receivables: any[][] = [
+    const receivablesSheet: any[][] = [
       ['Source', 'Business', 'Client', 'Amount', 'Received', 'Currency', 'Due Date', 'Status', 'Invoice Ref'],
-      ...data.receivables.map(r => {
-        const business = data.businesses.find(b => b.id === r.businessId);
-        const client = data.clients.find(c => c.id === r.clientId);
+      ...safeReceivables.map(r => {
+        const business = safeBusinesses.find(b => b.id === r.businessId);
+        const client = safeClients.find(c => c.id === r.clientId);
         return [
           r.sourceName,
           business?.name || '',
@@ -404,19 +419,19 @@ class GoogleSheetsService {
 
     return {
       'Dashboard': dashboard,
-      'Businesses': businesses,
-      'Projects': projects,
-      'Quick Tasks': quickTasks,
-      'Retainers': retainers,
-      'Clients': clients,
-      'Team Members': teamMembers,
-      'Partners': partners,
-      'Payments': payments,
-      'Expenses': expenses,
-      'Salary Records': salaryRecords,
-      'Bank Accounts': bankAccounts,
-      'Payables': payables,
-      'Receivables': receivables,
+      'Businesses': businessesSheet,
+      'Projects': projectsSheet,
+      'Quick Tasks': quickTasksSheet,
+      'Retainers': retainersSheet,
+      'Clients': clientsSheet,
+      'Team Members': teamMembersSheet,
+      'Partners': partnersSheet,
+      'Payments': paymentsSheet,
+      'Expenses': expensesSheet,
+      'Salary Records': salaryRecordsSheet,
+      'Bank Accounts': bankAccountsSheet,
+      'Payables': payablesSheet,
+      'Receivables': receivablesSheet,
     };
   }
 
