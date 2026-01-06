@@ -40,6 +40,7 @@ export class LocalStorageRepository implements IDataRepository {
       bankAccounts: [],
       payables: [],
       receivables: [],
+      renewalPayments: [],
       currentBusinessId: null,
       userSettings: {
         username: '',
@@ -77,6 +78,7 @@ export class LocalStorageRepository implements IDataRepository {
         bankAccounts: data.bankAccounts || [],
         payables: data.payables || [],
         receivables: data.receivables || [],
+        renewalPayments: data.renewalPayments || [],
         // Ensure projects have clientPayments field (for backward compatibility)
         projects: (data.projects || []).map(project => ({
           ...project,
