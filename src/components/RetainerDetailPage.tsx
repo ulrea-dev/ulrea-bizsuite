@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
-import { format } from 'date-fns';
-import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play, Calendar, History, Globe, Server, Code, Shield, Mail, MoreHorizontal } from 'lucide-react';
 import { ExpenseModal } from './ExpenseModal';
 import { RetainerModal } from './RetainerModal';
+import { AddRenewalModal } from './AddRenewalModal';
+import { RenewalPaymentModal } from './RenewalPaymentModal';
+import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
+import { Renewal, RenewalType } from '@/types/business';
+import { getDaysUntilDue, getRenewalStatus } from '@/utils/renewalUtils';
 
 interface RetainerDetailPageProps {
   retainerId: string;
   onBack: () => void;
 }
 
+const RENEWAL_TYPE_ICONS: Record<RenewalType, React.ReactNode> = {
+  domain: <Globe className="h-4 w-4" />,
+  hosting: <Server className="h-4 w-4" />,
+  software: <Code className="h-4 w-4" />,
+  ssl: <Shield className="h-4 w-4" />,
+  email: <Mail className="h-4 w-4" />,
+  other: <MoreHorizontal className="h-4 w-4" />,
+};
+
 export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainerId, onBack }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isEditingRetainer, setIsEditingRetainer] = useState(false);
+  const [isAddingRenewal, setIsAddingRenewal] = useState(false);
+  const [paymentRenewal, setPaymentRenewal] = useState<Renewal | null>(null);
+  const [historyRenewal, setHistoryRenewal] = useState<Renewal | null>(null);
 
   const retainer = data.retainers.find(r => r.id === retainerId);
   const client = retainer ? data.clients.find(c => c.id === retainer.clientId) : null;
@@ -39,6 +56,11 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
   
   // Get all payments for this retainer
   const retainerPayments = data.payments?.filter(p => p.retainerId === retainerId) || [];
+
+  // Get renewals linked to this retainer
+  const linkedRenewals = useMemo(() => {
+    return (data.renewals || []).filter(r => r.retainerId === retainerId);
+  }, [data.renewals, retainerId]);
 
   // Calculate totals
   const totalExpenses = retainerExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -294,6 +316,84 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
         </CardContent>
       </Card>
 
+      {/* Linked Renewals Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Linked Renewals
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Renewals to charge alongside this retainer when due
+              </p>
+            </div>
+            <Button onClick={() => setIsAddingRenewal(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Renewal
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {linkedRenewals.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No renewals linked. Add renewals like domains or hosting to charge alongside this retainer.
+              </div>
+            ) : (
+              linkedRenewals.map(renewal => {
+                const daysUntilDue = getDaysUntilDue(renewal.nextRenewalDate);
+                const status = getRenewalStatus(daysUntilDue);
+                const paymentCount = (data.renewalPayments || []).filter(p => p.renewalId === renewal.id).length;
+                
+                return (
+                  <div key={renewal.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      {RENEWAL_TYPE_ICONS[renewal.type]}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{renewal.name}</span>
+                          <Badge variant="outline" className="capitalize">{renewal.type}</Badge>
+                          <Badge 
+                            variant={status === 'overdue' ? 'destructive' : status === 'urgent' ? 'default' : 'secondary'}
+                            className="capitalize"
+                          >
+                            {status === 'overdue' ? 'Overdue' : status === 'urgent' ? 'Due Soon' : `${daysUntilDue} days`}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Due: {format(parseISO(renewal.nextRenewalDate), 'MMM d, yyyy')} • {renewal.frequency}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right mr-4">
+                        <div className="font-semibold">{formatCurrency(renewal.amount, { code: renewal.currency, symbol: renewal.currency })}</div>
+                        {renewal.lastPaidDate && (
+                          <div className="text-xs text-muted-foreground">
+                            Last paid: {format(parseISO(renewal.lastPaidDate), 'MMM d, yyyy')}
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setPaymentRenewal(renewal)}>
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        Pay
+                      </Button>
+                      {paymentCount > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => setHistoryRenewal(renewal)}>
+                          <History className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Modals */}
       {isAddingExpense && (
         <ExpenseModal
@@ -311,6 +411,30 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
           onClose={() => setIsEditingRetainer(false)}
           retainer={retainer}
           mode="edit"
+        />
+      )}
+
+      {isAddingRenewal && (
+        <AddRenewalModal
+          isOpen={isAddingRenewal}
+          onClose={() => setIsAddingRenewal(false)}
+          preselectedRetainerId={retainerId}
+        />
+      )}
+
+      {paymentRenewal && (
+        <RenewalPaymentModal
+          isOpen={!!paymentRenewal}
+          onClose={() => setPaymentRenewal(null)}
+          renewal={paymentRenewal}
+        />
+      )}
+
+      {historyRenewal && (
+        <RenewalPaymentHistoryModal
+          isOpen={!!historyRenewal}
+          onClose={() => setHistoryRenewal(null)}
+          renewal={historyRenewal}
         />
       )}
     </div>

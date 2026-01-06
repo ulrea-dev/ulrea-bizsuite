@@ -72,6 +72,7 @@ export interface Renewal {
   id: string;
   businessId: string;
   clientId: string;
+  retainerId?: string; // Optional link to a retainer for charging alongside retainer dues
   name: string;
   type: RenewalType;
   amount: number;

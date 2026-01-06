@@ -12,6 +12,7 @@ import { RenewalType, SUPPORTED_CURRENCIES } from '@/types/business';
 interface AddRenewalModalProps {
   isOpen: boolean;
   onClose: () => void;
+  preselectedRetainerId?: string;
 }
 
 const RENEWAL_TYPES: { value: RenewalType; label: string }[] = [
@@ -23,12 +24,18 @@ const RENEWAL_TYPES: { value: RenewalType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
-export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClose }) => {
+export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClose, preselectedRetainerId }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
+
+  // Find preselected retainer to get clientId
+  const preselectedRetainer = preselectedRetainerId 
+    ? data.retainers.find(r => r.id === preselectedRetainerId) 
+    : undefined;
 
   const [name, setName] = useState('');
   const [type, setType] = useState<RenewalType>('domain');
-  const [clientId, setClientId] = useState('');
+  const [clientId, setClientId] = useState(preselectedRetainer?.clientId || '');
+  const [retainerId, setRetainerId] = useState(preselectedRetainerId || '');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(currentBusiness?.currency.code || 'USD');
   const [frequency, setFrequency] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
@@ -38,6 +45,20 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
   const allCurrencies = useMemo(() => {
     return [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
   }, [data.customCurrencies]);
+
+  // Get retainers for the selected client
+  const clientRetainers = useMemo(() => {
+    if (!clientId) return [];
+    return data.retainers.filter(r => r.clientId === clientId && r.businessId === currentBusiness?.id);
+  }, [clientId, data.retainers, currentBusiness?.id]);
+
+  // Reset retainer when client changes (unless preselected)
+  const handleClientChange = (newClientId: string) => {
+    setClientId(newClientId);
+    if (!preselectedRetainerId) {
+      setRetainerId('');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +72,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         id: renewalId,
         businessId: currentBusiness.id,
         clientId,
+        retainerId: retainerId || undefined,
         name,
         type,
         amount: parseFloat(amount),
@@ -75,7 +97,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="client">Client *</Label>
-            <Select value={clientId} onValueChange={setClientId}>
+            <Select value={clientId} onValueChange={handleClientChange} disabled={!!preselectedRetainerId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
@@ -88,6 +110,28 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
               </SelectContent>
             </Select>
           </div>
+
+          {clientId && clientRetainers.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="retainer">Link to Retainer (Optional)</Label>
+              <Select value={retainerId} onValueChange={setRetainerId} disabled={!!preselectedRetainerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No retainer linked" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No retainer linked</SelectItem>
+                  {clientRetainers.map((retainer) => (
+                    <SelectItem key={retainer.id} value={retainer.id}>
+                      {retainer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Link this renewal to a retainer to charge clients alongside retainer dues
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="name">Renewal Name *</Label>
