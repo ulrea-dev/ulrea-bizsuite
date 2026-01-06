@@ -7,14 +7,14 @@ const ProjectDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   if (!projectId) {
-    navigate('/projects');
+    navigate('/works/projects');
     return null;
   }
 
   return (
     <ProjectDetailComponent 
       projectId={projectId}
-      onBack={() => navigate('/projects')}
+      onBack={() => navigate('/works/projects')}
     />
   );
 };

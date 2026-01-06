@@ -18,7 +18,7 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleNavigateToProject = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+    navigate(`/works/projects/${projectId}`);
   };
 
   return (
