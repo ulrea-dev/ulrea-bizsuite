@@ -15,6 +15,7 @@ import TeamPage from "./pages/TeamPage";
 import ClientsPage from "./pages/ClientsPage";
 import FinancialsPage from "./pages/FinancialsPage";
 import RetainerDetailPage from "./pages/RetainerDetailPage";
+import RenewalsDashboardPage from "./pages/RenewalsDashboardPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { AdminOverview } from "./components/admin/AdminOverview";
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/works" element={<WorksPage />} />
               <Route path="/works/:projectId" element={<ProjectDetailPage />} />
               <Route path="/works/retainers/:retainerId" element={<RetainerDetailPage />} />
+              <Route path="/works/renewals" element={<RenewalsDashboardPage />} />
               {/* Redirect old routes for backwards compatibility */}
               <Route path="/projects" element={<Navigate to="/works" replace />} />
               <Route path="/projects/:projectId" element={<Navigate to="/works" replace />} />

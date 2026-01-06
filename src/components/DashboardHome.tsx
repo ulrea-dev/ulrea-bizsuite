@@ -1,13 +1,15 @@
-
 import React from 'react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BusinessSetup } from './BusinessSetup';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { formatCurrency } from '@/utils/storage';
-import { Briefcase, Users, DollarSign, Handshake, FolderKanban, ListChecks, Repeat, ArrowRight } from 'lucide-react';
+import { Briefcase, Users, DollarSign, Handshake, FolderKanban, ListChecks, Repeat, ArrowRight, AlertCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { useRenewalReminders } from '@/hooks/useRenewalReminders';
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
@@ -24,6 +26,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
 }) => {
   const { data, currentBusiness } = useBusiness();
   const navigate = useNavigate();
+  const { 
+    totalDueSoon, 
+    overdueCount, 
+    urgentCount, 
+    shouldShowReminder, 
+    dismissReminder 
+  } = useRenewalReminders();
 
   if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
     return (
@@ -123,6 +132,39 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold dashboard-text-primary">Dashboard</h1>
         <p className="text-xs sm:text-sm dashboard-text-secondary">Welcome to {currentBusiness.name}</p>
       </div>
+
+      {/* Renewal Reminder Banner */}
+      {shouldShowReminder && (
+        <Alert variant={overdueCount > 0 ? "destructive" : "default"} className="relative">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle className="flex items-center gap-2">
+            {totalDueSoon} renewal{totalDueSoon !== 1 ? 's' : ''} due soon
+          </AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              {overdueCount > 0 && `${overdueCount} overdue`}
+              {overdueCount > 0 && urgentCount > 0 && ', '}
+              {urgentCount > 0 && `${urgentCount} due within 7 days`}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/works/renewals')}
+              className="ml-4"
+            >
+              View Renewals
+            </Button>
+          </AlertDescription>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="absolute top-2 right-2 h-6 w-6 p-0" 
+            onClick={dismissReminder}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </Alert>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card>

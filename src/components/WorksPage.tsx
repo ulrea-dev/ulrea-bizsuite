@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Eye, Edit, Trash2, FolderKanban, ListChecks, Repeat } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, FolderKanban, ListChecks, Repeat, Calendar, AlertCircle } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { EnhancedProjectModal } from './EnhancedProjectModal';
 import { ProjectCard } from './ProjectCard';
@@ -14,15 +14,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuickTasksPage } from './QuickTasksPage';
 import { RetainersPage } from './RetainersPage';
 import { formatCurrency } from '@/utils/storage';
+import { useRenewalReminders } from '@/hooks/useRenewalReminders';
+import { Badge } from '@/components/ui/badge';
+
 interface WorksPageProps {
   onNavigateToPage?: (page: string, itemId?: string) => void;
 }
 
-const VALID_TABS = ['projects', 'quick-tasks', 'retainers'] as const;
+const VALID_TABS = ['projects', 'quick-tasks', 'retainers', 'renewals'] as const;
 type TabValue = typeof VALID_TABS[number];
 
 export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const activeTab: TabValue = VALID_TABS.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'projects';
@@ -32,8 +36,14 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  const { totalDueSoon, overdueCount } = useRenewalReminders();
 
   const handleTabChange = (value: string) => {
+    if (value === 'renewals') {
+      navigate('/works/renewals');
+      return;
+    }
     setSearchParams({ tab: value });
   };
 
@@ -162,7 +172,7 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
         <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-3">
+          <TabsList className="inline-flex w-max sm:w-auto sm:grid sm:grid-cols-4">
             <TabsTrigger value="projects" className="gap-1.5 text-xs sm:text-sm">
               <FolderKanban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Projects</span>
@@ -174,6 +184,18 @@ export const WorksPage: React.FC<WorksPageProps> = ({ onNavigateToPage }) => {
             <TabsTrigger value="retainers" className="gap-1.5 text-xs sm:text-sm">
               <Repeat className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>Retainers</span>
+            </TabsTrigger>
+            <TabsTrigger value="renewals" className="gap-1.5 text-xs sm:text-sm relative">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Renewals</span>
+              {totalDueSoon > 0 && (
+                <Badge 
+                  variant={overdueCount > 0 ? "destructive" : "secondary"}
+                  className="ml-1 h-5 min-w-5 px-1 text-xs"
+                >
+                  {totalDueSoon}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
         </div>
