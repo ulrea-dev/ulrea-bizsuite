@@ -5,6 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Calendar, 
   AlertCircle, 
@@ -17,14 +24,20 @@ import {
   Shield,
   Mail,
   MoreHorizontal,
-  ArrowLeft,
-  ExternalLink
+  Plus,
+  ExternalLink,
+  DollarSign,
+  History,
+  Pencil,
 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { getAllRenewals, getRenewalSummary, EnrichedRenewal, RenewalStatus } from '@/utils/renewalUtils';
-import { RenewalType } from '@/types/business';
+import { RenewalType, RetainerRenewal } from '@/types/business';
 import { format, parseISO } from 'date-fns';
-import { getCurrencySymbol, getExchangeRate, convertAmountWithRate } from '@/utils/currencyConversion';
+import { getCurrencySymbol, convertAmountWithRate } from '@/utils/currencyConversion';
+import { AddRenewalModal } from './AddRenewalModal';
+import { RenewalPaymentModal } from './RenewalPaymentModal';
+import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
 
 const RENEWAL_TYPE_ICONS: Record<RenewalType, React.ReactNode> = {
   domain: <Globe className="h-4 w-4" />,
@@ -72,6 +85,9 @@ export const RenewalsDashboard: React.FC = () => {
   const { data, currentBusiness } = useBusiness();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [isAddingRenewal, setIsAddingRenewal] = useState(false);
+  const [paymentRenewal, setPaymentRenewal] = useState<{ renewal: RetainerRenewal; retainerId: string } | null>(null);
+  const [historyRenewal, setHistoryRenewal] = useState<{ renewal: RetainerRenewal; retainerId: string } | null>(null);
 
   const businessRetainers = useMemo(() => {
     if (!currentBusiness) return [];
@@ -136,6 +152,25 @@ export const RenewalsDashboard: React.FC = () => {
     }
   };
 
+  const getPaymentCount = (renewalId: string) => {
+    return (data.renewalPayments || []).filter((p) => p.renewalId === renewalId).length;
+  };
+
+  const getRenewalFromEnriched = (enrichedRenewal: EnrichedRenewal): RetainerRenewal => {
+    const retainer = businessRetainers.find((r) => r.id === enrichedRenewal.retainerId);
+    const renewal = retainer?.renewals?.find((r) => r.id === enrichedRenewal.id);
+    return renewal || {
+      id: enrichedRenewal.id,
+      name: enrichedRenewal.name,
+      type: enrichedRenewal.type,
+      amount: enrichedRenewal.amount,
+      currency: enrichedRenewal.currency,
+      frequency: enrichedRenewal.frequency,
+      nextRenewalDate: enrichedRenewal.nextRenewalDate,
+      description: enrichedRenewal.description,
+    };
+  };
+
   if (!currentBusiness) {
     return (
       <div className="p-6">
@@ -151,18 +186,17 @@ export const RenewalsDashboard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/works?tab=retainers')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Retainers
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Renewals Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Track all upcoming renewals across your retainers
+          </p>
+        </div>
+        <Button onClick={() => setIsAddingRenewal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Renewal
         </Button>
-      </div>
-
-      <div>
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Renewals Dashboard</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Track all upcoming renewals across your retainers
-        </p>
       </div>
 
       {/* Summary Cards */}
@@ -246,11 +280,17 @@ export const RenewalsDashboard: React.FC = () => {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">No Renewals Found</h3>
-            <p className="text-muted-foreground text-center">
+            <p className="text-muted-foreground text-center mb-4">
               {allRenewals.length === 0
                 ? 'Add renewal items to your retainers to track them here'
                 : 'No renewals match your current filters'}
             </p>
+            {allRenewals.length === 0 && (
+              <Button onClick={() => setIsAddingRenewal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Renewal
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -265,13 +305,17 @@ export const RenewalsDashboard: React.FC = () => {
                   <TableHead>Amount</TableHead>
                   <TableHead>Frequency</TableHead>
                   <TableHead>Due Date</TableHead>
+                  <TableHead>Last Paid</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRenewals.map((renewal) => {
                   const statusConfig = STATUS_CONFIG[renewal.status];
+                  const fullRenewal = getRenewalFromEnriched(renewal);
+                  const paymentCount = getPaymentCount(renewal.id);
+                  
                   return (
                     <TableRow key={renewal.id}>
                       <TableCell>
@@ -298,19 +342,48 @@ export const RenewalsDashboard: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {fullRenewal.lastPaidDate ? (
+                          <div>
+                            <div>{format(parseISO(fullRenewal.lastPaidDate), 'MMM d, yyyy')}</div>
+                            {paymentCount > 0 && (
+                              <div className="text-xs text-muted-foreground">
+                                {paymentCount} payment{paymentCount !== 1 ? 's' : ''}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge className={`${statusConfig.color} gap-1`}>
                           {statusConfig.icon}
                           {statusConfig.label}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/works/retainers/${renewal.retainerId}`)}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setPaymentRenewal({ renewal: fullRenewal, retainerId: renewal.retainerId })}>
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Record Payment
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setHistoryRenewal({ renewal: fullRenewal, retainerId: renewal.retainerId })}>
+                              <History className="h-4 w-4 mr-2" />
+                              Payment History
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => navigate(`/works/retainers/${renewal.retainerId}`)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              View Retainer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   );
@@ -319,6 +392,32 @@ export const RenewalsDashboard: React.FC = () => {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Modals */}
+      {isAddingRenewal && (
+        <AddRenewalModal
+          isOpen={isAddingRenewal}
+          onClose={() => setIsAddingRenewal(false)}
+        />
+      )}
+
+      {paymentRenewal && (
+        <RenewalPaymentModal
+          isOpen={!!paymentRenewal}
+          onClose={() => setPaymentRenewal(null)}
+          renewal={paymentRenewal.renewal}
+          retainerId={paymentRenewal.retainerId}
+        />
+      )}
+
+      {historyRenewal && (
+        <RenewalPaymentHistoryModal
+          isOpen={!!historyRenewal}
+          onClose={() => setHistoryRenewal(null)}
+          renewal={historyRenewal.renewal}
+          retainerId={historyRenewal.retainerId}
+        />
       )}
     </div>
   );

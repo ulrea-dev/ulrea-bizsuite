@@ -77,6 +77,22 @@ export interface RetainerRenewal {
   frequency: 'monthly' | 'quarterly' | 'yearly';
   nextRenewalDate: string;
   description?: string;
+  lastPaidDate?: string;
+  totalPaid?: number;
+}
+
+export interface RenewalPayment {
+  id: string;
+  renewalId: string;
+  retainerId: string;
+  amount: number;
+  currency: string;
+  date: string;
+  invoiceUrl?: string;
+  invoiceFileName?: string;
+  notes?: string;
+  status: 'pending' | 'completed';
+  createdAt: string;
 }
 
 export interface Retainer {
@@ -460,6 +476,7 @@ export interface AppData {
   bankAccounts: BankAccount[];
   payables: Payable[];
   receivables: Receivable[];
+  renewalPayments: RenewalPayment[];
   currentBusinessId: string | null;
   userSettings: {
     username: string;

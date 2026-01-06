@@ -1,5 +1,5 @@
-import { Retainer, RetainerRenewal, Client } from '@/types/business';
-import { differenceInDays, parseISO, isValid } from 'date-fns';
+import { Retainer, RetainerRenewal, Client, RenewalPayment } from '@/types/business';
+import { differenceInDays, parseISO, isValid, addMonths, addYears, format } from 'date-fns';
 
 export type RenewalStatus = 'overdue' | 'urgent' | 'warning' | 'upcoming';
 
@@ -96,5 +96,54 @@ export const getRenewalSummary = (renewals: EnrichedRenewal[]) => {
     urgent: renewals.filter((r) => r.status === 'urgent').length,
     warning: renewals.filter((r) => r.status === 'warning').length,
     upcoming: renewals.filter((r) => r.status === 'upcoming').length,
+  };
+};
+
+/**
+ * Calculate next renewal date after payment based on frequency
+ */
+export const getNextRenewalDate = (
+  currentDate: string,
+  frequency: 'monthly' | 'quarterly' | 'yearly'
+): string => {
+  const date = parseISO(currentDate);
+  switch (frequency) {
+    case 'monthly':
+      return format(addMonths(date, 1), 'yyyy-MM-dd');
+    case 'quarterly':
+      return format(addMonths(date, 3), 'yyyy-MM-dd');
+    case 'yearly':
+      return format(addYears(date, 1), 'yyyy-MM-dd');
+    default:
+      return format(addYears(date, 1), 'yyyy-MM-dd');
+  }
+};
+
+/**
+ * Get all payments for a specific renewal
+ */
+export const getRenewalPayments = (
+  renewalId: string,
+  payments: RenewalPayment[]
+): RenewalPayment[] => {
+  return payments
+    .filter((p) => p.renewalId === renewalId)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+/**
+ * Get renewal payment summary
+ */
+export const getRenewalPaymentSummary = (
+  renewalId: string,
+  payments: RenewalPayment[]
+): { totalPaid: number; paymentCount: number; lastPaidDate: string | null } => {
+  const renewalPayments = getRenewalPayments(renewalId, payments);
+  const completedPayments = renewalPayments.filter((p) => p.status === 'completed');
+  
+  return {
+    totalPaid: completedPayments.reduce((sum, p) => sum + p.amount, 0),
+    paymentCount: renewalPayments.length,
+    lastPaidDate: renewalPayments.length > 0 ? renewalPayments[0].date : null,
   };
 };

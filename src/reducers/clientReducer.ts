@@ -4,7 +4,7 @@ import { BusinessAction } from './types';
 /**
  * Client Entity Reducer
  * 
- * Handles all CRUD operations for Client, Retainer entities.
+ * Handles all CRUD operations for Client, Retainer, Renewal, and RenewalPayment entities.
  * Following Single Responsibility Principle.
  */
 export const clientReducer = (state: AppData, action: BusinessAction): AppData | null => {
@@ -47,6 +47,69 @@ export const clientReducer = (state: AppData, action: BusinessAction): AppData |
       return {
         ...state,
         retainers: (state.retainers || []).filter(retainer => retainer.id !== action.payload),
+      };
+
+    // Renewal actions (within retainer)
+    case 'ADD_RENEWAL_TO_RETAINER':
+      return {
+        ...state,
+        retainers: (state.retainers || []).map(retainer =>
+          retainer.id === action.payload.retainerId
+            ? { ...retainer, renewals: [...(retainer.renewals || []), action.payload.renewal], updatedAt: new Date().toISOString() }
+            : retainer
+        ),
+      };
+
+    case 'UPDATE_RENEWAL_IN_RETAINER':
+      return {
+        ...state,
+        retainers: (state.retainers || []).map(retainer =>
+          retainer.id === action.payload.retainerId
+            ? {
+                ...retainer,
+                renewals: (retainer.renewals || []).map(renewal =>
+                  renewal.id === action.payload.renewalId
+                    ? { ...renewal, ...action.payload.updates }
+                    : renewal
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : retainer
+        ),
+      };
+
+    case 'DELETE_RENEWAL_FROM_RETAINER':
+      return {
+        ...state,
+        retainers: (state.retainers || []).map(retainer =>
+          retainer.id === action.payload.retainerId
+            ? {
+                ...retainer,
+                renewals: (retainer.renewals || []).filter(renewal => renewal.id !== action.payload.renewalId),
+                updatedAt: new Date().toISOString(),
+              }
+            : retainer
+        ),
+      };
+
+    // Renewal Payment actions
+    case 'ADD_RENEWAL_PAYMENT':
+      return { ...state, renewalPayments: [...(state.renewalPayments || []), action.payload] };
+
+    case 'UPDATE_RENEWAL_PAYMENT':
+      return {
+        ...state,
+        renewalPayments: (state.renewalPayments || []).map(payment =>
+          payment.id === action.payload.id
+            ? { ...payment, ...action.payload.updates }
+            : payment
+        ),
+      };
+
+    case 'DELETE_RENEWAL_PAYMENT':
+      return {
+        ...state,
+        renewalPayments: (state.renewalPayments || []).filter(payment => payment.id !== action.payload),
       };
 
     default:

@@ -33,6 +33,7 @@ const getInitialData = (): AppData => ({
   bankAccounts: [],
   payables: [],
   receivables: [],
+  renewalPayments: [],
   currentBusinessId: null,
   userSettings: {
     username: '',
