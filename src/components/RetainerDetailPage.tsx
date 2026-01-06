@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { format } from 'date-fns';
-import { ArrowLeft, Plus, Calendar, DollarSign, TrendingUp, Receipt, Edit, Pause, Play, X } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play, RefreshCw, AlertTriangle, ArrowRightLeft } from 'lucide-react';
 import { ExpenseModal } from './ExpenseModal';
 import { RetainerModal } from './RetainerModal';
+import { RetainerRenewalItem } from './RetainerRenewalItem';
+import { getExchangeRate, getCurrencySymbol } from '@/utils/currencyConversion';
 
 interface RetainerDetailPageProps {
   retainerId: string;
@@ -46,6 +48,23 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
   const pendingExpenses = retainerExpenses.filter(e => e.status === 'pending').reduce((sum, e) => sum + e.amount, 0);
   
   const totalReceived = retainerPayments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+  
+  // Calculate renewals total (converted to retainer currency)
+  const renewals = retainer.renewals || [];
+  const renewalsTotalConverted = renewals.reduce((sum, renewal) => {
+    let amount = renewal.amount;
+    if (renewal.currency !== retainer.currency) {
+      const rate = getExchangeRate(renewal.currency, retainer.currency, data.exchangeRates || []);
+      if (rate) {
+        amount = renewal.amount * rate;
+      }
+    }
+    // Convert to monthly for comparison
+    if (renewal.frequency === 'quarterly') amount = amount / 3;
+    if (renewal.frequency === 'yearly') amount = amount / 12;
+    return sum + amount;
+  }, 0);
+
   const netProfit = totalReceived - totalExpenses;
 
   const handleToggleStatus = () => {
@@ -173,6 +192,46 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
           )}
         </CardContent>
       </Card>
+
+      {/* Renewals Section */}
+      {renewals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Renewals</CardTitle>
+              <Badge variant="secondary">{renewals.length}</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Third-party services included in this retainer (domains, hosting, software)
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Renewals Summary */}
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Monthly Renewals Total (converted)</span>
+                <span className="font-medium">
+                  {currentBusiness.currency.symbol}{renewalsTotalConverted.toLocaleString(undefined, { maximumFractionDigits: 2 })} / month
+                </span>
+              </div>
+            </div>
+
+            {/* Individual Renewals */}
+            <div className="space-y-3">
+              {renewals.map(renewal => (
+                <RetainerRenewalItem
+                  key={renewal.id}
+                  renewal={renewal}
+                  retainerCurrency={retainer.currency}
+                  exchangeRates={data.exchangeRates || []}
+                  isReadOnly={true}
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Expenses Section */}
       <Card>

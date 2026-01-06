@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { format } from 'date-fns';
-import { Plus, Eye, Edit, Pause, Play, X, HelpCircle } from 'lucide-react';
+import { Plus, Eye, Edit, Pause, Play, HelpCircle, RefreshCw } from 'lucide-react';
 import { RetainerModal } from './RetainerModal';
 import { useNavigate } from 'react-router-dom';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getExchangeRate } from '@/utils/currencyConversion';
 
 interface RetainersPageProps {
   isEmbedded?: boolean;
@@ -33,12 +34,35 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
   const retainers = (data.retainers || []).filter(r => r.businessId === currentBusiness.id);
   const activeRetainers = retainers.filter(r => r.status === 'active');
   
-  // Calculate MRR (Monthly Recurring Revenue)
+  // Calculate MRR including renewals (converted to business currency)
+  const calculateMonthlyAmount = (amount: number, frequency: string): number => {
+    if (frequency === 'quarterly') return amount / 3;
+    if (frequency === 'yearly') return amount / 12;
+    return amount;
+  };
+
   const mrr = activeRetainers.reduce((sum, r) => {
-    let monthlyAmount = r.amount;
-    if (r.frequency === 'quarterly') monthlyAmount = r.amount / 3;
-    if (r.frequency === 'yearly') monthlyAmount = r.amount / 12;
-    return sum + monthlyAmount;
+    // Base retainer amount (already in business currency)
+    let totalMonthly = calculateMonthlyAmount(r.amount, r.frequency);
+    
+    // Add renewals (convert if different currency)
+    if (r.renewals && r.renewals.length > 0) {
+      r.renewals.forEach(renewal => {
+        let renewalAmount = renewal.amount;
+        
+        // Convert if different currency
+        if (renewal.currency !== currentBusiness.currency.code) {
+          const rate = getExchangeRate(renewal.currency, currentBusiness.currency.code, data.exchangeRates || []);
+          if (rate) {
+            renewalAmount = renewal.amount * rate;
+          }
+        }
+        
+        totalMonthly += calculateMonthlyAmount(renewalAmount, renewal.frequency);
+      });
+    }
+    
+    return sum + totalMonthly;
   }, 0);
 
   const handleCreate = () => {
@@ -157,6 +181,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
                 <TableHead>Client</TableHead>
                 <TableHead>Retainer Name</TableHead>
                 <TableHead>Amount</TableHead>
+                <TableHead>Renewals</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Next Billing</TableHead>
                 <TableHead>Status</TableHead>
@@ -166,7 +191,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
             <TableBody>
               {retainers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <p className="text-muted-foreground">No retainers yet</p>
                       <p className="text-sm text-muted-foreground">Add retainers to track recurring client revenue</p>
@@ -176,11 +201,22 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
               ) : (
                 retainers.map(retainer => {
                   const client = data.clients.find(c => c.id === retainer.clientId);
+                  const renewalsCount = retainer.renewals?.length || 0;
                   return (
                     <TableRow key={retainer.id}>
                       <TableCell>{client?.name || 'Unknown Client'}</TableCell>
                       <TableCell className="font-medium">{retainer.name}</TableCell>
                       <TableCell>{formatCurrency(retainer.amount, { symbol: retainer.currency === currentBusiness.currency.code ? currentBusiness.currency.symbol : '$', code: retainer.currency })}</TableCell>
+                      <TableCell>
+                        {renewalsCount > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-sm">{renewalsCount}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="capitalize">{retainer.frequency}</TableCell>
                       <TableCell>{format(new Date(retainer.nextBillingDate), 'PP')}</TableCell>
                       <TableCell>

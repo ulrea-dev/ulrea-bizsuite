@@ -66,6 +66,19 @@ export interface Client {
   createdAt: string;
 }
 
+export type RenewalType = 'domain' | 'hosting' | 'software' | 'ssl' | 'email' | 'other';
+
+export interface RetainerRenewal {
+  id: string;
+  name: string;
+  type: RenewalType;
+  amount: number;
+  currency: string;
+  frequency: 'monthly' | 'quarterly' | 'yearly';
+  nextRenewalDate: string;
+  description?: string;
+}
+
 export interface Retainer {
   id: string;
   businessId: string;
@@ -80,6 +93,7 @@ export interface Retainer {
   description?: string;
   nextBillingDate: string;
   totalReceived: number;
+  renewals?: RetainerRenewal[];
   createdAt: string;
   updatedAt: string;
 }
