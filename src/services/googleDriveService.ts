@@ -1,7 +1,8 @@
 import { AppData } from '@/types/business';
-import { GoogleDriveBackup } from '@/types/googleDrive';
+import { GoogleDriveBackup, SpreadsheetInfo } from '@/types/googleDrive';
 
 const FOLDER_NAME = 'BizSuite Backups';
+const SHEETS_FOLDER_NAME = 'BizSuite Sheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API_BASE = 'https://www.googleapis.com/upload/drive/v3';
 
@@ -149,6 +150,79 @@ class GoogleDriveService {
     }
 
     return toDelete.length;
+  }
+
+  async getOrCreateSheetsFolder(): Promise<string> {
+    // Search for existing folder
+    const searchResponse = await this.request(
+      `${DRIVE_API_BASE}/files?q=name='${SHEETS_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`
+    );
+    const searchData = await searchResponse.json();
+
+    if (searchData.files && searchData.files.length > 0) {
+      return searchData.files[0].id;
+    }
+
+    // Create folder if it doesn't exist
+    const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: SHEETS_FOLDER_NAME,
+        mimeType: 'application/vnd.google-apps.folder',
+      }),
+    });
+
+    const createData = await createResponse.json();
+    return createData.id;
+  }
+
+  async listSpreadsheets(): Promise<SpreadsheetInfo[]> {
+    const folderId = await this.getOrCreateSheetsFolder();
+
+    const response = await this.request(
+      `${DRIVE_API_BASE}/files?q='${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id,name,createdTime,webViewLink)&orderBy=createdTime desc`
+    );
+
+    const data = await response.json();
+    return (data.files || []).map((file: any) => ({
+      id: file.id,
+      name: file.name,
+      createdTime: file.createdTime,
+      webViewLink: file.webViewLink,
+    }));
+  }
+
+  async moveSpreadsheetToFolder(spreadsheetId: string): Promise<void> {
+    const folderId = await this.getOrCreateSheetsFolder();
+
+    // Get current parents
+    const fileResponse = await this.request(
+      `${DRIVE_API_BASE}/files/${spreadsheetId}?fields=parents`
+    );
+    const fileData = await fileResponse.json();
+    const currentParents = (fileData.parents || []).join(',');
+
+    // Move file to sheets folder
+    await this.request(
+      `${DRIVE_API_BASE}/files/${spreadsheetId}?addParents=${folderId}&removeParents=${currentParents}`,
+      { method: 'PATCH' }
+    );
+  }
+
+  async getSpreadsheetInfo(spreadsheetId: string): Promise<SpreadsheetInfo> {
+    const response = await this.request(
+      `${DRIVE_API_BASE}/files/${spreadsheetId}?fields=id,name,createdTime,webViewLink`
+    );
+    const data = await response.json();
+    return {
+      id: data.id,
+      name: data.name,
+      createdTime: data.createdTime,
+      webViewLink: data.webViewLink,
+    };
   }
 }
 

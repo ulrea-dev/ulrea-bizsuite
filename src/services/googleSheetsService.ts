@@ -75,11 +75,8 @@ class GoogleSheetsService {
     );
   }
 
-  async exportAppData(data: AppData): Promise<string> {
-    const dateStr = format(new Date(), 'yyyy-MM-dd');
-    const title = `BizSuite Export - ${dateStr}`;
-
-    const sheetNames = [
+  private getSheetNames(): string[] {
+    return [
       'Dashboard',
       'Businesses',
       'Projects',
@@ -95,10 +92,17 @@ class GoogleSheetsService {
       'Payables',
       'Receivables',
     ];
+  }
+
+  async exportAppData(data: AppData): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const title = `BizSuite Export - ${dateStr}`;
+
+    const sheetNames = this.getSheetNames();
 
     // Create the spreadsheet
     const spreadsheet = await this.createSpreadsheet(title, sheetNames);
-    const { spreadsheetId, sheets } = spreadsheet;
+    const { spreadsheetId, sheets, spreadsheetUrl } = spreadsheet;
 
     // Prepare all sheet data
     const sheetData = this.prepareSheetData(data);
@@ -116,7 +120,44 @@ class GoogleSheetsService {
       await this.batchUpdate(spreadsheetId, formatRequests);
     }
 
-    return spreadsheet.spreadsheetUrl;
+    return { spreadsheetId, spreadsheetUrl };
+  }
+
+  async getSpreadsheet(spreadsheetId: string): Promise<SpreadsheetResponse> {
+    return this.request<SpreadsheetResponse>(`${SHEETS_API_BASE}/${spreadsheetId}`);
+  }
+
+  async clearSheet(spreadsheetId: string, sheetName: string): Promise<void> {
+    const encodedRange = encodeURIComponent(`'${sheetName}'`);
+    await this.request(
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/${encodedRange}:clear`,
+      { method: 'POST', body: JSON.stringify({}) }
+    );
+  }
+
+  async updateSpreadsheet(spreadsheetId: string, data: AppData): Promise<void> {
+    // Get existing spreadsheet info
+    const spreadsheet = await this.getSpreadsheet(spreadsheetId);
+    const sheetData = this.prepareSheetData(data);
+
+    // Clear and rewrite each sheet
+    for (const sheet of spreadsheet.sheets) {
+      const sheetName = sheet.properties.title;
+      const rows = sheetData[sheetName];
+      
+      if (rows && rows.length > 0) {
+        // Clear existing data
+        await this.clearSheet(spreadsheetId, sheetName);
+        // Write new data
+        await this.setValues(spreadsheetId, `'${sheetName}'!A1`, rows);
+      }
+    }
+
+    // Reapply formatting
+    const formatRequests = this.getFormatRequests(spreadsheet.sheets, sheetData);
+    if (formatRequests.length > 0) {
+      await this.batchUpdate(spreadsheetId, formatRequests);
+    }
   }
 
   private prepareSheetData(data: AppData): Record<string, any[][]> {
