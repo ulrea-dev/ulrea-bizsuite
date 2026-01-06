@@ -1,19 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { getAllRenewals, getRenewalSummary, EnrichedRenewal } from '@/utils/renewalUtils';
+import { getAllRenewals, getRenewalSummary } from '@/utils/renewalUtils';
 
 export const useRenewalReminders = () => {
   const { data, currentBusiness } = useBusiness();
   const [dismissed, setDismissed] = useState(false);
 
-  const businessRetainers = useMemo(() => {
+  const businessRenewals = useMemo(() => {
     if (!currentBusiness) return [];
-    return data.retainers?.filter((r) => r.businessId === currentBusiness.id) || [];
-  }, [data.retainers, currentBusiness]);
+    return data.renewals?.filter((r) => r.businessId === currentBusiness.id) || [];
+  }, [data.renewals, currentBusiness]);
 
   const allRenewals = useMemo(() => {
-    return getAllRenewals(businessRetainers, data.clients);
-  }, [businessRetainers, data.clients]);
+    return getAllRenewals(businessRenewals, data.clients);
+  }, [businessRenewals, data.clients]);
 
   const upcomingRenewals = useMemo(() => {
     return allRenewals.filter((r) => r.daysUntilDue <= 30);

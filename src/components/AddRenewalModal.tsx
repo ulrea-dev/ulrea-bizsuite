@@ -28,26 +28,12 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
 
   const [name, setName] = useState('');
   const [type, setType] = useState<RenewalType>('domain');
-  const [retainerId, setRetainerId] = useState('');
+  const [clientId, setClientId] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(currentBusiness?.currency.code || 'USD');
   const [frequency, setFrequency] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
   const [nextRenewalDate, setNextRenewalDate] = useState('');
   const [description, setDescription] = useState('');
-
-  const businessRetainers = useMemo(() => {
-    if (!currentBusiness) return [];
-    return data.retainers?.filter((r) => r.businessId === currentBusiness.id) || [];
-  }, [data.retainers, currentBusiness]);
-
-  const selectedRetainer = useMemo(() => {
-    return businessRetainers.find((r) => r.id === retainerId);
-  }, [businessRetainers, retainerId]);
-
-  const selectedClient = useMemo(() => {
-    if (!selectedRetainer) return null;
-    return data.clients.find((c) => c.id === selectedRetainer.clientId);
-  }, [selectedRetainer, data.clients]);
 
   const allCurrencies = useMemo(() => {
     return [...SUPPORTED_CURRENCIES, ...(data.customCurrencies || [])];
@@ -55,24 +41,25 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!retainerId || !name || !amount || !nextRenewalDate) return;
+    if (!clientId || !name || !amount || !nextRenewalDate || !currentBusiness) return;
 
     const renewalId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     dispatch({
-      type: 'ADD_RENEWAL_TO_RETAINER',
+      type: 'ADD_RENEWAL',
       payload: {
-        retainerId,
-        renewal: {
-          id: renewalId,
-          name,
-          type,
-          amount: parseFloat(amount),
-          currency,
-          frequency,
-          nextRenewalDate,
-          description: description || undefined,
-        },
+        id: renewalId,
+        businessId: currentBusiness.id,
+        clientId,
+        name,
+        type,
+        amount: parseFloat(amount),
+        currency,
+        frequency,
+        nextRenewalDate,
+        description: description || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     });
 
@@ -87,27 +74,20 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="retainer">Retainer *</Label>
-            <Select value={retainerId} onValueChange={setRetainerId}>
+            <Label htmlFor="client">Client *</Label>
+            <Select value={clientId} onValueChange={setClientId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a retainer" />
+                <SelectValue placeholder="Select a client" />
               </SelectTrigger>
               <SelectContent>
-                {businessRetainers.map((retainer) => (
-                  <SelectItem key={retainer.id} value={retainer.id}>
-                    {retainer.name}
+                {data.clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {selectedClient && (
-            <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Client</p>
-              <p className="font-medium">{selectedClient.name}</p>
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="name">Renewal Name *</Label>
@@ -205,7 +185,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!retainerId || !name || !amount || !nextRenewalDate}>
+            <Button type="submit" disabled={!clientId || !name || !amount || !nextRenewalDate}>
               Add Renewal
             </Button>
           </DialogFooter>

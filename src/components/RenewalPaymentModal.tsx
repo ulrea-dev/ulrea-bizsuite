@@ -8,14 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { RenewalPayment, RetainerRenewal, SUPPORTED_CURRENCIES } from '@/types/business';
+import { RenewalPayment, Renewal, SUPPORTED_CURRENCIES } from '@/types/business';
 import { addMonths, addYears, format } from 'date-fns';
 
 interface RenewalPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  renewal: RetainerRenewal;
-  retainerId: string;
+  renewal: Renewal;
   existingPayment?: RenewalPayment;
 }
 
@@ -23,7 +22,6 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
   isOpen,
   onClose,
   renewal,
-  retainerId,
   existingPayment,
 }) => {
   const { data, dispatch } = useBusiness();
@@ -86,7 +84,6 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
         payload: {
           id: paymentId,
           renewalId: renewal.id,
-          retainerId,
           amount: paymentAmount,
           currency,
           date,
@@ -102,7 +99,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
       const currentTotalPaid = renewal.totalPaid || 0;
       const newTotalPaid = currentTotalPaid + paymentAmount;
 
-      const renewalUpdates: Partial<RetainerRenewal> = {
+      const renewalUpdates: Partial<Renewal> = {
         lastPaidDate: date,
         totalPaid: newTotalPaid,
       };
@@ -113,10 +110,9 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
       }
 
       dispatch({
-        type: 'UPDATE_RENEWAL_IN_RETAINER',
+        type: 'UPDATE_RENEWAL',
         payload: {
-          retainerId,
-          renewalId: renewal.id,
+          id: renewal.id,
           updates: renewalUpdates,
         },
       });

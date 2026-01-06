@@ -28,6 +28,7 @@ const getInitialData = (): AppData => ({
   customCurrencies: [],
   quickTasks: [],
   retainers: [],
+  renewals: [],
   expenses: [],
   extraPayments: [],
   bankAccounts: [],

@@ -68,8 +68,10 @@ export interface Client {
 
 export type RenewalType = 'domain' | 'hosting' | 'software' | 'ssl' | 'email' | 'other';
 
-export interface RetainerRenewal {
+export interface Renewal {
   id: string;
+  businessId: string;
+  clientId: string;
   name: string;
   type: RenewalType;
   amount: number;
@@ -79,12 +81,13 @@ export interface RetainerRenewal {
   description?: string;
   lastPaidDate?: string;
   totalPaid?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RenewalPayment {
   id: string;
   renewalId: string;
-  retainerId: string;
   amount: number;
   currency: string;
   date: string;
@@ -109,7 +112,6 @@ export interface Retainer {
   description?: string;
   nextBillingDate: string;
   totalReceived: number;
-  renewals?: RetainerRenewal[];
   createdAt: string;
   updatedAt: string;
 }
@@ -471,6 +473,7 @@ export interface AppData {
   customCurrencies: Currency[];
   quickTasks: QuickTask[];
   retainers: Retainer[];
+  renewals: Renewal[];
   expenses: Expense[];
   extraPayments: ExtraPayment[];
   bankAccounts: BankAccount[];
