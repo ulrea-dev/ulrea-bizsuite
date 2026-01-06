@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
+import { googleSheetsService } from '@/services/googleSheetsService';
 import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS } from '@/types/googleDrive';
 import { AppData } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,7 @@ interface GoogleDriveContextValue {
   isConnected: boolean;
   isLoading: boolean;
   isSyncing: boolean;
+  isExporting: boolean;
   isConfigured: boolean;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
@@ -25,6 +27,7 @@ interface GoogleDriveContextValue {
   restoreBackup: (fileId: string) => Promise<AppData>;
   setAutoSync: (enabled: boolean) => void;
   scheduleSync: (data: AppData) => void;
+  exportToSheets: (data: AppData) => Promise<string>;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -45,6 +48,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [backups, setBackups] = useState<GoogleDriveBackup[]>([]);
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -63,10 +67,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   const isConnected = !!settings.accessToken;
 
-  // Initialize service with stored token
+  // Initialize services with stored token
   useEffect(() => {
     if (settings.accessToken) {
       googleDriveService.setAccessToken(settings.accessToken);
+      googleSheetsService.setAccessToken(settings.accessToken);
     }
   }, [settings.accessToken]);
 
@@ -86,7 +91,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     script.onload = () => {
       tokenClientRef.current = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             console.error('Google login error:', tokenResponse.error);
@@ -107,6 +112,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             const userInfo = await userInfoResponse.json();
 
             googleDriveService.setAccessToken(tokenResponse.access_token);
+            googleSheetsService.setAccessToken(tokenResponse.access_token);
             
             updateSettings({
               accessToken: tokenResponse.access_token,
@@ -260,6 +266,32 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     });
   }, [updateSettings, toast]);
 
+  const exportToSheets = useCallback(async (data: AppData): Promise<string> => {
+    if (!isConnected) {
+      throw new Error('Not connected to Google');
+    }
+
+    setIsExporting(true);
+    try {
+      const spreadsheetUrl = await googleSheetsService.exportAppData(data);
+      toast({
+        title: 'Export Complete',
+        description: 'Your data has been exported to Google Sheets.',
+      });
+      return spreadsheetUrl;
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast({
+        title: 'Export Failed',
+        description: error instanceof Error ? error.message : 'Could not export to Google Sheets.',
+        variant: 'destructive',
+      });
+      throw error;
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isConnected, toast]);
+
   // Listen for data changes and trigger auto-sync
   useEffect(() => {
     const handleDataChange = (event: CustomEvent<AppData>) => {
@@ -280,6 +312,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     isConnected,
     isLoading,
     isSyncing,
+    isExporting,
     isConfigured: true,
     settings,
     backups,
@@ -290,6 +323,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     restoreBackup,
     setAutoSync,
     scheduleSync,
+    exportToSheets,
   };
 
   return (

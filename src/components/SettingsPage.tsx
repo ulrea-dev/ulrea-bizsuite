@@ -23,15 +23,16 @@ import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
 import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus, RotateCcw, FileSpreadsheet, ExternalLink, Loader2 } from 'lucide-react';
 import { PartnersPage } from './PartnersPage';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
-  const { isConnected } = useGoogleDrive();
+  const { isConnected, isExporting, exportToSheets } = useGoogleDrive();
   const { toast } = useToast();
   const [showCustomCurrencyModal, setShowCustomCurrencyModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [exportedSheetUrl, setExportedSheetUrl] = useState<string | null>(null);
   const [username, setUsername] = useState(data.userSettings.username);
   const [selectedFont, setSelectedFont] = useState<FontOption>(
     data.userSettings.fontFamily || getDefaultFont()
@@ -107,6 +108,16 @@ export const SettingsPage: React.FC = () => {
 
   const handleCurrencyAdded = (currency: Currency) => {
     // The dispatch is already handled in the modal
+  };
+
+  const handleExportToSheets = async () => {
+    try {
+      setExportedSheetUrl(null);
+      const url = await exportToSheets(data);
+      setExportedSheetUrl(url);
+    } catch (error) {
+      // Error is already handled in the context
+    }
   };
 
   return (
@@ -198,6 +209,51 @@ export const SettingsPage: React.FC = () => {
 
         <TabsContent value="backup" className="space-y-4">
           <GoogleDriveBackupCard />
+          
+          {/* Export to Google Sheets Card */}
+          {isConnected && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Export to Google Sheets</CardTitle>
+                <CardDescription>
+                  Export all your data to a professionally formatted Google Spreadsheet with multiple sheets and a summary dashboard.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button 
+                  onClick={handleExportToSheets}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Export to Google Sheets
+                    </>
+                  )}
+                </Button>
+                
+                {exportedSheetUrl && (
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                    <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                    <span className="text-sm flex-1">Export complete!</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(exportedSheetUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in Sheets
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           
           {/* Restore Card */}
           {isConnected && (
