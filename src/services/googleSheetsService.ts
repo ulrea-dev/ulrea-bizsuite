@@ -14,6 +14,43 @@ interface SpreadsheetResponse {
   sheets: { properties: { sheetId: number; title: string } }[];
 }
 
+// Modern colorful palette for each sheet
+const SHEET_COLORS: Record<string, { header: { red: number; green: number; blue: number }; alt: { red: number; green: number; blue: number } }> = {
+  'Dashboard': { header: { red: 0.42, green: 0.27, blue: 0.76 }, alt: { red: 0.95, green: 0.93, blue: 0.98 } },       // Deep Purple
+  'Businesses': { header: { red: 0.05, green: 0.58, blue: 0.53 }, alt: { red: 0.91, green: 0.97, blue: 0.96 } },      // Teal
+  'Projects': { header: { red: 0.15, green: 0.39, blue: 0.92 }, alt: { red: 0.93, green: 0.95, blue: 0.99 } },        // Blue
+  'Quick Tasks': { header: { red: 0.85, green: 0.46, blue: 0.02 }, alt: { red: 0.99, green: 0.96, blue: 0.91 } },     // Amber
+  'Retainers': { header: { red: 0.02, green: 0.59, blue: 0.41 }, alt: { red: 0.91, green: 0.98, blue: 0.95 } },       // Emerald
+  'Renewals': { header: { red: 0.86, green: 0.15, blue: 0.47 }, alt: { red: 0.99, green: 0.93, blue: 0.96 } },        // Pink
+  'Renewal Payments': { header: { red: 0.88, green: 0.11, blue: 0.28 }, alt: { red: 0.99, green: 0.93, blue: 0.94 } }, // Rose
+  'Clients': { header: { red: 0.31, green: 0.27, blue: 0.90 }, alt: { red: 0.94, green: 0.94, blue: 0.99 } },         // Indigo
+  'Team Members': { header: { red: 0.03, green: 0.57, blue: 0.70 }, alt: { red: 0.91, green: 0.97, blue: 0.98 } },    // Cyan
+  'Partners': { header: { red: 0.92, green: 0.35, blue: 0.05 }, alt: { red: 0.99, green: 0.95, blue: 0.92 } },        // Orange
+  'Payments': { header: { red: 0.09, green: 0.64, blue: 0.29 }, alt: { red: 0.92, green: 0.98, blue: 0.94 } },        // Green
+  'Expenses': { header: { red: 0.86, green: 0.15, blue: 0.15 }, alt: { red: 0.99, green: 0.93, blue: 0.93 } },        // Red
+  'Salary Records': { header: { red: 0.49, green: 0.24, blue: 0.93 }, alt: { red: 0.96, green: 0.93, blue: 0.99 } },  // Violet
+  'Bank Accounts': { header: { red: 0.28, green: 0.33, blue: 0.41 }, alt: { red: 0.95, green: 0.96, blue: 0.97 } },   // Slate
+  'Payables': { header: { red: 0.79, green: 0.54, blue: 0.02 }, alt: { red: 0.99, green: 0.97, blue: 0.91 } },        // Yellow
+  'Receivables': { header: { red: 0.40, green: 0.64, blue: 0.05 }, alt: { red: 0.96, green: 0.98, blue: 0.92 } },     // Lime
+};
+
+// Column indices that contain amounts (for number formatting)
+const AMOUNT_COLUMNS: Record<string, number[]> = {
+  'Businesses': [3, 4],           // Current Balance, Minimum Balance
+  'Projects': [3, 7],             // Total Value, Client Payments
+  'Quick Tasks': [2],             // Amount
+  'Retainers': [3, 8],            // Amount, Total Received
+  'Renewals': [5, 10],            // Amount, Total Paid
+  'Renewal Payments': [2],        // Amount
+  'Clients': [3],                 // Total Value
+  'Payments': [0],                // Amount
+  'Expenses': [3],                // Amount
+  'Salary Records': [3],          // Amount
+  'Bank Accounts': [3],           // Balance
+  'Payables': [2, 3],             // Amount, Paid
+  'Receivables': [3, 4],          // Amount, Received
+};
+
 class GoogleSheetsService {
   private accessToken: string | null = null;
 
@@ -82,6 +119,8 @@ class GoogleSheetsService {
       'Projects',
       'Quick Tasks',
       'Retainers',
+      'Renewals',
+      'Renewal Payments',
       'Clients',
       'Team Members',
       'Partners',
@@ -161,9 +200,6 @@ class GoogleSheetsService {
   }
 
   private prepareSheetData(data: AppData): Record<string, any[][]> {
-    const formatCurrency = (amount: number, currency?: string) => 
-      currency ? `${currency} ${amount.toLocaleString()}` : amount.toLocaleString();
-
     const formatDate = (dateStr?: string) => 
       dateStr ? format(new Date(dateStr), 'MMM dd, yyyy') : '';
 
@@ -172,6 +208,8 @@ class GoogleSheetsService {
     const safeProjects = data.projects || [];
     const safeQuickTasks = data.quickTasks || [];
     const safeRetainers = data.retainers || [];
+    const safeRenewals = data.renewals || [];
+    const safeRenewalPayments = data.renewalPayments || [];
     const safeClients = data.clients || [];
     const safeTeamMembers = data.teamMembers || [];
     const safePartners = data.partners || [];
@@ -209,27 +247,37 @@ class GoogleSheetsService {
 
     const totalBankBalance = safeBankAccounts.reduce((sum, a) => sum + a.balance, 0);
 
+    const totalRenewals = safeRenewals.length;
+    const upcomingRenewals = safeRenewals.filter(r => {
+      const nextDate = new Date(r.nextRenewalDate);
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      return nextDate <= thirtyDaysFromNow;
+    }).length;
+
     const dashboard: any[][] = [
-      ['BizSuite Data Export', '', format(new Date(), 'MMMM dd, yyyy')],
+      ['📊 BizSuite Data Export', '', format(new Date(), 'MMMM dd, yyyy')],
       [],
-      ['OVERVIEW'],
+      ['📈 OVERVIEW'],
       ['Metric', 'Value'],
       ['Total Businesses', safeBusinesses.length],
       ['Active Projects', activeProjects],
       ['Active Quick Tasks', activeTasks],
       ['Active Retainers', activeRetainers.length],
+      ['Total Renewals', totalRenewals],
+      ['Upcoming Renewals (30 days)', upcomingRenewals],
       ['Team Members', safeTeamMembers.length],
       ['Partners', safePartners.length],
       ['Clients', safeClients.length],
       [],
-      ['FINANCIAL SUMMARY'],
+      ['💰 FINANCIAL SUMMARY'],
       ['Metric', 'Value'],
-      ['Monthly Recurring Revenue (MRR)', formatCurrency(totalMRR)],
-      ['Total Revenue (Completed)', formatCurrency(totalRevenue)],
-      ['Total Expenses (Paid)', formatCurrency(totalExpenses)],
-      ['Pending Receivables', formatCurrency(pendingReceivables)],
-      ['Pending Payables', formatCurrency(pendingPayables)],
-      ['Total Bank Balance', formatCurrency(totalBankBalance)],
+      ['Monthly Recurring Revenue (MRR)', totalMRR],
+      ['Total Revenue (Completed)', totalRevenue],
+      ['Total Expenses (Paid)', totalExpenses],
+      ['Pending Receivables', pendingReceivables],
+      ['Pending Payables', pendingPayables],
+      ['Total Bank Balance', totalBankBalance],
     ];
 
     // Businesses
@@ -302,6 +350,49 @@ class GoogleSheetsService {
           formatDate(r.nextBillingDate),
           r.totalReceived,
           formatDate(r.startDate),
+        ];
+      }),
+    ];
+
+    // Renewals (NEW)
+    const renewalsSheet: any[][] = [
+      ['Name', 'Business', 'Client', 'Linked Retainer', 'Type', 'Amount', 'Currency', 'Frequency', 'Next Renewal', 'Last Paid', 'Total Paid', 'Description'],
+      ...safeRenewals.map(r => {
+        const business = safeBusinesses.find(b => b.id === r.businessId);
+        const client = safeClients.find(c => c.id === r.clientId);
+        const retainer = safeRetainers.find(ret => ret.id === r.retainerId);
+        return [
+          r.name,
+          business?.name || '',
+          client?.name || '',
+          retainer?.name || '',
+          r.type,
+          r.amount,
+          r.currency,
+          r.frequency,
+          formatDate(r.nextRenewalDate),
+          formatDate(r.lastPaidDate),
+          r.totalPaid || 0,
+          r.description || '',
+        ];
+      }),
+    ];
+
+    // Renewal Payments (NEW)
+    const renewalPaymentsSheet: any[][] = [
+      ['Renewal Name', 'Client', 'Amount', 'Currency', 'Date', 'Status', 'Invoice', 'Notes'],
+      ...safeRenewalPayments.map(p => {
+        const renewal = safeRenewals.find(r => r.id === p.renewalId);
+        const client = renewal ? safeClients.find(c => c.id === renewal.clientId) : null;
+        return [
+          renewal?.name || '',
+          client?.name || '',
+          p.amount,
+          p.currency,
+          formatDate(p.date),
+          p.status,
+          p.invoiceFileName || '',
+          p.notes || '',
         ];
       }),
     ];
@@ -464,6 +555,8 @@ class GoogleSheetsService {
       'Projects': projectsSheet,
       'Quick Tasks': quickTasksSheet,
       'Retainers': retainersSheet,
+      'Renewals': renewalsSheet,
+      'Renewal Payments': renewalPaymentsSheet,
       'Clients': clientsSheet,
       'Team Members': teamMembersSheet,
       'Partners': partnersSheet,
@@ -489,73 +582,150 @@ class GoogleSheetsService {
       if (!data || data.length === 0) continue;
 
       const columnCount = Math.max(...data.map(row => row.length));
+      const rowCount = data.length;
+      const colors = SHEET_COLORS[title] || SHEET_COLORS['Dashboard'];
 
-      // Header formatting (bold, background color)
       if (title === 'Dashboard') {
-        // Title formatting
+        // Dashboard title formatting
         requests.push({
           repeatCell: {
             range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 3 },
             cell: {
               userEnteredFormat: {
-                textFormat: { bold: true, fontSize: 16 },
-              },
-            },
-            fields: 'userEnteredFormat.textFormat',
-          },
-        });
-        // Section headers
-        requests.push({
-          repeatCell: {
-            range: { sheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 0, endColumnIndex: 2 },
-            cell: {
-              userEnteredFormat: {
-                textFormat: { bold: true, fontSize: 12 },
-                backgroundColor: { red: 0.9, green: 0.9, blue: 0.9 },
-              },
-            },
-            fields: 'userEnteredFormat(textFormat,backgroundColor)',
-          },
-        });
-        requests.push({
-          repeatCell: {
-            range: { sheetId, startRowIndex: 12, endRowIndex: 13, startColumnIndex: 0, endColumnIndex: 2 },
-            cell: {
-              userEnteredFormat: {
-                textFormat: { bold: true, fontSize: 12 },
-                backgroundColor: { red: 0.9, green: 0.9, blue: 0.9 },
-              },
-            },
-            fields: 'userEnteredFormat(textFormat,backgroundColor)',
-          },
-        });
-      } else {
-        // Standard table header
-        requests.push({
-          repeatCell: {
-            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
-            cell: {
-              userEnteredFormat: {
-                textFormat: { bold: true },
-                backgroundColor: { red: 0.2, green: 0.4, blue: 0.6 },
-                horizontalAlignment: 'CENTER',
+                textFormat: { bold: true, fontSize: 18, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: colors.header,
+                horizontalAlignment: 'LEFT',
               },
             },
             fields: 'userEnteredFormat(textFormat,backgroundColor,horizontalAlignment)',
           },
         });
-        // White text for header
+        
+        // Overview section header
         requests.push({
           repeatCell: {
-            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
+            range: { sheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 0, endColumnIndex: 2 },
             cell: {
               userEnteredFormat: {
-                textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                textFormat: { bold: true, fontSize: 12, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: { red: 0.31, green: 0.27, blue: 0.90 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+        
+        // Financial summary section header
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 14, endRowIndex: 15, startColumnIndex: 0, endColumnIndex: 2 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 12, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: { red: 0.09, green: 0.64, blue: 0.29 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+
+        // Metric labels bold
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 3, endRowIndex: 14, startColumnIndex: 0, endColumnIndex: 1 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true },
               },
             },
             fields: 'userEnteredFormat.textFormat',
           },
         });
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 15, endRowIndex: 23, startColumnIndex: 0, endColumnIndex: 1 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true },
+              },
+            },
+            fields: 'userEnteredFormat.textFormat',
+          },
+        });
+
+        // Number formatting for financial values
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 16, endRowIndex: 23, startColumnIndex: 1, endColumnIndex: 2 },
+            cell: {
+              userEnteredFormat: {
+                numberFormat: { type: 'NUMBER', pattern: '#,##0.00' },
+              },
+            },
+            fields: 'userEnteredFormat.numberFormat',
+          },
+        });
+      } else {
+        // Standard table header with vibrant colors
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 11, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: colors.header,
+                horizontalAlignment: 'CENTER',
+                verticalAlignment: 'MIDDLE',
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor,horizontalAlignment,verticalAlignment)',
+          },
+        });
+
+        // Alternating row colors (zebra striping)
+        if (rowCount > 1) {
+          requests.push({
+            addConditionalFormatRule: {
+              rule: {
+                ranges: [{ sheetId, startRowIndex: 1, endRowIndex: rowCount, startColumnIndex: 0, endColumnIndex: columnCount }],
+                booleanRule: {
+                  condition: {
+                    type: 'CUSTOM_FORMULA',
+                    values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }],
+                  },
+                  format: {
+                    backgroundColor: colors.alt,
+                  },
+                },
+              },
+              index: 0,
+            },
+          });
+        }
+
+        // Number formatting for amount columns
+        const amountCols = AMOUNT_COLUMNS[title];
+        if (amountCols && rowCount > 1) {
+          for (const colIndex of amountCols) {
+            requests.push({
+              repeatCell: {
+                range: { 
+                  sheetId, 
+                  startRowIndex: 1, 
+                  endRowIndex: rowCount,
+                  startColumnIndex: colIndex,
+                  endColumnIndex: colIndex + 1 
+                },
+                cell: {
+                  userEnteredFormat: {
+                    numberFormat: { type: 'NUMBER', pattern: '#,##0.00' },
+                  },
+                },
+                fields: 'userEnteredFormat.numberFormat',
+              },
+            });
+          }
+        }
       }
 
       // Freeze header row
@@ -566,6 +736,22 @@ class GoogleSheetsService {
             gridProperties: { frozenRowCount: 1 },
           },
           fields: 'gridProperties.frozenRowCount',
+        },
+      });
+
+      // Set row height for header
+      requests.push({
+        updateDimensionProperties: {
+          range: {
+            sheetId,
+            dimension: 'ROWS',
+            startIndex: 0,
+            endIndex: 1,
+          },
+          properties: {
+            pixelSize: 32,
+          },
+          fields: 'pixelSize',
         },
       });
 
@@ -580,6 +766,21 @@ class GoogleSheetsService {
           },
         },
       });
+
+      // Add borders to the table
+      if (title !== 'Dashboard') {
+        requests.push({
+          updateBorders: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: rowCount, startColumnIndex: 0, endColumnIndex: columnCount },
+            top: { style: 'SOLID', color: { red: 0.8, green: 0.8, blue: 0.8 } },
+            bottom: { style: 'SOLID', color: { red: 0.8, green: 0.8, blue: 0.8 } },
+            left: { style: 'SOLID', color: { red: 0.8, green: 0.8, blue: 0.8 } },
+            right: { style: 'SOLID', color: { red: 0.8, green: 0.8, blue: 0.8 } },
+            innerHorizontal: { style: 'SOLID', color: { red: 0.9, green: 0.9, blue: 0.9 } },
+            innerVertical: { style: 'SOLID', color: { red: 0.9, green: 0.9, blue: 0.9 } },
+          },
+        });
+      }
     }
 
     return requests;
