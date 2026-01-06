@@ -1,15 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
 import { googleSheetsService } from '@/services/googleSheetsService';
-import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS } from '@/types/googleDrive';
+import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo } from '@/types/googleDrive';
 import { AppData } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
-const DEBOUNCE_DELAY = 5000; // 5 seconds
+const DEBOUNCE_DELAY = 5000;
+const SHEET_SYNC_DELAY = 3000;
 
-// Google OAuth Client ID (public key - safe to include in client-side code)
-// Exported for use in Auth component
 const GOOGLE_CLIENT_ID = "63460396574-lmeqr2hf2ucbj11vbmkr0m2va98ngt1a.apps.googleusercontent.com";
 
 interface GoogleDriveContextValue {
@@ -17,6 +16,7 @@ interface GoogleDriveContextValue {
   isLoading: boolean;
   isSyncing: boolean;
   isExporting: boolean;
+  isSyncingSheet: boolean;
   isConfigured: boolean;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
@@ -28,6 +28,11 @@ interface GoogleDriveContextValue {
   setAutoSync: (enabled: boolean) => void;
   scheduleSync: (data: AppData) => void;
   exportToSheets: (data: AppData) => Promise<string>;
+  connectToSheet: (sheet: SpreadsheetInfo) => Promise<void>;
+  disconnectSheet: () => void;
+  syncToConnectedSheet: (data: AppData) => Promise<void>;
+  createAndConnectSheet: (data: AppData) => Promise<void>;
+  setSheetAutoSync: (enabled: boolean) => void;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -49,6 +54,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
   const [backups, setBackups] = useState<GoogleDriveBackup[]>([]);
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -63,11 +69,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   });
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
 
   const isConnected = !!settings.accessToken;
 
-  // Initialize services with stored token
   useEffect(() => {
     if (settings.accessToken) {
       googleDriveService.setAccessToken(settings.accessToken);
@@ -75,15 +81,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     }
   }, [settings.accessToken]);
 
-  // Persist settings to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  // Load Google Identity Services script
   useEffect(() => {
-    
-
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -94,42 +96,21 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
         scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
-            console.error('Google login error:', tokenResponse.error);
-            toast({
-              title: 'Connection Failed',
-              description: 'Could not connect to Google Drive. Please try again.',
-              variant: 'destructive',
-            });
+            toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
             setIsLoading(false);
             return;
           }
-
           try {
-            // Get user info
             const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
               headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
             });
             const userInfo = await userInfoResponse.json();
-
             googleDriveService.setAccessToken(tokenResponse.access_token);
             googleSheetsService.setAccessToken(tokenResponse.access_token);
-            
-            updateSettings({
-              accessToken: tokenResponse.access_token,
-              connectedEmail: userInfo.email,
-            });
-
-            toast({
-              title: 'Connected to Google Drive',
-              description: `Signed in as ${userInfo.email}`,
-            });
-          } catch (error) {
-            console.error('Failed to get user info:', error);
-            toast({
-              title: 'Connection Failed',
-              description: 'Could not connect to Google Drive. Please try again.',
-              variant: 'destructive',
-            });
+            updateSettings({ accessToken: tokenResponse.access_token, connectedEmail: userInfo.email });
+            toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
+          } catch {
+            toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
           } finally {
             setIsLoading(false);
           }
@@ -137,10 +118,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       });
     };
     document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    return () => { document.body.removeChild(script); };
   }, [toast]);
 
   const updateSettings = useCallback((updates: Partial<GoogleDriveSettings>) => {
@@ -152,50 +130,28 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       setIsLoading(true);
       tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
     }
-  }, [toast]);
+  }, []);
 
   const disconnect = useCallback(() => {
     if (settings.accessToken) {
-      google.accounts.oauth2.revoke(settings.accessToken, () => {
-        console.log('Token revoked');
-      });
+      google.accounts.oauth2.revoke(settings.accessToken, () => {});
     }
     googleDriveService.setAccessToken(null);
-    updateSettings({
-      accessToken: null,
-      connectedEmail: null,
-      lastSyncTime: null,
-    });
+    updateSettings({ accessToken: null, connectedEmail: null, lastSyncTime: null, connectedSheet: null });
     setBackups([]);
-    toast({
-      title: 'Disconnected',
-      description: 'Google Drive has been disconnected.',
-    });
+    toast({ title: 'Disconnected', description: 'Google Drive has been disconnected.' });
   }, [settings.accessToken, updateSettings, toast]);
 
   const syncNow = useCallback(async (data: AppData) => {
     if (!isConnected) return;
-
     setIsSyncing(true);
     try {
       await googleDriveService.uploadBackup(data);
-      const now = new Date().toISOString();
-      updateSettings({ lastSyncTime: now });
-      
-      // Clean up old backups (keep last 10)
+      updateSettings({ lastSyncTime: new Date().toISOString() });
       await googleDriveService.deleteOldBackups(10);
-      
-      toast({
-        title: 'Backup Complete',
-        description: 'Your data has been backed up to Google Drive.',
-      });
+      toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
     } catch (error) {
-      console.error('Sync failed:', error);
-      toast({
-        title: 'Backup Failed',
-        description: error instanceof Error ? error.message : 'Could not backup to Google Drive.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Backup Failed', description: error instanceof Error ? error.message : 'Could not backup.', variant: 'destructive' });
     } finally {
       setIsSyncing(false);
     }
@@ -203,32 +159,18 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   const scheduleSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.autoSyncEnabled) return;
-
-    // Clear existing timeout
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    // Schedule new sync after debounce delay
-    syncTimeoutRef.current = setTimeout(() => {
-      syncNow(data);
-    }, DEBOUNCE_DELAY);
+    if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => syncNow(data), DEBOUNCE_DELAY);
   }, [isConnected, settings.autoSyncEnabled, syncNow]);
 
   const loadBackups = useCallback(async () => {
     if (!isConnected) return;
-
     setIsLoading(true);
     try {
       const list = await googleDriveService.listBackups();
       setBackups(list);
     } catch (error) {
-      console.error('Failed to load backups:', error);
-      toast({
-        title: 'Failed to Load Backups',
-        description: error instanceof Error ? error.message : 'Could not load backups from Google Drive.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Failed to Load Backups', description: error instanceof Error ? error.message : 'Could not load backups.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -238,18 +180,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     setIsLoading(true);
     try {
       const data = await googleDriveService.downloadBackup(fileId);
-      toast({
-        title: 'Backup Restored',
-        description: 'Your data has been restored from Google Drive.',
-      });
+      toast({ title: 'Backup Restored', description: 'Your data has been restored.' });
       return data;
     } catch (error) {
-      console.error('Restore failed:', error);
-      toast({
-        title: 'Restore Failed',
-        description: error instanceof Error ? error.message : 'Could not restore backup.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Restore Failed', description: error instanceof Error ? error.message : 'Could not restore.', variant: 'destructive' });
       throw error;
     } finally {
       setIsLoading(false);
@@ -258,98 +192,108 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   const setAutoSync = useCallback((enabled: boolean) => {
     updateSettings({ autoSyncEnabled: enabled });
-    toast({
-      title: enabled ? 'Auto-sync Enabled' : 'Auto-sync Disabled',
-      description: enabled 
-        ? 'Changes will automatically be backed up to Google Drive.' 
-        : 'You can still backup manually.',
-    });
+    toast({ title: enabled ? 'Auto-sync Enabled' : 'Auto-sync Disabled', description: enabled ? 'Changes will be backed up automatically.' : 'You can still backup manually.' });
   }, [updateSettings, toast]);
 
   const exportToSheets = useCallback(async (data: AppData): Promise<string> => {
-    if (!isConnected) {
-      throw new Error('Not connected to Google');
-    }
-
+    if (!isConnected) throw new Error('Not connected');
     setIsExporting(true);
     try {
-      const spreadsheetUrl = await googleSheetsService.exportAppData(data);
-      toast({
-        title: 'Export Complete',
-        description: 'Your data has been exported to Google Sheets.',
-      });
+      const { spreadsheetId, spreadsheetUrl } = await googleSheetsService.exportAppData(data);
+      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+      toast({ title: 'Export Complete', description: 'Data exported to Google Sheets.' });
       return spreadsheetUrl;
     } catch (error) {
-      console.error('Export failed:', error);
-      toast({
-        title: 'Export Failed',
-        description: error instanceof Error ? error.message : 'Could not export to Google Sheets.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Export Failed', description: error instanceof Error ? error.message : 'Could not export.', variant: 'destructive' });
       throw error;
     } finally {
       setIsExporting(false);
     }
   }, [isConnected, toast]);
 
-  // Listen for data changes and trigger auto-sync
+  const connectToSheet = useCallback(async (sheet: SpreadsheetInfo) => {
+    const connectedSheet: ConnectedSheet = { spreadsheetId: sheet.id, spreadsheetUrl: sheet.webViewLink, name: sheet.name, connectedAt: new Date().toISOString(), lastSyncedAt: null };
+    updateSettings({ connectedSheet });
+    toast({ title: 'Sheet Connected', description: `Connected to "${sheet.name}".` });
+  }, [updateSettings, toast]);
+
+  const disconnectSheet = useCallback(() => {
+    updateSettings({ connectedSheet: null, sheetAutoSyncEnabled: false });
+    toast({ title: 'Sheet Disconnected', description: 'The spreadsheet has been disconnected.' });
+  }, [updateSettings, toast]);
+
+  const syncToConnectedSheet = useCallback(async (data: AppData) => {
+    if (!isConnected || !settings.connectedSheet) return;
+    setIsSyncingSheet(true);
+    try {
+      await googleSheetsService.updateSpreadsheet(settings.connectedSheet.spreadsheetId, data);
+      updateSettings({ connectedSheet: { ...settings.connectedSheet, lastSyncedAt: new Date().toISOString() } });
+      toast({ title: 'Sheet Updated', description: 'Your spreadsheet has been updated.' });
+    } catch (error) {
+      toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not update sheet.', variant: 'destructive' });
+    } finally {
+      setIsSyncingSheet(false);
+    }
+  }, [isConnected, settings.connectedSheet, updateSettings, toast]);
+
+  const createAndConnectSheet = useCallback(async (data: AppData) => {
+    if (!isConnected) return;
+    setIsExporting(true);
+    try {
+      const { spreadsheetId, spreadsheetUrl } = await googleSheetsService.exportAppData(data);
+      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+      const sheetInfo = await googleDriveService.getSpreadsheetInfo(spreadsheetId);
+      const connectedSheet: ConnectedSheet = { spreadsheetId, spreadsheetUrl, name: sheetInfo.name, connectedAt: new Date().toISOString(), lastSyncedAt: new Date().toISOString() };
+      updateSettings({ connectedSheet, sheetAutoSyncEnabled: true });
+      toast({ title: 'Sheet Created & Connected', description: 'A new spreadsheet has been created and connected.' });
+    } catch (error) {
+      toast({ title: 'Failed to Create Sheet', description: error instanceof Error ? error.message : 'Could not create sheet.', variant: 'destructive' });
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isConnected, updateSettings, toast]);
+
+  const setSheetAutoSync = useCallback((enabled: boolean) => {
+    updateSettings({ sheetAutoSyncEnabled: enabled });
+    toast({ title: enabled ? 'Auto-sync Enabled' : 'Auto-sync Disabled', description: enabled ? 'Changes will sync to the sheet.' : 'You can still sync manually.' });
+  }, [updateSettings, toast]);
+
+  const scheduleSheetSync = useCallback((data: AppData) => {
+    if (!isConnected || !settings.sheetAutoSyncEnabled || !settings.connectedSheet) return;
+    if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
+    sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data), SHEET_SYNC_DELAY);
+  }, [isConnected, settings.sheetAutoSyncEnabled, settings.connectedSheet, syncToConnectedSheet]);
+
   useEffect(() => {
     const handleDataChange = (event: CustomEvent<AppData>) => {
       scheduleSync(event.detail);
+      scheduleSheetSync(event.detail);
     };
-
     window.addEventListener('bizsuite-data-change', handleDataChange as EventListener);
-    
     return () => {
       window.removeEventListener('bizsuite-data-change', handleDataChange as EventListener);
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
     };
-  }, [scheduleSync]);
+  }, [scheduleSync, scheduleSheetSync]);
 
   const value: GoogleDriveContextValue = {
-    isConnected,
-    isLoading,
-    isSyncing,
-    isExporting,
-    isConfigured: true,
-    settings,
-    backups,
-    connect,
-    disconnect,
-    syncNow,
-    loadBackups,
-    restoreBackup,
-    setAutoSync,
-    scheduleSync,
-    exportToSheets,
+    isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isConfigured: true, settings, backups,
+    connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
+    connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
   };
 
-  return (
-    <GoogleDriveContext.Provider value={value}>
-      {children}
-    </GoogleDriveContext.Provider>
-  );
+  return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;
 };
 
-// Add type declaration for Google Identity Services
 declare global {
-  interface Window {
-    google?: typeof google;
-  }
+  interface Window { google?: typeof google; }
   namespace google {
     namespace accounts {
       namespace oauth2 {
-        function initTokenClient(config: {
-          client_id: string;
-          scope: string;
-          callback: (response: { access_token?: string; error?: string }) => void;
-        }): TokenClient;
+        function initTokenClient(config: { client_id: string; scope: string; callback: (response: { access_token?: string; error?: string }) => void; }): TokenClient;
         function revoke(token: string, callback: () => void): void;
-        interface TokenClient {
-          requestAccessToken(options?: { prompt?: string }): void;
-        }
+        interface TokenClient { requestAccessToken(options?: { prompt?: string }): void; }
       }
     }
   }
