@@ -106,8 +106,8 @@ export const RenewalsDashboard: React.FC = () => {
   }, [data.renewals, currentBusiness]);
 
   const allRenewals = useMemo(() => {
-    return getAllRenewals(businessRenewals, data.clients);
-  }, [businessRenewals, data.clients]);
+    return getAllRenewals(businessRenewals, data.clients, data.retainers);
+  }, [businessRenewals, data.clients, data.retainers]);
 
   const summary = useMemo(() => getRenewalSummary(allRenewals), [allRenewals]);
 
@@ -310,6 +310,7 @@ export const RenewalsDashboard: React.FC = () => {
                 <TableRow>
                   <TableHead>Renewal</TableHead>
                   <TableHead>Client</TableHead>
+                  <TableHead>Retainer</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Frequency</TableHead>
@@ -330,6 +331,13 @@ export const RenewalsDashboard: React.FC = () => {
                         <div className="font-medium">{renewal.name}</div>
                       </TableCell>
                       <TableCell>{renewal.clientName}</TableCell>
+                      <TableCell>
+                        {renewal.retainerName ? (
+                          <Badge variant="outline">{renewal.retainerName}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {RENEWAL_TYPE_ICONS[renewal.type]}

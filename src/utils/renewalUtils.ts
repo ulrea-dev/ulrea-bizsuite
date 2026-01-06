@@ -1,10 +1,11 @@
-import { Renewal, Client, RenewalPayment } from '@/types/business';
+import { Renewal, Client, RenewalPayment, Retainer } from '@/types/business';
 import { differenceInDays, parseISO, isValid, addMonths, addYears, format } from 'date-fns';
 
 export type RenewalStatus = 'overdue' | 'urgent' | 'warning' | 'upcoming';
 
 export interface EnrichedRenewal extends Renewal {
   clientName: string;
+  retainerName?: string;
   daysUntilDue: number;
   status: RenewalStatus;
 }
@@ -29,11 +30,12 @@ export const getRenewalStatus = (daysUntilDue: number): RenewalStatus => {
 };
 
 /**
- * Get all renewals for a business, enriched with client info
+ * Get all renewals for a business, enriched with client and retainer info
  */
 export const getAllRenewals = (
   renewals: Renewal[],
   clients: Client[],
+  retainers: Retainer[] = [],
   businessId?: string
 ): EnrichedRenewal[] => {
   const filteredRenewals = businessId 
@@ -42,11 +44,13 @@ export const getAllRenewals = (
 
   return filteredRenewals.map((renewal) => {
     const client = clients.find((c) => c.id === renewal.clientId);
+    const retainer = renewal.retainerId ? retainers.find((r) => r.id === renewal.retainerId) : undefined;
     const daysUntilDue = getDaysUntilDue(renewal.nextRenewalDate);
     
     return {
       ...renewal,
       clientName: client?.name || 'Unknown Client',
+      retainerName: retainer?.name,
       daysUntilDue,
       status: getRenewalStatus(daysUntilDue),
     };
@@ -59,10 +63,11 @@ export const getAllRenewals = (
 export const getUpcomingRenewals = (
   renewals: Renewal[],
   clients: Client[],
+  retainers: Retainer[] = [],
   daysAhead: number = 30,
   businessId?: string
 ): EnrichedRenewal[] => {
-  const allRenewals = getAllRenewals(renewals, clients, businessId);
+  const allRenewals = getAllRenewals(renewals, clients, retainers, businessId);
   return allRenewals.filter((r) => r.daysUntilDue <= daysAhead);
 };
 
@@ -72,9 +77,10 @@ export const getUpcomingRenewals = (
 export const getOverdueRenewals = (
   renewals: Renewal[],
   clients: Client[],
+  retainers: Retainer[] = [],
   businessId?: string
 ): EnrichedRenewal[] => {
-  const allRenewals = getAllRenewals(renewals, clients, businessId);
+  const allRenewals = getAllRenewals(renewals, clients, retainers, businessId);
   return allRenewals.filter((r) => r.status === 'overdue');
 };
 

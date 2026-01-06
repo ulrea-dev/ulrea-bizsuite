@@ -12,8 +12,8 @@ export const useRenewalReminders = () => {
   }, [data.renewals, currentBusiness]);
 
   const allRenewals = useMemo(() => {
-    return getAllRenewals(businessRenewals, data.clients);
-  }, [businessRenewals, data.clients]);
+    return getAllRenewals(businessRenewals, data.clients, data.retainers);
+  }, [businessRenewals, data.clients, data.retainers]);
 
   const upcomingRenewals = useMemo(() => {
     return allRenewals.filter((r) => r.daysUntilDue <= 30);
