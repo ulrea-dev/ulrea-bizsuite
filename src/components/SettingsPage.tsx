@@ -22,9 +22,10 @@ import { SalarySettings } from '@/components/SalarySettings';
 import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
 import { GoogleSheetsConnectionCard } from '@/components/GoogleSheetsConnectionCard';
 import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
+import { ShareAccessModal } from '@/components/ShareAccessModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus, RotateCcw, Users } from 'lucide-react';
 import { PartnersPage } from './PartnersPage';
 
 export const SettingsPage: React.FC = () => {
@@ -33,6 +34,7 @@ export const SettingsPage: React.FC = () => {
   const { toast } = useToast();
   const [showCustomCurrencyModal, setShowCustomCurrencyModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [username, setUsername] = useState(data.userSettings.username);
   const [selectedFont, setSelectedFont] = useState<FontOption>(
     data.userSettings.fontFamily || getDefaultFont()
@@ -204,6 +206,27 @@ export const SettingsPage: React.FC = () => {
           {/* Google Sheets Connection Card */}
           <GoogleSheetsConnectionCard />
           
+          {/* Sharing & Collaboration Card */}
+          {isConnected && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Sharing & Collaboration
+                </CardTitle>
+                <CardDescription>
+                  Share your BizSuite data with team members via Google Drive and Sheets.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => setShowShareModal(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Sharing
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
           {/* Restore Card */}
           {isConnected && (
             <Card>
@@ -305,6 +328,11 @@ export const SettingsPage: React.FC = () => {
       <RestoreFromDriveModal
         isOpen={showRestoreModal}
         onClose={() => setShowRestoreModal(false)}
+      />
+
+      <ShareAccessModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
       />
     </div>
   );

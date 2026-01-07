@@ -17,7 +17,9 @@ import {
   Link as LinkIcon,
   Unlink,
   Plus,
+  Share2,
 } from 'lucide-react';
+import { ShareAccessModal } from './ShareAccessModal';
 
 export const GoogleSheetsConnectionCard: React.FC = () => {
   const { data } = useBusiness();
@@ -33,6 +35,7 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
   } = useGoogleDrive();
   
   const [showSelectModal, setShowSelectModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const connectedSheet = settings.connectedSheet;
@@ -109,6 +112,14 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
                   Sync Now
                 </Button>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowShareModal(true)}
+                >
+                  <Share2 className="h-4 w-4 mr-1" />
+                  Share
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={disconnectSheet}
@@ -166,6 +177,11 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
         isOpen={showSelectModal}
         onClose={() => setShowSelectModal(false)}
         onSelect={handleSelectSheet}
+      />
+
+      <ShareAccessModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
       />
     </>
   );
