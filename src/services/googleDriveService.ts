@@ -224,6 +224,74 @@ class GoogleDriveService {
       webViewLink: data.webViewLink,
     };
   }
+
+  // Get the backup folder ID (creates if doesn't exist)
+  async getBackupFolderId(): Promise<string> {
+    return await this.getOrCreateFolder();
+  }
+
+  // Get the sheets folder ID (creates if doesn't exist)
+  async getSheetsFolderId(): Promise<string> {
+    return await this.getOrCreateSheetsFolder();
+  }
+
+  // Share a file/folder with a user
+  async shareWithUser(
+    fileId: string,
+    email: string,
+    role: 'reader' | 'writer' | 'commenter',
+    sendNotification: boolean = true
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.request(
+        `${DRIVE_API_BASE}/files/${fileId}/permissions?sendNotificationEmail=${sendNotification}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'user',
+            role: role,
+            emailAddress: email,
+          }),
+        }
+      );
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to share' 
+      };
+    }
+  }
+
+  // List current permissions on a file/folder
+  async listPermissions(fileId: string): Promise<Array<{
+    id: string;
+    email: string;
+    displayName?: string;
+    role: string;
+    photoUrl?: string;
+  }>> {
+    const response = await this.request(
+      `${DRIVE_API_BASE}/files/${fileId}/permissions?fields=permissions(id,emailAddress,displayName,role,photoLink)`
+    );
+    const data = await response.json();
+    return (data.permissions || []).map((p: any) => ({
+      id: p.id,
+      email: p.emailAddress,
+      displayName: p.displayName,
+      role: p.role,
+      photoUrl: p.photoLink,
+    }));
+  }
+
+  // Remove a permission
+  async removePermission(fileId: string, permissionId: string): Promise<void> {
+    await this.request(
+      `${DRIVE_API_BASE}/files/${fileId}/permissions/${permissionId}`,
+      { method: 'DELETE' }
+    );
+  }
 }
 
 export const googleDriveService = new GoogleDriveService();

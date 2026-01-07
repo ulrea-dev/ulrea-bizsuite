@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
 import { googleSheetsService } from '@/services/googleSheetsService';
-import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo } from '@/types/googleDrive';
+import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser } from '@/types/googleDrive';
 import { AppData } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +17,7 @@ interface GoogleDriveContextValue {
   isSyncing: boolean;
   isExporting: boolean;
   isSyncingSheet: boolean;
+  isSharing: boolean;
   isConfigured: boolean;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
@@ -33,6 +34,10 @@ interface GoogleDriveContextValue {
   syncToConnectedSheet: (data: AppData) => Promise<void>;
   createAndConnectSheet: (data: AppData) => Promise<void>;
   setSheetAutoSync: (enabled: boolean) => void;
+  // Sharing functions
+  shareWithUser: (email: string, role: 'reader' | 'writer' | 'commenter', resources: ('folder' | 'sheet')[], sendNotification?: boolean) => Promise<{ success: boolean; errors: string[] }>;
+  getSharedUsers: () => Promise<SharedUser[]>;
+  removeSharedUser: (email: string) => Promise<void>;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -55,6 +60,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [backups, setBackups] = useState<GoogleDriveBackup[]>([]);
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -93,7 +99,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     script.onload = () => {
       tokenClientRef.current = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
+        scope: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
@@ -264,6 +270,100 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data), SHEET_SYNC_DELAY);
   }, [isConnected, settings.sheetAutoSyncEnabled, settings.connectedSheet, syncToConnectedSheet]);
 
+  // Sharing functions
+  const shareWithUser = useCallback(async (
+    email: string,
+    role: 'reader' | 'writer' | 'commenter',
+    resources: ('folder' | 'sheet')[],
+    sendNotification: boolean = true
+  ): Promise<{ success: boolean; errors: string[] }> => {
+    if (!isConnected) return { success: false, errors: ['Not connected to Google Drive'] };
+    
+    setIsSharing(true);
+    const errors: string[] = [];
+    
+    try {
+      // Share backup folder if requested
+      if (resources.includes('folder')) {
+        const folderId = await googleDriveService.getBackupFolderId();
+        const result = await googleDriveService.shareWithUser(folderId, email, role, sendNotification);
+        if (!result.success && result.error) {
+          errors.push(`Folder: ${result.error}`);
+        }
+      }
+      
+      // Share connected sheet if requested and available
+      if (resources.includes('sheet') && settings.connectedSheet) {
+        const result = await googleDriveService.shareWithUser(
+          settings.connectedSheet.spreadsheetId,
+          email,
+          role,
+          sendNotification
+        );
+        if (!result.success && result.error) {
+          errors.push(`Sheet: ${result.error}`);
+        }
+      }
+      
+      return { success: errors.length === 0, errors };
+    } catch (error) {
+      return { 
+        success: false, 
+        errors: [error instanceof Error ? error.message : 'Failed to share'] 
+      };
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isConnected, settings.connectedSheet]);
+
+  const getSharedUsers = useCallback(async (): Promise<SharedUser[]> => {
+    if (!isConnected) return [];
+    
+    try {
+      const folderId = await googleDriveService.getBackupFolderId();
+      const permissions = await googleDriveService.listPermissions(folderId);
+      
+      return permissions
+        .filter(p => p.email) // Filter out "anyone" permissions
+        .map(p => ({
+          id: p.id,
+          email: p.email,
+          displayName: p.displayName,
+          role: p.role as SharedUser['role'],
+          photoUrl: p.photoUrl,
+        }));
+    } catch (error) {
+      console.error('Failed to get shared users:', error);
+      return [];
+    }
+  }, [isConnected]);
+
+  const removeSharedUser = useCallback(async (email: string): Promise<void> => {
+    if (!isConnected) throw new Error('Not connected to Google Drive');
+    
+    setIsSharing(true);
+    try {
+      // Get folder permissions and remove matching email
+      const folderId = await googleDriveService.getBackupFolderId();
+      const folderPermissions = await googleDriveService.listPermissions(folderId);
+      const folderPerm = folderPermissions.find(p => p.email === email);
+      if (folderPerm && folderPerm.role !== 'owner') {
+        await googleDriveService.removePermission(folderId, folderPerm.id);
+      }
+      
+      // Also remove from connected sheet if exists
+      if (settings.connectedSheet) {
+        const sheetPermissions = await googleDriveService.listPermissions(settings.connectedSheet.spreadsheetId);
+        const sheetPerm = sheetPermissions.find(p => p.email === email);
+        if (sheetPerm && sheetPerm.role !== 'owner') {
+          await googleDriveService.removePermission(settings.connectedSheet.spreadsheetId, sheetPerm.id);
+        }
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isConnected, settings.connectedSheet]);
+
   useEffect(() => {
     const handleDataChange = (event: CustomEvent<AppData>) => {
       scheduleSync(event.detail);
@@ -278,9 +378,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   }, [scheduleSync, scheduleSheetSync]);
 
   const value: GoogleDriveContextValue = {
-    isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isConfigured: true, settings, backups,
+    isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true, settings, backups,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
+    shareWithUser, getSharedUsers, removeSharedUser,
   };
 
   return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;

@@ -20,6 +20,14 @@ export interface SpreadsheetInfo {
   webViewLink: string;
 }
 
+export interface SharedUser {
+  id: string;
+  email: string;
+  displayName?: string;
+  role: 'reader' | 'writer' | 'commenter' | 'owner';
+  photoUrl?: string;
+}
+
 export interface GoogleDriveSettings {
   autoSyncEnabled: boolean;
   lastSyncTime: string | null;
@@ -27,6 +35,7 @@ export interface GoogleDriveSettings {
   accessToken: string | null;
   connectedSheet: ConnectedSheet | null;
   sheetAutoSyncEnabled: boolean;
+  backupFolderId: string | null;
 }
 
 export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
@@ -36,4 +45,5 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   accessToken: null,
   connectedSheet: null,
   sheetAutoSyncEnabled: false,
+  backupFolderId: null,
 };
