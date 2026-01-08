@@ -39,6 +39,7 @@ interface GoogleDriveContextValue {
   shareWithUser: (email: string, role: 'reader' | 'writer' | 'commenter', resources: ('folder' | 'sheet')[], sendNotification?: boolean) => Promise<{ success: boolean; errors: string[] }>;
   getSharedUsers: () => Promise<SharedUser[]>;
   removeSharedUser: (email: string) => Promise<void>;
+  updateUserPermission: (email: string, newRole: 'reader' | 'writer' | 'commenter') => Promise<{ success: boolean; errors: string[] }>;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -365,6 +366,54 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     }
   }, [isConnected, settings.connectedSheet]);
 
+  const updateUserPermission = useCallback(async (
+    email: string,
+    newRole: 'reader' | 'writer' | 'commenter'
+  ): Promise<{ success: boolean; errors: string[] }> => {
+    if (!isConnected) return { success: false, errors: ['Not connected to Google Drive'] };
+    
+    setIsSharing(true);
+    const errors: string[] = [];
+    
+    try {
+      // Update folder permission
+      const folderId = await googleDriveService.getBackupFolderId();
+      const folderPermissions = await googleDriveService.listPermissions(folderId);
+      const folderPerm = folderPermissions.find(p => p.email === email);
+      if (folderPerm && folderPerm.role !== 'owner') {
+        const result = await googleDriveService.updatePermission(folderId, folderPerm.id, newRole);
+        if (!result.success && result.error) {
+          errors.push(`Folder: ${result.error}`);
+        }
+      }
+      
+      // Also update connected sheet if exists
+      if (settings.connectedSheet) {
+        const sheetPermissions = await googleDriveService.listPermissions(settings.connectedSheet.spreadsheetId);
+        const sheetPerm = sheetPermissions.find(p => p.email === email);
+        if (sheetPerm && sheetPerm.role !== 'owner') {
+          const result = await googleDriveService.updatePermission(
+            settings.connectedSheet.spreadsheetId,
+            sheetPerm.id,
+            newRole
+          );
+          if (!result.success && result.error) {
+            errors.push(`Sheet: ${result.error}`);
+          }
+        }
+      }
+      
+      return { success: errors.length === 0, errors };
+    } catch (error) {
+      return { 
+        success: false, 
+        errors: [error instanceof Error ? error.message : 'Failed to update permission'] 
+      };
+    } finally {
+      setIsSharing(false);
+    }
+  }, [isConnected, settings.connectedSheet]);
+
   useEffect(() => {
     const handleDataChange = (event: CustomEvent<AppData>) => {
       scheduleSync(event.detail);
@@ -382,7 +431,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true, settings, backups,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
-    shareWithUser, getSharedUsers, removeSharedUser,
+    shareWithUser, getSharedUsers, removeSharedUser, updateUserPermission,
   };
 
   return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;
