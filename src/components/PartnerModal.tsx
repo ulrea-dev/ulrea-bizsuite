@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Partner } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { Badge } from '@/components/ui/badge';
 
 interface PartnerModalProps {
   isOpen: boolean;
@@ -15,12 +17,46 @@ interface PartnerModalProps {
 }
 
 export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, partner, mode }) => {
-  const { dispatch } = useBusiness();
+  const { dispatch, data, currentBusiness } = useBusiness();
+  const businesses = data.businesses || [];
+  
   const [formData, setFormData] = useState({
-    name: partner?.name || '',
-    email: partner?.email || '',
-    type: partner?.type || 'sales' as Partner['type']
+    name: '',
+    email: '',
+    type: 'sales' as Partner['type'],
+    businessIds: [] as string[]
   });
+
+  // Reset form when modal opens or partner changes
+  useEffect(() => {
+    if (isOpen) {
+      if (partner) {
+        setFormData({
+          name: partner.name || '',
+          email: partner.email || '',
+          type: partner.type || 'sales',
+          businessIds: partner.businessIds || []
+        });
+      } else {
+        // Default to current business for new partners
+        setFormData({
+          name: '',
+          email: '',
+          type: 'sales',
+          businessIds: currentBusiness ? [currentBusiness.id] : []
+        });
+      }
+    }
+  }, [isOpen, partner, currentBusiness]);
+
+  const handleBusinessToggle = (businessId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      businessIds: prev.businessIds.includes(businessId)
+        ? prev.businessIds.filter(id => id !== businessId)
+        : [...prev.businessIds, businessId]
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +67,7 @@ export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, par
         name: formData.name,
         email: formData.email,
         type: formData.type,
+        businessIds: formData.businessIds,
         paymentHistory: [],
         createdAt: new Date().toISOString()
       };
@@ -47,7 +84,8 @@ export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, par
           updates: {
             name: formData.name,
             email: formData.email,
-            type: formData.type
+            type: formData.type,
+            businessIds: formData.businessIds
           }
         }
       });
@@ -60,7 +98,7 @@ export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, par
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' && 'Add Partner'}
@@ -117,6 +155,51 @@ export const PartnerModal: React.FC<PartnerModalProps> = ({ isOpen, onClose, par
               disabled={isReadOnly}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Associated Businesses</Label>
+            <p className="text-xs text-muted-foreground">
+              Select which businesses this partner can access
+            </p>
+            
+            {isReadOnly ? (
+              <div className="flex flex-wrap gap-2">
+                {formData.businessIds.length > 0 ? (
+                  formData.businessIds.map(id => {
+                    const business = businesses.find(b => b.id === id);
+                    return business ? (
+                      <Badge key={id} variant="secondary">
+                        {business.name}
+                      </Badge>
+                    ) : null;
+                  })
+                ) : (
+                  <span className="text-sm text-muted-foreground">No businesses assigned</span>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-md bg-muted/20">
+                {businesses.map(business => (
+                  <div key={business.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`business-${business.id}`}
+                      checked={formData.businessIds.includes(business.id)}
+                      onCheckedChange={() => handleBusinessToggle(business.id)}
+                    />
+                    <label
+                      htmlFor={`business-${business.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {business.name}
+                    </label>
+                  </div>
+                ))}
+                {businesses.length === 0 && (
+                  <span className="text-sm text-muted-foreground col-span-2">No businesses available</span>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter>

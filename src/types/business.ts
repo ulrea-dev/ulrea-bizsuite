@@ -32,6 +32,7 @@ export interface Partner {
   name: string;
   email: string;
   type: 'sales' | 'managing';
+  businessIds: string[]; // Partners can be associated with specific businesses
   paymentHistory: Payment[];
   createdAt: string;
 }

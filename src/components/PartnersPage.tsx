@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Mail, Eye, Edit, Handshake } from 'lucide-react';
+import { UserPlus, Mail, Eye, Edit, Handshake, Building2 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { PartnerModal } from './PartnerModal';
 import { Partner } from '@/types/business';
@@ -18,7 +18,18 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
 
-  const partners = data.partners || [];
+  const allPartners = data.partners || [];
+  const businesses = data.businesses || [];
+  
+  // Filter partners to only show those associated with the current business
+  const partners = currentBusiness 
+    ? allPartners.filter(p => 
+        !p.businessIds || 
+        p.businessIds.length === 0 || 
+        p.businessIds.includes(currentBusiness.id)
+      )
+    : allPartners;
+    
   const projects = data.projects.filter(p => p.businessId === currentBusiness?.id);
 
   const openModal = (mode: 'create' | 'edit' | 'view', partner?: Partner) => {
@@ -48,6 +59,16 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
       const legacyAllocation = project.partnerAllocations?.find(a => a.partnerId === partnerId);
       return total + (phaseAllocation?.outstanding || legacyAllocation?.outstanding || 0);
     }, 0);
+  };
+
+  const getPartnerBusinessNames = (partner: Partner) => {
+    if (!partner.businessIds || partner.businessIds.length === 0) {
+      return 'All businesses';
+    }
+    return partner.businessIds
+      .map(id => businesses.find(b => b.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
   };
 
   return (
@@ -83,6 +104,7 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
             const partnerProjects = getPartnerProjects(partner.id);
             const totalEarnings = getPartnerTotalEarnings(partner.id);
             const outstanding = getPartnerOutstanding(partner.id);
+            const businessNames = getPartnerBusinessNames(partner);
 
             return (
               <Card key={partner.id} className="dashboard-surface-elevated">
@@ -102,6 +124,12 @@ export const PartnersPage: React.FC<PartnersPageProps> = ({ onNavigateToPage }) 
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
+                  {/* Business Association */}
+                  <div className="flex items-start gap-2 text-xs dashboard-text-secondary">
+                    <Building2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span className="line-clamp-2">{businessNames}</span>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="dashboard-text-secondary">Projects:</span>
