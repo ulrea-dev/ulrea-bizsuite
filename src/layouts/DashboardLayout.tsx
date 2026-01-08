@@ -1,3 +1,4 @@
+// Dashboard layout component with sidebar and theme support
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { AppSidebar } from '@/components/AppSidebar';
