@@ -1,4 +1,4 @@
-// Google Drive integration context for backup, sync, and sharing
+// Google Drive integration context for backup, sync, and sharing features
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
 import { googleSheetsService } from '@/services/googleSheetsService';
