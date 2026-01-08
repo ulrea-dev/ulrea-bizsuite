@@ -292,6 +292,30 @@ class GoogleDriveService {
       { method: 'DELETE' }
     );
   }
+
+  // Update a permission role
+  async updatePermission(
+    fileId: string,
+    permissionId: string,
+    role: 'reader' | 'writer' | 'commenter'
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.request(
+        `${DRIVE_API_BASE}/files/${fileId}/permissions/${permissionId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role }),
+        }
+      );
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update permission',
+      };
+    }
+  }
 }
 
 export const googleDriveService = new GoogleDriveService();

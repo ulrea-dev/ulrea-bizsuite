@@ -42,7 +42,8 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({ isOpen, onCl
     settings, 
     shareWithUser, 
     getSharedUsers, 
-    removeSharedUser, 
+    removeSharedUser,
+    updateUserPermission,
     isSharing 
   } = useGoogleDrive();
   const { toast } = useToast();
@@ -55,6 +56,8 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({ isOpen, onCl
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [isUpdatingPermission, setIsUpdatingPermission] = useState<string | null>(null);
 
   const hasConnectedSheet = !!settings.connectedSheet;
 
@@ -122,6 +125,34 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({ isOpen, onCl
       });
     } finally {
       setIsRemoving(null);
+    }
+  };
+
+  const handleUpdatePermission = async (user: SharedUser, newRole: 'reader' | 'writer' | 'commenter') => {
+    if (user.role === 'owner') return;
+    
+    setIsUpdatingPermission(user.id);
+    try {
+      const result = await updateUserPermission(user.email, newRole);
+      if (result.success) {
+        toast({ title: 'Permission Updated', description: `${user.email} is now a ${getRoleLabel(newRole)}.` });
+        loadSharedUsers();
+      } else {
+        toast({ 
+          title: 'Failed to Update', 
+          description: result.errors.join(', '), 
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: 'Failed to Update', 
+        description: error instanceof Error ? error.message : 'Could not update permission.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsUpdatingPermission(null);
+      setEditingUserId(null);
     }
   };
 
@@ -288,10 +319,39 @@ export const ShareAccessModal: React.FC<ShareAccessModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass(user.role)}`}>
-                      {user.role === 'owner' && <Crown className="h-3 w-3 inline mr-1" />}
-                      {getRoleLabel(user.role)}
-                    </span>
+                    {user.role === 'owner' ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleBadgeClass(user.role)}`}>
+                        <Crown className="h-3 w-3 inline mr-1" />
+                        {getRoleLabel(user.role)}
+                      </span>
+                    ) : editingUserId === user.id ? (
+                      <Select 
+                        value={user.role} 
+                        onValueChange={(v) => handleUpdatePermission(user, v as 'reader' | 'writer' | 'commenter')}
+                        disabled={isUpdatingPermission === user.id}
+                      >
+                        <SelectTrigger className="h-7 w-[110px] text-xs">
+                          {isUpdatingPermission === user.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <SelectValue />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="reader">Viewer</SelectItem>
+                          <SelectItem value="commenter">Commenter</SelectItem>
+                          <SelectItem value="writer">Editor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <button
+                        onClick={() => setEditingUserId(user.id)}
+                        className={`text-xs px-2 py-0.5 rounded-full cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${getRoleBadgeClass(user.role)}`}
+                        title="Click to change permission"
+                      >
+                        {getRoleLabel(user.role)}
+                      </button>
+                    )}
                     {user.role !== 'owner' && (
                       <Button
                         variant="ghost"
