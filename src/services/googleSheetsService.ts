@@ -29,6 +29,8 @@ const SHEET_CATEGORIES: Record<string, { category: string; tabColor: { red: numb
   'Payments': { category: 'Finance', tabColor: { red: 0.09, green: 0.64, blue: 0.29 } },
   'Expenses': { category: 'Finance', tabColor: { red: 0.09, green: 0.64, blue: 0.29 } },
   'Salary Records': { category: 'Finance', tabColor: { red: 0.09, green: 0.64, blue: 0.29 } },
+  'Partner Payments': { category: 'Finance', tabColor: { red: 0.92, green: 0.35, blue: 0.05 } },
+  'Team Payments': { category: 'Finance', tabColor: { red: 0.03, green: 0.57, blue: 0.70 } },
   'Bank Accounts': { category: 'Admin', tabColor: { red: 0.28, green: 0.33, blue: 0.41 } },
   'Payables': { category: 'Admin', tabColor: { red: 0.28, green: 0.33, blue: 0.41 } },
   'Receivables': { category: 'Admin', tabColor: { red: 0.28, green: 0.33, blue: 0.41 } },
@@ -49,6 +51,8 @@ const SHEET_COLORS: Record<string, { header: { red: number; green: number; blue:
   'Payments': { header: { red: 0.09, green: 0.64, blue: 0.29 }, alt: { red: 0.94, green: 0.99, blue: 0.96 } },
   'Expenses': { header: { red: 0.86, green: 0.15, blue: 0.15 }, alt: { red: 0.99, green: 0.95, blue: 0.95 } },
   'Salary Records': { header: { red: 0.49, green: 0.24, blue: 0.93 }, alt: { red: 0.97, green: 0.95, blue: 0.99 } },
+  'Partner Payments': { header: { red: 0.92, green: 0.35, blue: 0.05 }, alt: { red: 0.99, green: 0.96, blue: 0.94 } },
+  'Team Payments': { header: { red: 0.03, green: 0.57, blue: 0.70 }, alt: { red: 0.94, green: 0.98, blue: 0.99 } },
   'Bank Accounts': { header: { red: 0.28, green: 0.33, blue: 0.41 }, alt: { red: 0.96, green: 0.97, blue: 0.98 } },
   'Payables': { header: { red: 0.79, green: 0.54, blue: 0.02 }, alt: { red: 0.99, green: 0.98, blue: 0.94 } },
   'Receivables': { header: { red: 0.40, green: 0.64, blue: 0.05 }, alt: { red: 0.97, green: 0.99, blue: 0.94 } },
@@ -66,6 +70,8 @@ const AMOUNT_COLUMNS: Record<string, number[]> = {
   'Payments': [0],
   'Expenses': [3],
   'Salary Records': [3],
+  'Partner Payments': [3, 4, 5],
+  'Team Payments': [3, 4, 5],
   'Bank Accounts': [3],
   'Payables': [2, 3],
   'Receivables': [3, 4],
@@ -132,8 +138,11 @@ class GoogleSheetsService {
     );
   }
 
-  private getSheetNames(): string[] {
-    return [
+  private getSheetNames(data: AppData): string[] {
+    const safeBusinesses = data.businesses || [];
+    
+    // Base sheets
+    const baseSheets = [
       'Dashboard',
       'Businesses',
       'Projects',
@@ -147,10 +156,17 @@ class GoogleSheetsService {
       'Payments',
       'Expenses',
       'Salary Records',
+      'Partner Payments',
+      'Team Payments',
       'Bank Accounts',
       'Payables',
       'Receivables',
     ];
+    
+    // Add per-business summary sheets
+    const businessSummarySheets = safeBusinesses.map(b => `${b.name} Summary`);
+    
+    return [...baseSheets, ...businessSummarySheets];
   }
 
   private getNavigationLink(targetSheet: string, sheetIdMap: Map<string, number>): string {
@@ -180,7 +196,7 @@ class GoogleSheetsService {
     const dateStr = format(new Date(), 'yyyy-MM-dd');
     const title = `BizSuite BI Dashboard - ${dateStr}`;
 
-    const sheetNames = this.getSheetNames();
+    const sheetNames = this.getSheetNames(data);
 
     // Create the spreadsheet
     const spreadsheet = await this.createSpreadsheet(title, sheetNames);
@@ -545,14 +561,21 @@ class GoogleSheetsService {
     );
 
     // Partners
-    const partnersData = safePartners.map(p => [
-      p.name,
-      p.email,
-      p.type,
-      formatDate(p.createdAt),
-    ]);
+    const partnersData = safePartners.map(p => {
+      const businessNames = (p.businessIds || [])
+        .map(id => safeBusinesses.find(b => b.id === id)?.name)
+        .filter(Boolean)
+        .join(', ') || 'All businesses';
+      return [
+        p.name,
+        p.email,
+        p.type,
+        businessNames,
+        formatDate(p.createdAt),
+      ];
+    });
     const partnersSheet = addNavigation('Partners',
-      ['Name', 'Email', 'Type', 'Created'],
+      ['Name', 'Email', 'Type', 'Businesses', 'Created'],
       partnersData
     );
 
@@ -609,6 +632,100 @@ class GoogleSheetsService {
     const salaryRecordsSheet = addNavigation('Salary Records',
       ['Team Member', 'Business', 'Position', 'Amount', 'Currency', 'Frequency', 'Type', 'Start Date', 'End Date'],
       salaryRecordsData
+    );
+
+    // Partner Payments - comprehensive view of what partners received
+    const partnerPaymentsData: any[][] = [];
+    safeProjects.forEach(project => {
+      const business = safeBusinesses.find(b => b.id === project.businessId);
+      const client = safeClients.find(c => c.id === project.clientId);
+      
+      // Check allocation partner allocations
+      (project.allocationPartnerAllocations || []).forEach(allocation => {
+        const partner = safePartners.find(p => p.id === allocation.partnerId);
+        const status = allocation.outstanding <= 0 ? 'Paid' : 
+                       allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+        partnerPaymentsData.push([
+          partner?.name || allocation.partnerName || '',
+          business?.name || '',
+          project.name,
+          client?.name || '',
+          allocation.allocationType === 'percentage' ? `${allocation.allocationValue}%` : 'Fixed',
+          allocation.totalAllocated,
+          allocation.paidAmount,
+          allocation.outstanding,
+          status,
+        ]);
+      });
+      
+      // Check legacy partner allocations
+      (project.partnerAllocations || []).forEach(allocation => {
+        const partner = safePartners.find(p => p.id === allocation.partnerId);
+        const status = allocation.outstanding <= 0 ? 'Paid' : 
+                       allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+        partnerPaymentsData.push([
+          partner?.name || allocation.partnerName || '',
+          business?.name || '',
+          project.name,
+          client?.name || '',
+          allocation.allocationType === 'percentage' ? `${allocation.allocationValue}%` : 'Fixed',
+          allocation.totalAllocated,
+          allocation.paidAmount,
+          allocation.outstanding,
+          status,
+        ]);
+      });
+    });
+    const partnerPaymentsSheet = addNavigation('Partner Payments',
+      ['Partner', 'Business', 'Project', 'Client', 'Allocation', 'Total Allocated', 'Amount Paid', 'Outstanding', 'Status'],
+      partnerPaymentsData
+    );
+
+    // Team Payments - comprehensive view of what team members received
+    const teamPaymentsData: any[][] = [];
+    safeProjects.forEach(project => {
+      const business = safeBusinesses.find(b => b.id === project.businessId);
+      const client = safeClients.find(c => c.id === project.clientId);
+      
+      // Check allocation team allocations
+      (project.allocationTeamAllocations || []).forEach(allocation => {
+        const member = safeTeamMembers.find(m => m.id === allocation.memberId);
+        const status = allocation.outstanding <= 0 ? 'Paid' : 
+                       allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+        teamPaymentsData.push([
+          member?.name || allocation.memberName || '',
+          business?.name || '',
+          project.name,
+          client?.name || '',
+          allocation.allocationType === 'percentage' ? `${allocation.allocationValue}%` : 'Fixed',
+          allocation.totalAllocated,
+          allocation.paidAmount,
+          allocation.outstanding,
+          status,
+        ]);
+      });
+      
+      // Check legacy team allocations
+      (project.teamAllocations || []).forEach(allocation => {
+        const member = safeTeamMembers.find(m => m.id === allocation.memberId);
+        const status = allocation.outstanding <= 0 ? 'Paid' : 
+                       allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+        teamPaymentsData.push([
+          member?.name || allocation.memberName || '',
+          business?.name || '',
+          project.name,
+          client?.name || '',
+          allocation.allocationType === 'percentage' ? `${allocation.allocationValue}%` : 'Fixed',
+          allocation.totalAllocated,
+          allocation.paidAmount,
+          allocation.outstanding,
+          status,
+        ]);
+      });
+    });
+    const teamPaymentsSheet = addNavigation('Team Payments',
+      ['Team Member', 'Business', 'Project', 'Client', 'Allocation', 'Total Allocated', 'Amount Paid', 'Outstanding', 'Status'],
+      teamPaymentsData
     );
 
     // Bank Accounts
@@ -671,6 +788,117 @@ class GoogleSheetsService {
       receivablesData
     );
 
+    // Per-Business Summary Sheets
+    const businessSummarySheets: Record<string, any[][]> = {};
+    safeBusinesses.forEach(business => {
+      const businessProjects = safeProjects.filter(p => p.businessId === business.id);
+      const summaryData: any[][] = [];
+      
+      let totalClientFee = 0;
+      let totalPartnerShare = 0;
+      let totalExpectedPay = 0;
+      let totalAmountPaid = 0;
+      let totalRemaining = 0;
+      
+      businessProjects.forEach(project => {
+        const client = safeClients.find(c => c.id === project.clientId);
+        
+        // For each project, calculate partner allocations
+        const allPartnerAllocations = [
+          ...(project.allocationPartnerAllocations || []),
+          ...(project.partnerAllocations || [])
+        ];
+        
+        if (allPartnerAllocations.length === 0) {
+          // No partner allocations - add row with 0% partner
+          const status = project.clientPayments >= project.totalValue ? 'Paid' :
+                         project.clientPayments > 0 ? 'Partial' : 'Not Paid';
+          summaryData.push([
+            formatDate(project.startDate),
+            project.totalValue,
+            client?.name || '',
+            project.name,
+            status,
+            '0%',
+            0,
+            0,
+            0,
+            0,
+            '',
+          ]);
+          totalClientFee += project.totalValue;
+        } else {
+          // Add row for each partner allocation
+          allPartnerAllocations.forEach(allocation => {
+            const partner = safePartners.find(p => p.id === allocation.partnerId);
+            const status = allocation.outstanding <= 0 ? 'Paid' :
+                           allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+            const allocationDisplay = allocation.allocationType === 'percentage' 
+              ? `${allocation.allocationValue}%` 
+              : `$${allocation.allocationValue}`;
+            
+            summaryData.push([
+              formatDate(project.startDate),
+              project.totalValue,
+              client?.name || '',
+              project.name,
+              status,
+              allocationDisplay,
+              allocation.totalAllocated,
+              allocation.totalAllocated,
+              allocation.paidAmount,
+              allocation.outstanding,
+              partner?.name || allocation.partnerName || '',
+            ]);
+            
+            totalClientFee += project.totalValue;
+            totalPartnerShare += allocation.totalAllocated;
+            totalExpectedPay += allocation.totalAllocated;
+            totalAmountPaid += allocation.paidAmount;
+            totalRemaining += allocation.outstanding;
+          });
+        }
+      });
+      
+      // Add totals row
+      if (summaryData.length > 0) {
+        summaryData.push([]); // Empty row before totals
+        summaryData.push([
+          'TOTALS',
+          totalClientFee,
+          '',
+          '',
+          '',
+          '',
+          totalPartnerShare,
+          totalExpectedPay,
+          totalAmountPaid,
+          totalRemaining,
+          '',
+        ]);
+      }
+      
+      const sheetName = `${business.name} Summary`;
+      businessSummarySheets[sheetName] = addNavigation(sheetName,
+        ['Date', 'Client Fee', 'Client Name', 'Description', 'Status', 'Partner %', 'Partner $', 'Expected Pay', 'Amount Paid', 'Remaining', 'Partner'],
+        summaryData
+      );
+      
+      // Register dynamic sheet styling
+      if (!SHEET_CATEGORIES[sheetName]) {
+        SHEET_CATEGORIES[sheetName] = { 
+          category: 'Business Reports', 
+          tabColor: { red: 0.8, green: 0.5, blue: 0.2 } 
+        };
+      }
+      if (!SHEET_COLORS[sheetName]) {
+        SHEET_COLORS[sheetName] = { 
+          header: { red: 0.8, green: 0.5, blue: 0.2 }, 
+          alt: { red: 0.99, green: 0.97, blue: 0.94 } 
+        };
+      }
+    });
+
     return {
       'Dashboard': dashboard,
       'Businesses': businessesSheet,
@@ -685,9 +913,12 @@ class GoogleSheetsService {
       'Payments': paymentsSheet,
       'Expenses': expensesSheet,
       'Salary Records': salaryRecordsSheet,
+      'Partner Payments': partnerPaymentsSheet,
+      'Team Payments': teamPaymentsSheet,
       'Bank Accounts': bankAccountsSheet,
       'Payables': payablesSheet,
       'Receivables': receivablesSheet,
+      ...businessSummarySheets,
     };
   }
 
