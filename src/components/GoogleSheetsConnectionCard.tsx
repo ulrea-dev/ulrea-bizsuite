@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { SelectSheetModal } from './SelectSheetModal';
+import { PartnerSheetModal } from './PartnerSheetModal';
 import { SpreadsheetInfo } from '@/types/googleDrive';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -18,6 +19,7 @@ import {
   Unlink,
   Plus,
   Share2,
+  Users,
 } from 'lucide-react';
 import { ShareAccessModal } from './ShareAccessModal';
 
@@ -36,6 +38,7 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
   
   const [showSelectModal, setShowSelectModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   const connectedSheet = settings.connectedSheet;
@@ -129,15 +132,25 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
                 </Button>
               </div>
 
-              <div className="flex items-center space-x-2 pt-2 border-t">
-                <Switch
-                  id="sheet-auto-sync"
-                  checked={settings.sheetAutoSyncEnabled}
-                  onCheckedChange={setSheetAutoSync}
-                />
-                <Label htmlFor="sheet-auto-sync" className="text-sm">
-                  Auto-sync when data changes
-                </Label>
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="sheet-auto-sync"
+                    checked={settings.sheetAutoSyncEnabled}
+                    onCheckedChange={setSheetAutoSync}
+                  />
+                  <Label htmlFor="sheet-auto-sync" className="text-sm">
+                    Auto-sync when data changes
+                  </Label>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPartnerModal(true)}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Partner Reports
+                </Button>
               </div>
             </>
           ) : (
@@ -182,6 +195,11 @@ export const GoogleSheetsConnectionCard: React.FC = () => {
       <ShareAccessModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
+      />
+
+      <PartnerSheetModal
+        isOpen={showPartnerModal}
+        onClose={() => setShowPartnerModal(false)}
       />
     </>
   );

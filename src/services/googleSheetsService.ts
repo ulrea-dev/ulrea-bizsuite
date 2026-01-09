@@ -1,7 +1,14 @@
-import { AppData } from '@/types/business';
+import { AppData, Partner } from '@/types/business';
 import { format } from 'date-fns';
 
 const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
+
+// Status color constants for conditional formatting
+const STATUS_COLORS = {
+  paid: { red: 0.30, green: 0.69, blue: 0.31 }, // Green #4CAF50
+  partial: { red: 1.0, green: 0.76, blue: 0.03 }, // Yellow #FFC107
+  notPaid: { red: 0.96, green: 0.26, blue: 0.21 }, // Red #F44336
+};
 
 interface SheetProperties {
   title: string;
@@ -273,6 +280,522 @@ class GoogleSheetsService {
     if (allRequests.length > 0) {
       await this.batchUpdate(spreadsheetId, allRequests);
     }
+  }
+
+  // Partner-specific export methods
+  async exportPartnerData(
+    partner: Partner,
+    businessIds: string[],
+    data: AppData
+  ): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const title = `${partner.name} - BizSuite Report - ${dateStr}`;
+
+    // Get sheet names for partner's businesses
+    const sheetNames = this.getPartnerSheetNames(businessIds, data);
+
+    // Create the spreadsheet
+    const spreadsheet = await this.createSpreadsheet(title, sheetNames);
+    const { spreadsheetId, sheets, spreadsheetUrl } = spreadsheet;
+
+    // Build sheet ID map for navigation links
+    const sheetIdMap = new Map<string, number>();
+    for (const sheet of sheets) {
+      sheetIdMap.set(sheet.properties.title, sheet.properties.sheetId);
+    }
+
+    // Prepare partner-specific sheet data
+    const sheetData = this.preparePartnerSheetData(partner, businessIds, data, sheetIdMap);
+
+    // Write data to each sheet
+    for (const [sheetName, rows] of Object.entries(sheetData)) {
+      if (rows.length > 0) {
+        await this.setValues(spreadsheetId, `'${sheetName}'!A1`, rows);
+      }
+    }
+
+    // Apply formatting
+    const formatRequests = this.getPartnerFormatRequests(sheets, sheetData);
+    if (formatRequests.length > 0) {
+      await this.batchUpdate(spreadsheetId, formatRequests);
+    }
+
+    return { spreadsheetId, spreadsheetUrl };
+  }
+
+  async updatePartnerSpreadsheet(
+    spreadsheetId: string,
+    partner: Partner,
+    businessIds: string[],
+    data: AppData
+  ): Promise<void> {
+    // Get existing spreadsheet info
+    const spreadsheet = await this.getSpreadsheet(spreadsheetId);
+
+    // Build sheet ID map
+    const sheetIdMap = new Map<string, number>();
+    for (const sheet of spreadsheet.sheets) {
+      sheetIdMap.set(sheet.properties.title, sheet.properties.sheetId);
+    }
+
+    const sheetData = this.preparePartnerSheetData(partner, businessIds, data, sheetIdMap);
+
+    // Clear and rewrite each sheet
+    for (const sheet of spreadsheet.sheets) {
+      const sheetName = sheet.properties.title;
+      const rows = sheetData[sheetName];
+
+      if (rows && rows.length > 0) {
+        await this.clearSheet(spreadsheetId, sheetName);
+        await this.setValues(spreadsheetId, `'${sheetName}'!A1`, rows);
+      }
+    }
+
+    // Reapply formatting
+    const formatRequests = this.getPartnerFormatRequests(spreadsheet.sheets, sheetData);
+    if (formatRequests.length > 0) {
+      await this.batchUpdate(spreadsheetId, formatRequests);
+    }
+  }
+
+  private getPartnerSheetNames(businessIds: string[], data: AppData): string[] {
+    const safeBusinesses = data.businesses || [];
+    
+    // Create a summary sheet for each business the partner is associated with
+    const sheets = ['Overview'];
+    
+    for (const businessId of businessIds) {
+      const business = safeBusinesses.find(b => b.id === businessId);
+      if (business) {
+        sheets.push(`${business.name} Summary`);
+      }
+    }
+    
+    return sheets;
+  }
+
+  private preparePartnerSheetData(
+    partner: Partner,
+    businessIds: string[],
+    data: AppData,
+    sheetIdMap: Map<string, number>
+  ): Record<string, any[][]> {
+    const formatDate = (dateStr?: string) =>
+      dateStr ? format(new Date(dateStr), 'MMM dd, yyyy') : '';
+
+    const safeBusinesses = data.businesses || [];
+    const safeProjects = data.projects || [];
+    const safeClients = data.clients || [];
+    const safePartners = data.partners || [];
+
+    const result: Record<string, any[][]> = {};
+
+    // Overview sheet with totals across all businesses
+    let grandTotalClientFee = 0;
+    let grandTotalPartnerShare = 0;
+    let grandTotalPaid = 0;
+    let grandTotalRemaining = 0;
+
+    // Generate per-business summary sheets
+    for (const businessId of businessIds) {
+      const business = safeBusinesses.find(b => b.id === businessId);
+      if (!business) continue;
+
+      const businessProjects = safeProjects.filter(p => p.businessId === businessId);
+      const summaryData: any[][] = [];
+
+      let totalClientFee = 0;
+      let totalPartnerShare = 0;
+      let totalExpectedPay = 0;
+      let totalAmountPaid = 0;
+      let totalRemaining = 0;
+
+      businessProjects.forEach(project => {
+        const client = safeClients.find(c => c.id === project.clientId);
+
+        // Get partner's allocations only
+        const allPartnerAllocations = [
+          ...(project.allocationPartnerAllocations || []),
+          ...(project.partnerAllocations || [])
+        ].filter(a => a.partnerId === partner.id);
+
+        if (allPartnerAllocations.length === 0) {
+          // Partner has no allocation in this project, skip
+          return;
+        }
+
+        allPartnerAllocations.forEach(allocation => {
+          const status = allocation.outstanding <= 0 ? 'Paid' :
+            allocation.paidAmount > 0 ? 'Partial' : 'Not Paid';
+          const allocationDisplay = allocation.allocationType === 'percentage'
+            ? `${allocation.allocationValue}%`
+            : `$${allocation.allocationValue}`;
+
+          summaryData.push([
+            formatDate(project.startDate),
+            project.totalValue,
+            client?.name || '',
+            project.name,
+            status,
+            allocationDisplay,
+            allocation.totalAllocated,
+            allocation.totalAllocated,
+            allocation.paidAmount,
+            allocation.outstanding,
+            '',
+          ]);
+
+          totalClientFee += project.totalValue;
+          totalPartnerShare += allocation.totalAllocated;
+          totalExpectedPay += allocation.totalAllocated;
+          totalAmountPaid += allocation.paidAmount;
+          totalRemaining += allocation.outstanding;
+        });
+      });
+
+      // Add totals row
+      if (summaryData.length > 0) {
+        summaryData.push([]); // Empty row before totals
+        summaryData.push([
+          'TOTALS',
+          totalClientFee,
+          '',
+          '',
+          '',
+          '',
+          totalPartnerShare,
+          totalExpectedPay,
+          totalAmountPaid,
+          totalRemaining,
+          '',
+        ]);
+      }
+
+      const sheetName = `${business.name} Summary`;
+      
+      // Add navigation and header
+      result[sheetName] = [
+        [`← Back to Overview`, '', `Business: ${business.name}`],
+        [],
+        ['Date', 'Client Fee', 'Client Name', 'Description', 'Status', 'Partner %', 'Partner $', 'Expected Pay', 'Amount Paid', 'Remaining', 'Notes'],
+        ...summaryData,
+      ];
+
+      // Register dynamic sheet styling
+      if (!SHEET_CATEGORIES[sheetName]) {
+        SHEET_CATEGORIES[sheetName] = {
+          category: 'Partner Report',
+          tabColor: { red: 0.92, green: 0.35, blue: 0.05 }
+        };
+      }
+      if (!SHEET_COLORS[sheetName]) {
+        SHEET_COLORS[sheetName] = {
+          header: { red: 0.92, green: 0.35, blue: 0.05 },
+          alt: { red: 0.99, green: 0.97, blue: 0.94 }
+        };
+      }
+
+      grandTotalClientFee += totalClientFee;
+      grandTotalPartnerShare += totalPartnerShare;
+      grandTotalPaid += totalAmountPaid;
+      grandTotalRemaining += totalRemaining;
+    }
+
+    // Overview sheet
+    const businessLinks = businessIds
+      .map(id => safeBusinesses.find(b => b.id === id))
+      .filter(Boolean)
+      .map(b => {
+        const sheetId = sheetIdMap.get(`${b!.name} Summary`);
+        if (sheetId !== undefined) {
+          return `=HYPERLINK("#gid=${sheetId}", "${b!.name}")`;
+        }
+        return b!.name;
+      });
+
+    result['Overview'] = [
+      [`📊 Partner Report: ${partner.name}`, '', format(new Date(), 'MMMM dd, yyyy HH:mm')],
+      [],
+      ['SUMMARY'],
+      ['Total Client Fees', grandTotalClientFee],
+      ['Your Total Allocation', grandTotalPartnerShare],
+      ['Amount Paid', grandTotalPaid],
+      ['Outstanding', grandTotalRemaining],
+      [],
+      ['BUSINESS REPORTS'],
+      ...businessLinks.map(link => [link]),
+    ];
+
+    return result;
+  }
+
+  private getPartnerFormatRequests(
+    sheets: { properties: { sheetId: number; title: string } }[],
+    sheetData: Record<string, any[][]>
+  ): any[] {
+    const requests: any[] = [];
+
+    for (const sheet of sheets) {
+      const { sheetId, title } = sheet.properties;
+      const data = sheetData[title];
+
+      if (!data || data.length === 0) continue;
+
+      const columnCount = Math.max(...data.map(row => row.length));
+      const rowCount = data.length;
+
+      // Apply font to entire sheet
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startRowIndex: 0, endRowIndex: Math.max(rowCount, 50), startColumnIndex: 0, endColumnIndex: Math.max(columnCount, 12) },
+          cell: {
+            userEnteredFormat: {
+              textFormat: { fontFamily: 'Proxima Nova' },
+            },
+          },
+          fields: 'userEnteredFormat.textFormat.fontFamily',
+        },
+      });
+
+      // Set tab color
+      requests.push({
+        updateSheetProperties: {
+          properties: {
+            sheetId,
+            tabColor: { red: 0.92, green: 0.35, blue: 0.05 },
+          },
+          fields: 'tabColor',
+        },
+      });
+
+      if (title === 'Overview') {
+        // Overview title formatting
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 3 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 18, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: { red: 0.92, green: 0.35, blue: 0.05 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+
+        // Summary section header
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 0, endColumnIndex: 2 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 12 },
+                backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+
+        // Number formatting for totals
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 3, endRowIndex: 7, startColumnIndex: 1, endColumnIndex: 2 },
+            cell: {
+              userEnteredFormat: {
+                numberFormat: { type: 'NUMBER', pattern: '#,##0.00' },
+                textFormat: { bold: true },
+              },
+            },
+            fields: 'userEnteredFormat(numberFormat,textFormat)',
+          },
+        });
+
+        // Business Reports header
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 8, endRowIndex: 9, startColumnIndex: 0, endColumnIndex: 2 },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 12 },
+                backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+      } else {
+        // Business summary sheets
+        // Navigation row styling
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: columnCount },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { fontSize: 10, foregroundColor: { red: 0.15, green: 0.39, blue: 0.92 } },
+                backgroundColor: { red: 0.97, green: 0.97, blue: 0.99 },
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor)',
+          },
+        });
+
+        // Header row styling
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 2, endRowIndex: 3, startColumnIndex: 0, endColumnIndex: columnCount },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true, fontSize: 11, foregroundColor: { red: 1, green: 1, blue: 1 } },
+                backgroundColor: { red: 0.92, green: 0.35, blue: 0.05 },
+                horizontalAlignment: 'CENTER',
+              },
+            },
+            fields: 'userEnteredFormat(textFormat,backgroundColor,horizontalAlignment)',
+          },
+        });
+
+        // Alternating row colors
+        if (rowCount > 3) {
+          requests.push({
+            addConditionalFormatRule: {
+              rule: {
+                ranges: [{ sheetId, startRowIndex: 3, endRowIndex: rowCount, startColumnIndex: 0, endColumnIndex: columnCount }],
+                booleanRule: {
+                  condition: {
+                    type: 'CUSTOM_FORMULA',
+                    values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }],
+                  },
+                  format: {
+                    backgroundColor: { red: 0.99, green: 0.97, blue: 0.94 },
+                  },
+                },
+              },
+              index: 0,
+            },
+          });
+        }
+
+        // Conditional formatting for Status column (column E = index 4)
+        // Paid = Green
+        requests.push({
+          addConditionalFormatRule: {
+            rule: {
+              ranges: [{ sheetId, startRowIndex: 3, endRowIndex: rowCount, startColumnIndex: 4, endColumnIndex: 5 }],
+              booleanRule: {
+                condition: {
+                  type: 'TEXT_EQ',
+                  values: [{ userEnteredValue: 'Paid' }],
+                },
+                format: {
+                  backgroundColor: STATUS_COLORS.paid,
+                  textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true },
+                },
+              },
+            },
+            index: 1,
+          },
+        });
+
+        // Partial = Yellow
+        requests.push({
+          addConditionalFormatRule: {
+            rule: {
+              ranges: [{ sheetId, startRowIndex: 3, endRowIndex: rowCount, startColumnIndex: 4, endColumnIndex: 5 }],
+              booleanRule: {
+                condition: {
+                  type: 'TEXT_EQ',
+                  values: [{ userEnteredValue: 'Partial' }],
+                },
+                format: {
+                  backgroundColor: STATUS_COLORS.partial,
+                  textFormat: { foregroundColor: { red: 0.2, green: 0.2, blue: 0.2 }, bold: true },
+                },
+              },
+            },
+            index: 2,
+          },
+        });
+
+        // Not Paid = Red
+        requests.push({
+          addConditionalFormatRule: {
+            rule: {
+              ranges: [{ sheetId, startRowIndex: 3, endRowIndex: rowCount, startColumnIndex: 4, endColumnIndex: 5 }],
+              booleanRule: {
+                condition: {
+                  type: 'TEXT_EQ',
+                  values: [{ userEnteredValue: 'Not Paid' }],
+                },
+                format: {
+                  backgroundColor: STATUS_COLORS.notPaid,
+                  textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true },
+                },
+              },
+            },
+            index: 3,
+          },
+        });
+
+        // Number formatting for amount columns
+        const amountColumns = [1, 6, 7, 8, 9]; // Client Fee, Partner $, Expected Pay, Amount Paid, Remaining
+        for (const colIndex of amountColumns) {
+          requests.push({
+            repeatCell: {
+              range: { sheetId, startRowIndex: 3, endRowIndex: rowCount, startColumnIndex: colIndex, endColumnIndex: colIndex + 1 },
+              cell: {
+                userEnteredFormat: {
+                  numberFormat: { type: 'NUMBER', pattern: '#,##0.00' },
+                },
+              },
+              fields: 'userEnteredFormat.numberFormat',
+            },
+          });
+        }
+
+        // Bold TOTALS row
+        const totalsRowIndex = rowCount - 1;
+        if (totalsRowIndex > 3) {
+          requests.push({
+            repeatCell: {
+              range: { sheetId, startRowIndex: totalsRowIndex, endRowIndex: totalsRowIndex + 1, startColumnIndex: 0, endColumnIndex: columnCount },
+              cell: {
+                userEnteredFormat: {
+                  textFormat: { bold: true, fontSize: 11 },
+                  backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 },
+                },
+              },
+              fields: 'userEnteredFormat(textFormat,backgroundColor)',
+            },
+          });
+        }
+
+        // Freeze header rows
+        requests.push({
+          updateSheetProperties: {
+            properties: {
+              sheetId,
+              gridProperties: { frozenRowCount: 3 },
+            },
+            fields: 'gridProperties.frozenRowCount',
+          },
+        });
+      }
+
+      // Auto-resize columns
+      requests.push({
+        autoResizeDimensions: {
+          dimensions: {
+            sheetId,
+            dimension: 'COLUMNS',
+            startIndex: 0,
+            endIndex: columnCount,
+          },
+        },
+      });
+    }
+
+    return requests;
   }
 
   private prepareSheetData(data: AppData, sheetIdMap: Map<string, number>): Record<string, any[][]> {
