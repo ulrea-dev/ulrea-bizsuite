@@ -28,6 +28,17 @@ export interface SharedUser {
   photoUrl?: string;
 }
 
+export interface PartnerSheet {
+  partnerId: string;
+  partnerName: string;
+  spreadsheetId: string;
+  spreadsheetUrl: string;
+  createdAt: string;
+  lastSyncedAt: string | null;
+  businessIds: string[]; // Businesses included in this export
+  autoSyncEnabled: boolean;
+}
+
 export interface GoogleDriveSettings {
   autoSyncEnabled: boolean;
   lastSyncTime: string | null;
@@ -36,6 +47,7 @@ export interface GoogleDriveSettings {
   connectedSheet: ConnectedSheet | null;
   sheetAutoSyncEnabled: boolean;
   backupFolderId: string | null;
+  partnerSheets: PartnerSheet[];
 }
 
 export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
@@ -46,4 +58,5 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   connectedSheet: null,
   sheetAutoSyncEnabled: false,
   backupFolderId: null,
+  partnerSheets: [],
 };

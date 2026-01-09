@@ -2,8 +2,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
 import { googleSheetsService } from '@/services/googleSheetsService';
-import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser } from '@/types/googleDrive';
-import { AppData } from '@/types/business';
+import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet } from '@/types/googleDrive';
+import { AppData, Partner } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
@@ -20,6 +20,7 @@ interface GoogleDriveContextValue {
   isSyncingSheet: boolean;
   isSharing: boolean;
   isConfigured: boolean;
+  isSyncingPartnerSheet: string | null;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
   connect: () => void;
@@ -40,6 +41,11 @@ interface GoogleDriveContextValue {
   getSharedUsers: () => Promise<SharedUser[]>;
   removeSharedUser: (email: string) => Promise<void>;
   updateUserPermission: (email: string, newRole: 'reader' | 'writer' | 'commenter') => Promise<{ success: boolean; errors: string[] }>;
+  // Partner sheet functions
+  createPartnerSheet: (partnerId: string, businessIds: string[], data: AppData) => Promise<void>;
+  syncPartnerSheet: (partnerId: string, data: AppData) => Promise<void>;
+  disconnectPartnerSheet: (partnerId: string) => void;
+  setPartnerSheetAutoSync: (partnerId: string, enabled: boolean) => void;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -63,6 +69,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const [isExporting, setIsExporting] = useState(false);
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isSyncingPartnerSheet, setIsSyncingPartnerSheet] = useState<string | null>(null);
   const [backups, setBackups] = useState<GoogleDriveBackup[]>([]);
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -78,6 +85,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const sheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const partnerSheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
 
   const isConnected = !!settings.accessToken;
@@ -145,7 +153,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       google.accounts.oauth2.revoke(settings.accessToken, () => {});
     }
     googleDriveService.setAccessToken(null);
-    updateSettings({ accessToken: null, connectedEmail: null, lastSyncTime: null, connectedSheet: null });
+    updateSettings({ accessToken: null, connectedEmail: null, lastSyncTime: null, connectedSheet: null, partnerSheets: [] });
     setBackups([]);
     toast({ title: 'Disconnected', description: 'Google Drive has been disconnected.' });
   }, [settings.accessToken, updateSettings, toast]);
@@ -271,6 +279,137 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
     sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data), SHEET_SYNC_DELAY);
   }, [isConnected, settings.sheetAutoSyncEnabled, settings.connectedSheet, syncToConnectedSheet]);
+
+  // Partner sheet functions
+  const createPartnerSheet = useCallback(async (partnerId: string, businessIds: string[], data: AppData) => {
+    if (!isConnected) return;
+    setIsSyncingPartnerSheet(partnerId);
+    try {
+      const partner = data.partners?.find(p => p.id === partnerId);
+      if (!partner) throw new Error('Partner not found');
+
+      const { spreadsheetId, spreadsheetUrl } = await googleSheetsService.exportPartnerData(
+        partner,
+        businessIds,
+        data
+      );
+      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+
+      const newPartnerSheet: PartnerSheet = {
+        partnerId,
+        partnerName: partner.name,
+        spreadsheetId,
+        spreadsheetUrl,
+        createdAt: new Date().toISOString(),
+        lastSyncedAt: new Date().toISOString(),
+        businessIds,
+        autoSyncEnabled: true,
+      };
+
+      updateSettings({
+        partnerSheets: [...(settings.partnerSheets || []), newPartnerSheet],
+      });
+
+      toast({
+        title: 'Partner Sheet Created',
+        description: `Report sheet created for ${partner.name}.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to Create Sheet',
+        description: error instanceof Error ? error.message : 'Could not create partner sheet.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingPartnerSheet(null);
+    }
+  }, [isConnected, settings.partnerSheets, updateSettings, toast]);
+
+  const syncPartnerSheet = useCallback(async (partnerId: string, data: AppData) => {
+    if (!isConnected) return;
+    const partnerSheet = settings.partnerSheets?.find(ps => ps.partnerId === partnerId);
+    if (!partnerSheet) return;
+
+    setIsSyncingPartnerSheet(partnerId);
+    try {
+      const partner = data.partners?.find(p => p.id === partnerId);
+      if (!partner) throw new Error('Partner not found');
+
+      await googleSheetsService.updatePartnerSpreadsheet(
+        partnerSheet.spreadsheetId,
+        partner,
+        partnerSheet.businessIds,
+        data
+      );
+
+      const updatedSheets = (settings.partnerSheets || []).map(ps =>
+        ps.partnerId === partnerId
+          ? { ...ps, lastSyncedAt: new Date().toISOString() }
+          : ps
+      );
+      updateSettings({ partnerSheets: updatedSheets });
+
+      toast({
+        title: 'Partner Sheet Updated',
+        description: `Report for ${partner.name} has been synced.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Sync Failed',
+        description: error instanceof Error ? error.message : 'Could not sync partner sheet.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncingPartnerSheet(null);
+    }
+  }, [isConnected, settings.partnerSheets, updateSettings, toast]);
+
+  const disconnectPartnerSheet = useCallback((partnerId: string) => {
+    const updatedSheets = (settings.partnerSheets || []).filter(ps => ps.partnerId !== partnerId);
+    updateSettings({ partnerSheets: updatedSheets });
+    toast({
+      title: 'Partner Sheet Removed',
+      description: 'The partner report sheet has been disconnected.',
+    });
+  }, [settings.partnerSheets, updateSettings, toast]);
+
+  const setPartnerSheetAutoSync = useCallback((partnerId: string, enabled: boolean) => {
+    const updatedSheets = (settings.partnerSheets || []).map(ps =>
+      ps.partnerId === partnerId ? { ...ps, autoSyncEnabled: enabled } : ps
+    );
+    updateSettings({ partnerSheets: updatedSheets });
+  }, [settings.partnerSheets, updateSettings]);
+
+  const schedulePartnerSheetSync = useCallback((data: AppData) => {
+    if (!isConnected) return;
+    const sheetsToSync = (settings.partnerSheets || []).filter(ps => ps.autoSyncEnabled);
+    if (sheetsToSync.length === 0) return;
+
+    if (partnerSheetSyncTimeoutRef.current) clearTimeout(partnerSheetSyncTimeoutRef.current);
+    partnerSheetSyncTimeoutRef.current = setTimeout(async () => {
+      for (const partnerSheet of sheetsToSync) {
+        try {
+          const partner = data.partners?.find(p => p.id === partnerSheet.partnerId);
+          if (partner) {
+            await googleSheetsService.updatePartnerSpreadsheet(
+              partnerSheet.spreadsheetId,
+              partner,
+              partnerSheet.businessIds,
+              data
+            );
+            const updatedSheets = (settings.partnerSheets || []).map(ps =>
+              ps.partnerId === partnerSheet.partnerId
+                ? { ...ps, lastSyncedAt: new Date().toISOString() }
+                : ps
+            );
+            updateSettings({ partnerSheets: updatedSheets });
+          }
+        } catch (error) {
+          console.error(`Failed to sync partner sheet for ${partnerSheet.partnerName}:`, error);
+        }
+      }
+    }, SHEET_SYNC_DELAY);
+  }, [isConnected, settings.partnerSheets, updateSettings]);
 
   // Sharing functions
   const shareWithUser = useCallback(async (
@@ -418,20 +557,24 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     const handleDataChange = (event: CustomEvent<AppData>) => {
       scheduleSync(event.detail);
       scheduleSheetSync(event.detail);
+      schedulePartnerSheetSync(event.detail);
     };
     window.addEventListener('bizsuite-data-change', handleDataChange as EventListener);
     return () => {
       window.removeEventListener('bizsuite-data-change', handleDataChange as EventListener);
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
       if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
+      if (partnerSheetSyncTimeoutRef.current) clearTimeout(partnerSheetSyncTimeoutRef.current);
     };
-  }, [scheduleSync, scheduleSheetSync]);
+  }, [scheduleSync, scheduleSheetSync, schedulePartnerSheetSync]);
 
   const value: GoogleDriveContextValue = {
-    isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true, settings, backups,
+    isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true,
+    isSyncingPartnerSheet, settings, backups,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
     shareWithUser, getSharedUsers, removeSharedUser, updateUserPermission,
+    createPartnerSheet, syncPartnerSheet, disconnectPartnerSheet, setPartnerSheetAutoSync,
   };
 
   return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;
