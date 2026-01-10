@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Eye, Edit, Mail, DollarSign, History, CreditCard } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Mail, DollarSign, History, CreditCard, MoreHorizontal } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TeamMemberModal } from './TeamMemberModal';
 import { TeamMemberPaymentHistoryModal } from './TeamMemberPaymentHistoryModal';
@@ -14,6 +14,13 @@ import { BulkTeamPaymentModal } from './BulkTeamPaymentModal';
 import { formatCurrency } from '@/utils/storage';
 import { TeamMember, SUPPORTED_CURRENCIES } from '@/types/business';
 import { convertCurrency } from '@/utils/currencyConversion';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TeamPageProps {
   onNavigateToPage?: (page: string) => void;
@@ -21,6 +28,7 @@ interface TeamPageProps {
 
 export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
   const { data, currentBusiness } = useBusiness();
+  const isMobile = useIsMobile();
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -94,6 +102,80 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
     };
   };
 
+  // Mobile card view for team members
+  const MobileTeamCard = ({ member }: { member: TeamMember }) => {
+    const allocations = getMemberAllocations(member.id);
+    const memberProjects = currentBusiness 
+      ? data.projects
+          .filter(project => project.businessId === currentBusiness.id)
+          .filter(project => 
+            project.teamAllocations.some(alloc => alloc.memberId === member.id) ||
+            project.allocationTeamAllocations?.some(alloc => alloc.memberId === member.id)
+          )
+      : [];
+    
+    return (
+      <Card className="mb-3">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium truncate">{member.name}</h4>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="truncate">{member.email}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={(member.memberType || 'employee') === 'employee' ? 'default' : 'secondary'} className="text-xs">
+                {(member.memberType || 'employee') === 'employee' ? 'Employee' : 'Contractor'}
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleViewMember(member)}>
+                    <Eye className="h-4 w-4 mr-2" /> View
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleEditMember(member)}>
+                    <Edit className="h-4 w-4 mr-2" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleViewPaymentHistory(member)}>
+                    <History className="h-4 w-4 mr-2" /> Payment History
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 mb-3">
+            <Badge variant="outline" className="text-xs">{member.role}</Badge>
+            {memberProjects.length > 0 && (
+              <span className="text-xs text-muted-foreground">{memberProjects.length} project{memberProjects.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs">Allocated</span>
+              <div className="font-medium">
+                {currentBusiness ? formatCurrency(allocations.totalAllocated, currentBusiness.currency) : '-'}
+              </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Outstanding</span>
+              <div className={allocations.totalOutstanding > 0 ? 'text-orange-600 font-medium' : 'text-muted-foreground'}>
+                {currentBusiness ? formatCurrency(allocations.totalOutstanding, currentBusiness.currency) : '-'}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -125,13 +207,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
           />
         </div>
         
-        <Tabs value={memberTypeFilter} onValueChange={(v) => setMemberTypeFilter(v as 'all' | 'employee' | 'contractor')}>
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="all" className="flex-1 sm:flex-initial text-xs sm:text-sm">All</TabsTrigger>
-            <TabsTrigger value="employee" className="flex-1 sm:flex-initial text-xs sm:text-sm">Employees</TabsTrigger>
-            <TabsTrigger value="contractor" className="flex-1 sm:flex-initial text-xs sm:text-sm">Contractors</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+          <Tabs value={memberTypeFilter} onValueChange={(v) => setMemberTypeFilter(v as 'all' | 'employee' | 'contractor')}>
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="all" className="flex-1 sm:flex-initial text-xs sm:text-sm">All</TabsTrigger>
+              <TabsTrigger value="employee" className="flex-1 sm:flex-initial text-xs sm:text-sm">Employees</TabsTrigger>
+              <TabsTrigger value="contractor" className="flex-1 sm:flex-initial text-xs sm:text-sm">Contractors</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {filteredMembers.length === 0 ? (
@@ -153,7 +237,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({ onNavigateToPage }) => {
             </Button>
           </CardContent>
         </Card>
+      ) : isMobile ? (
+        // Mobile card view
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">{filteredMembers.length} team member{filteredMembers.length !== 1 ? 's' : ''}</p>
+          {filteredMembers.map(member => (
+            <MobileTeamCard key={member.id} member={member} />
+          ))}
+        </div>
       ) : (
+        // Desktop table view
         <Card>
           <CardHeader>
             <CardTitle>Team Members ({filteredMembers.length})</CardTitle>
