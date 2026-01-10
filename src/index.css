@@ -132,6 +132,8 @@
 
   html {
     font-size: 13px;
+    /* Prevent iOS zoom on input focus */
+    -webkit-text-size-adjust: 100%;
   }
 
   @media (min-width: 640px) {
@@ -149,11 +151,28 @@
   body {
     @apply bg-background text-foreground font-body;
     font-family: var(--font-family, 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+    /* Safe area insets for notched phones */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-family, 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
     font-weight: 700;
+  }
+
+  /* Ensure touch targets are accessible */
+  @media (pointer: coarse) {
+    button, [role="button"], a, .touch-target {
+      min-height: 44px;
+    }
+    
+    /* Prevent zoom on input focus for iOS */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 }
 
@@ -206,6 +225,55 @@
   .active-surface:active {
     background-color: hsl(var(--active-surface));
   }
+
+  /* Mobile-first utilities */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Horizontal scroll with hidden scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile table wrapper */
+  .mobile-table-wrapper {
+    @apply overflow-x-auto -mx-3 sm:mx-0;
+  }
+
+  .mobile-table-wrapper > table {
+    @apply min-w-[600px] sm:min-w-0;
+  }
+
+  /* Touch-friendly scrolling */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* Premium animations */
@@ -238,4 +306,12 @@
 .login-card {
   backdrop-filter: blur(8px);
   background: hsl(var(--card) / 0.9);
+}
+
+/* Mobile-friendly dialog positioning */
+@media (max-width: 640px) {
+  [role="dialog"] {
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
 }

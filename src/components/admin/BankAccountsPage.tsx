@@ -92,17 +92,17 @@ export const BankAccountsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Bank Accounts</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Bank Accounts</h1>
+          <p className="text-muted-foreground text-sm">
             Manage payment accounts across all businesses
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Select value={businessFilter} onValueChange={setBusinessFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by business" />
             </SelectTrigger>
             <SelectContent>
@@ -114,7 +114,7 @@ export const BankAccountsPage: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => { setSelectedAccount(null); setAccountModalOpen(true); }}>
+          <Button onClick={() => { setSelectedAccount(null); setAccountModalOpen(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Account
           </Button>

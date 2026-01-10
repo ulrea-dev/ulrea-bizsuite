@@ -38,6 +38,7 @@ import { getCurrencySymbol, convertAmountWithRate } from '@/utils/currencyConver
 import { AddRenewalModal } from './AddRenewalModal';
 import { RenewalPaymentModal } from './RenewalPaymentModal';
 import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -92,6 +93,7 @@ const STATUS_CONFIG: Record<RenewalStatus, { label: string; color: string; icon:
 
 export const RenewalsDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { data, currentBusiness, dispatch } = useBusiness();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
@@ -153,13 +155,13 @@ export const RenewalsDashboard: React.FC = () => {
 
   const formatDaysUntilDue = (days: number) => {
     if (days < 0) {
-      return `${Math.abs(days)} days overdue`;
+      return `${Math.abs(days)}d overdue`;
     } else if (days === 0) {
       return 'Due today';
     } else if (days === 1) {
-      return 'Due tomorrow';
+      return 'Tomorrow';
     } else {
-      return `${days} days`;
+      return `${days}d`;
     }
   };
 
@@ -180,6 +182,82 @@ export const RenewalsDashboard: React.FC = () => {
     setDeletingRenewalId(null);
   };
 
+  // Mobile card view for renewals
+  const MobileRenewalCard = ({ renewal }: { renewal: EnrichedRenewal }) => {
+    const statusConfig = STATUS_CONFIG[renewal.status];
+    const paymentCount = getPaymentCount(renewal.id);
+    
+    return (
+      <Card className="mb-3">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-start mb-2">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium truncate">{renewal.name}</h4>
+              <p className="text-xs text-muted-foreground truncate">{renewal.clientName}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className={`${statusConfig.color} gap-1 text-xs`}>
+                {statusConfig.icon}
+                <span className="hidden xs:inline">{statusConfig.label}</span>
+              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setPaymentRenewal(renewal)}>
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Record Payment
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setHistoryRenewal(renewal)}>
+                    <History className="h-4 w-4 mr-2" />
+                    Payment History
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => setDeletingRenewalId(renewal.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              {RENEWAL_TYPE_ICONS[renewal.type]}
+              <span className="text-xs">{RENEWAL_TYPE_LABELS[renewal.type]}</span>
+            </div>
+            {renewal.retainerName && (
+              <Badge variant="outline" className="text-xs">{renewal.retainerName}</Badge>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs">Amount</span>
+              <div className="font-medium text-sm">{formatAmount(renewal)}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Due</span>
+              <div className="font-medium text-sm">{format(parseISO(renewal.nextRenewalDate), 'MMM d')}</div>
+              <div className="text-xs text-muted-foreground">{formatDaysUntilDue(renewal.daysUntilDue)}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Frequency</span>
+              <div className="font-medium text-sm capitalize">{renewal.frequency}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (!currentBusiness) {
     return (
       <div className="p-6">
@@ -195,69 +273,69 @@ export const RenewalsDashboard: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Renewals</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Track all upcoming renewals for your clients
           </p>
         </div>
-        <Button onClick={() => setIsAddingRenewal(true)}>
+        <Button onClick={() => setIsAddingRenewal(true)} size={isMobile ? 'sm' : 'default'}>
           <Plus className="h-4 w-4 mr-2" />
           Add Renewal
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Renewals</CardTitle>
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.total}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold">{summary.total}</div>
           </CardContent>
         </Card>
 
         <Card className="border-destructive/50 bg-destructive/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              Overdue
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+              <span className="truncate">Overdue</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{summary.overdue}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-destructive">{summary.overdue}</div>
           </CardContent>
         </Card>
 
         <Card className="border-orange-500/50 bg-orange-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Due This Week
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
+              <span className="truncate">This Week</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-500">{summary.urgent}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-orange-500">{summary.urgent}</div>
           </CardContent>
         </Card>
 
         <Card className="border-yellow-500/50 bg-yellow-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-600" />
-              Due in 30 Days
+          <CardHeader className="pb-1 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
+              <span className="truncate">30 Days</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{summary.warning}</div>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{summary.warning}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="All Types" />
@@ -283,7 +361,7 @@ export const RenewalsDashboard: React.FC = () => {
         </Select>
       </div>
 
-      {/* Renewals Table */}
+      {/* Renewals List */}
       {filteredRenewals.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -302,7 +380,16 @@ export const RenewalsDashboard: React.FC = () => {
             )}
           </CardContent>
         </Card>
+      ) : isMobile ? (
+        // Mobile card view
+        <div>
+          <p className="text-sm text-muted-foreground mb-3">{filteredRenewals.length} renewal{filteredRenewals.length !== 1 ? 's' : ''}</p>
+          {filteredRenewals.map((renewal) => (
+            <MobileRenewalCard key={renewal.id} renewal={renewal} />
+          ))}
+        </div>
       ) : (
+        // Desktop table view
         <Card>
           <CardContent className="p-0">
             <Table>
