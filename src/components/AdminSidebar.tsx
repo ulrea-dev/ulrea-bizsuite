@@ -10,7 +10,9 @@ import {
   ArrowLeft,
   Moon,
   Sun,
-  Download
+  Download,
+  Users,
+  Layers
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -38,6 +40,8 @@ const navigationItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/business-management' },
   { id: 'businesses', label: 'Businesses', icon: Building2, path: '/business-management/businesses' },
   { id: 'bank-accounts', label: 'Bank Accounts', icon: Wallet, path: '/business-management/bank-accounts' },
+  { id: 'partners', label: 'Partners', icon: Users, path: '/business-management/partners' },
+  { id: 'partner-allocations', label: 'Partner Allocations', icon: Layers, path: '/business-management/partner-allocations' },
   { id: 'payables', label: 'Payables', icon: ArrowUpRight, path: '/business-management/payables' },
   { id: 'receivables', label: 'Receivables', icon: ArrowDownLeft, path: '/business-management/receivables' },
 ];
