@@ -327,159 +327,71 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
   };
 
   const PartnerAllocationForm = () => {
-    const [selectedPartner, setSelectedPartner] = useState('');
-    const [allocationType, setAllocationType] = useState<'percentage' | 'fixed'>('percentage');
-    const [allocationValue, setAllocationValue] = useState('');
-
-    const validation = validateAllocation(allocationType, allocationValue);
-
-    const handleAddPartnerAllocation = () => {
-      if (!selectedPartner || !allocationValue || !validation.isValid) return;
-
-      const partner = data.partners.find(p => p.id === selectedPartner);
-      if (!partner) return;
-
-      const value = parseFloat(allocationValue);
-      const totalAllocated = validation.amount;
-
-      const allocationData: AllocationPartnerAllocation = {
-        partnerId: partner.id,
-        partnerName: partner.name,
-        allocationId: allocation.id,
-        allocationName: allocation.title,
-        allocationType,
-        allocationValue: value,
-        totalAllocated,
-        paidAmount: 0,
-        outstanding: totalAllocated,
-      };
-
-      dispatch({
-        type: 'ADD_ALLOCATION_PARTNER_ALLOCATION',
-        payload: { projectId, allocation: allocationData },
-      });
-
-      setSelectedPartner('');
-      setAllocationValue('');
-    };
-
     return (
       <div className="space-y-4">
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
-            <Select value={selectedPartner} onValueChange={setSelectedPartner}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select partner" />
-              </SelectTrigger>
-              <SelectContent>
-                {availablePartners.map(partner => (
-                  <SelectItem key={partner.id} value={partner.id}>
-                    {partner.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="percentage">Percentage</SelectItem>
-                <SelectItem value="fixed">Fixed Amount</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex space-x-1">
-              {allocationType === 'fixed' ? (
-                <CurrencyInput
-                  value={allocationValue}
-                  onChange={setAllocationValue}
-                  placeholder="1000"
-                  className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
-                  allowDecimals={true}
-                  maxDecimals={2}
-                />
-              ) : (
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={allocationValue}
-                  onChange={(e) => setAllocationValue(e.target.value)}
-                  placeholder="10"
-                  className={!validation.isValid && allocationValue ? 'border-destructive' : ''}
-                />
-              )}
-              <Button 
-                onClick={handleAddPartnerAllocation} 
-                size="sm"
-                disabled={!selectedPartner || !allocationValue || !validation.isValid}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+        <div className="p-4 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <h4 className="font-medium">Partner Total Allocation</h4>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Partner allocations for this phase are managed in the Admin Console. 
+            The total shown below represents allocations assigned to specific partners.
+          </p>
+          
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="text-center p-3 bg-background rounded-md">
+              <div className="text-muted-foreground">Total Allocated</div>
+              <div className="font-semibold text-lg">
+                {currentBusiness.currency.symbol}{budgetTotals.partnerTotal.toLocaleString()}
+              </div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-md">
+              <div className="text-muted-foreground">Paid</div>
+              <div className="font-semibold text-lg text-green-600">
+                {currentBusiness.currency.symbol}
+                {allocationPartnerAllocations.reduce((sum, a) => sum + (a.paidAmount || 0), 0).toLocaleString()}
+              </div>
+            </div>
+            <div className="text-center p-3 bg-background rounded-md">
+              <div className="text-muted-foreground">Outstanding</div>
+              <div className="font-semibold text-lg text-orange-600">
+                {currentBusiness.currency.symbol}
+                {allocationPartnerAllocations.reduce((sum, a) => sum + (a.outstanding || 0), 0).toLocaleString()}
+              </div>
             </div>
           </div>
-
-          {/* Real-time preview */}
-          {allocationValue && (
-            <div className="text-sm space-y-1">
-              {validation.isValid ? (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Allocation Amount:</span>
-                  <span className="font-medium text-green-600">
-                    {currentBusiness.currency.symbol}{validation.amount.toLocaleString()}
-                  </span>
-                </div>
-              ) : validation.message && (
-                <div className="text-destructive text-xs">
-                  {validation.message}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        <div className="space-y-2">
-          {allocationPartnerAllocations.map(alloc => (
-            <Card key={alloc.partnerId}>
-              <CardHeader className="py-3">
-                <div className="flex items-center justify-between">
-                   <div>
-                     <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
-                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                       <Badge variant="outline">
-                         {alloc.allocationType === 'percentage' 
-                           ? `${alloc.allocationValue}%` 
-                           : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
-                         }
-                       </Badge>
-                       <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
-                     </div>
-                   </div>
-                   <div className="flex gap-1">
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setEditingPartnerAllocation(alloc)}
-                     >
-                       <Edit className="w-4 h-4" />
-                     </Button>
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => dispatch({
-                         type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION',
-                         payload: { projectId, allocationId: allocation.id, partnerId: alloc.partnerId },
-                       })}
-                     >
-                       <Trash2 className="w-4 h-4" />
-                     </Button>
-                   </div>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+        {allocationPartnerAllocations.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-sm text-muted-foreground">Current Partner Allocations</Label>
+            {allocationPartnerAllocations.map(alloc => (
+              <Card key={alloc.partnerId}>
+                <CardHeader className="py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                        <Badge variant="outline">
+                          {alloc.allocationType === 'percentage' 
+                            ? `${alloc.allocationValue}%` 
+                            : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
+                          }
+                        </Badge>
+                        <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-muted-foreground text-center">
+          To add or modify partner allocations, go to Business Management → Partner Allocations
+        </p>
       </div>
     );
   };
