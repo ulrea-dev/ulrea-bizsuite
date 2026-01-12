@@ -3,16 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Search, Users, DollarSign, Layers, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Search, Users, DollarSign, Layers, ChevronDown, ChevronUp, ExternalLink, Edit, Plus } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNavigate } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
+import { PartnerAllocationManager } from './PartnerAllocationManager';
+import { Project, ProjectAllocation } from '@/types/business';
 export const PartnerAllocationsPage: React.FC = () => {
   const { data, currentBusiness } = useBusiness();
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ export const PartnerAllocationsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBusiness, setFilterBusiness] = useState<string>('all');
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [managingAllocation, setManagingAllocation] = useState<{ project: Project; allocation: ProjectAllocation } | null>(null);
 
   const projects = data.projects || [];
   const partners = data.partners || [];
@@ -352,15 +355,37 @@ export const PartnerAllocationsPage: React.FC = () => {
                       <div className="border-t pt-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm font-semibold">Partner Breakdown</h4>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(`/works/projects/${project.id}`)}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View Project
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate(`/works/projects/${project.id}`)}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View Project
+                            </Button>
+                          </div>
                         </div>
+
+                        {/* Phase-level management buttons */}
+                        {project.allocations && project.allocations.length > 0 && (
+                          <div className="mb-4 space-y-2">
+                            <Label className="text-xs text-muted-foreground">Manage Partner Allocations by Phase:</Label>
+                            <div className="flex flex-wrap gap-2">
+                              {project.allocations.map(allocation => (
+                                <Button
+                                  key={allocation.id}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setManagingAllocation({ project, allocation })}
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  {allocation.title}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {isMobile ? (
                           // Mobile view
@@ -451,6 +476,16 @@ export const PartnerAllocationsPage: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Partner Allocation Manager Modal */}
+      {managingAllocation && (
+        <PartnerAllocationManager
+          open={!!managingAllocation}
+          onOpenChange={(open) => !open && setManagingAllocation(null)}
+          project={managingAllocation.project}
+          allocation={managingAllocation.allocation}
+        />
       )}
     </div>
   );

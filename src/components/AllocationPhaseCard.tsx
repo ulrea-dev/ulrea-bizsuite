@@ -132,7 +132,7 @@ export const AllocationPhaseCard: React.FC<AllocationPhaseCardProps> = ({ alloca
             {allocationPartnerAllocations.length > 0 && (
               <div className="flex items-center">
                 <Building className="w-3 h-3 mr-1" />
-                {allocationPartnerAllocations.length} partners
+                Partners allocated
               </div>
             )}
           </div>

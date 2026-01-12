@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Trash2, Plus, AlertTriangle, CheckCircle, Edit } from 'lucide-react';
+import { Trash2, Plus, AlertTriangle, CheckCircle, Edit, Users } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
 import { ProjectAllocation, AllocationTeamAllocation, AllocationPartnerAllocation, AllocationCompanyAllocation } from '@/types/business';
@@ -327,16 +327,18 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
   };
 
   const PartnerAllocationForm = () => {
+    const totalPaid = allocationPartnerAllocations.reduce((sum, a) => sum + (a.paidAmount || 0), 0);
+    const totalOutstanding = allocationPartnerAllocations.reduce((sum, a) => sum + (a.outstanding || 0), 0);
+    
     return (
       <div className="space-y-4">
         <div className="p-4 bg-muted/50 rounded-lg border">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-muted-foreground" />
             <h4 className="font-medium">Partner Total Allocation</h4>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Partner allocations for this phase are managed in the Admin Console. 
-            The total shown below represents allocations assigned to specific partners.
+            Partner allocations are managed in the Admin Console (Business Management → Partner Allocations).
           </p>
           
           <div className="grid grid-cols-3 gap-4 text-sm">
@@ -349,45 +351,17 @@ export const AllocationDetailModal: React.FC<AllocationDetailModalProps> = ({
             <div className="text-center p-3 bg-background rounded-md">
               <div className="text-muted-foreground">Paid</div>
               <div className="font-semibold text-lg text-green-600">
-                {currentBusiness.currency.symbol}
-                {allocationPartnerAllocations.reduce((sum, a) => sum + (a.paidAmount || 0), 0).toLocaleString()}
+                {currentBusiness.currency.symbol}{totalPaid.toLocaleString()}
               </div>
             </div>
             <div className="text-center p-3 bg-background rounded-md">
               <div className="text-muted-foreground">Outstanding</div>
               <div className="font-semibold text-lg text-orange-600">
-                {currentBusiness.currency.symbol}
-                {allocationPartnerAllocations.reduce((sum, a) => sum + (a.outstanding || 0), 0).toLocaleString()}
+                {currentBusiness.currency.symbol}{totalOutstanding.toLocaleString()}
               </div>
             </div>
           </div>
         </div>
-
-        {allocationPartnerAllocations.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Current Partner Allocations</Label>
-            {allocationPartnerAllocations.map(alloc => (
-              <Card key={alloc.partnerId}>
-                <CardHeader className="py-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-sm">{alloc.partnerName}</CardTitle>
-                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                        <Badge variant="outline">
-                          {alloc.allocationType === 'percentage' 
-                            ? `${alloc.allocationValue}%` 
-                            : `${currentBusiness.currency.symbol}${alloc.allocationValue.toLocaleString()}`
-                          }
-                        </Badge>
-                        <span>Total: {currentBusiness.currency.symbol}{alloc.totalAllocated.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        )}
 
         <p className="text-xs text-muted-foreground text-center">
           To add or modify partner allocations, go to Business Management → Partner Allocations
