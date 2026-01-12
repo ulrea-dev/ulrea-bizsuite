@@ -138,6 +138,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
       },
     });
 
+    // Close the edit modal after successful update
     setEditingPartner(null);
   };
 
@@ -162,6 +163,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
   const wouldExceedBudget = previewAmount > budgetTotals.remaining;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -367,20 +369,21 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
           )}
         </div>
       </DialogContent>
-
-      {/* Edit Partner Modal */}
-      {editingPartner && (
-        <EditPartnerModal
-          open={!!editingPartner}
-          onOpenChange={() => setEditingPartner(null)}
-          allocation={editingPartner}
-          phaseBudget={allocation.budget}
-          remainingBudget={budgetTotals.remaining}
-          currency={currentBusiness.currency}
-          onSave={handleUpdatePartner}
-        />
-      )}
     </Dialog>
+    
+    {/* Edit Partner Modal - Rendered outside main dialog to avoid nesting issues */}
+    {editingPartner && (
+      <EditPartnerModal
+        open={!!editingPartner}
+        onOpenChange={(open) => !open && setEditingPartner(null)}
+        allocation={editingPartner}
+        phaseBudget={allocation.budget}
+        remainingBudget={budgetTotals.remaining}
+        currency={currentBusiness.currency}
+        onSave={handleUpdatePartner}
+      />
+    )}
+    </>
   );
 };
 
