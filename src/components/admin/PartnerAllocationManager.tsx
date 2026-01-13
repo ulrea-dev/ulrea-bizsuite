@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -409,6 +409,12 @@ const EditPartnerModal: React.FC<EditPartnerModalProps> = ({
 }) => {
   const [allocationType, setAllocationType] = useState<'percentage' | 'fixed'>(allocation.allocationType);
   const [allocationValue, setAllocationValue] = useState(allocation.allocationValue.toString());
+
+  // Reset form state when allocation changes
+  useEffect(() => {
+    setAllocationType(allocation.allocationType);
+    setAllocationValue(allocation.allocationValue.toString());
+  }, [allocation.partnerId, allocation.allocationType, allocation.allocationValue]);
 
   const calculateAmount = (type: 'percentage' | 'fixed', value: string): number => {
     const numValue = parseFloat(value);
