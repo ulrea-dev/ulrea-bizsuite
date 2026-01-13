@@ -7,7 +7,6 @@ import { GoogleDriveProvider } from "./contexts/GoogleDriveContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
-import { RemoteChangeNotification } from "./components/RemoteChangeNotification";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -83,7 +82,6 @@ const App = () => (
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <RemoteChangeNotification />
         <Toaster />
         <Sonner />
       </GoogleDriveProvider>
