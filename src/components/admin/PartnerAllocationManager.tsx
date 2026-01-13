@@ -37,8 +37,11 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
 
   if (!currentBusiness) return null;
 
+  // Get fresh project data from context to ensure we have latest state after dispatches
+  const freshProject = data.projects.find(p => p.id === project.id) || project;
+
   const partners = data.partners || [];
-  const allocationPartnerAllocations = project.allocationPartnerAllocations?.filter(
+  const allocationPartnerAllocations = freshProject.allocationPartnerAllocations?.filter(
     a => a.allocationId === allocation.id
   ) || [];
 
@@ -49,8 +52,8 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
 
   // Budget calculations
   const budgetTotals = useMemo(() => {
-    const allocationTeamAllocations = project.allocationTeamAllocations?.filter(a => a.allocationId === allocation.id) || [];
-    const allocationCompanyAllocation = project.allocationCompanyAllocations?.find(a => a.allocationId === allocation.id);
+    const allocationTeamAllocations = freshProject.allocationTeamAllocations?.filter(a => a.allocationId === allocation.id) || [];
+    const allocationCompanyAllocation = freshProject.allocationCompanyAllocations?.find(a => a.allocationId === allocation.id);
 
     const teamTotal = allocationTeamAllocations.reduce((sum, a) => sum + a.totalAllocated, 0);
     const partnerTotal = allocationPartnerAllocations.reduce((sum, a) => sum + a.totalAllocated, 0);
@@ -68,7 +71,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
       partnerPaid: allocationPartnerAllocations.reduce((sum, a) => sum + (a.paidAmount || 0), 0),
       partnerOutstanding: allocationPartnerAllocations.reduce((sum, a) => sum + (a.outstanding || 0), 0),
     };
-  }, [allocation, project, allocationPartnerAllocations]);
+  }, [allocation, freshProject, allocationPartnerAllocations]);
 
   const calculateAmount = (type: 'percentage' | 'fixed', value: string): number => {
     const numValue = parseFloat(value);
@@ -103,7 +106,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
 
     dispatch({
       type: 'ADD_ALLOCATION_PARTNER_ALLOCATION',
-      payload: { projectId: project.id, allocation: allocationData },
+      payload: { projectId: freshProject.id, allocation: allocationData },
     });
 
     setSelectedPartnerId('');
@@ -126,7 +129,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
     dispatch({
       type: 'UPDATE_ALLOCATION_PARTNER_ALLOCATION',
       payload: {
-        projectId: project.id,
+        projectId: freshProject.id,
         allocationId: allocation.id,
         partnerId,
         updates: {
@@ -154,7 +157,7 @@ export const PartnerAllocationManager: React.FC<PartnerAllocationManagerProps> =
     if (window.confirm('Are you sure you want to remove this partner allocation?')) {
       dispatch({
         type: 'REMOVE_ALLOCATION_PARTNER_ALLOCATION',
-        payload: { projectId: project.id, allocationId: allocation.id, partnerId },
+        payload: { projectId: freshProject.id, allocationId: allocation.id, partnerId },
       });
     }
   };
