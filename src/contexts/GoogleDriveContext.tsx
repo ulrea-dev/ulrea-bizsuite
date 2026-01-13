@@ -5,10 +5,12 @@ import { googleSheetsService } from '@/services/googleSheetsService';
 import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet } from '@/types/googleDrive';
 import { AppData, Partner } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
+import { ReconnectGoogleModal } from '@/components/ReconnectGoogleModal';
 
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000;
 const SHEET_SYNC_DELAY = 3000;
+const CHANGE_POLL_INTERVAL = 30000; // Check for changes every 30 seconds
 
 const GOOGLE_CLIENT_ID = "63460396574-lmeqr2hf2ucbj11vbmkr0m2va98ngt1a.apps.googleusercontent.com";
 
@@ -23,6 +25,8 @@ interface GoogleDriveContextValue {
   isSyncingPartnerSheet: string | null;
   settings: GoogleDriveSettings;
   backups: GoogleDriveBackup[];
+  hasNewRemoteChanges: boolean;
+  lastRemoteChangeBy: string | null;
   connect: () => void;
   disconnect: () => void;
   syncNow: (data: AppData) => Promise<void>;
@@ -36,6 +40,7 @@ interface GoogleDriveContextValue {
   syncToConnectedSheet: (data: AppData) => Promise<void>;
   createAndConnectSheet: (data: AppData) => Promise<void>;
   setSheetAutoSync: (enabled: boolean) => void;
+  clearRemoteChangeNotification: () => void;
   // Sharing functions
   shareWithUser: (email: string, role: 'reader' | 'writer' | 'commenter', resources: ('folder' | 'sheet')[], sendNotification?: boolean) => Promise<{ success: boolean; errors: string[] }>;
   getSharedUsers: () => Promise<SharedUser[]>;
@@ -71,6 +76,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const [isSharing, setIsSharing] = useState(false);
   const [isSyncingPartnerSheet, setIsSyncingPartnerSheet] = useState<string | null>(null);
   const [backups, setBackups] = useState<GoogleDriveBackup[]>([]);
+  const [showReconnectModal, setShowReconnectModal] = useState(false);
+  const [hasNewRemoteChanges, setHasNewRemoteChanges] = useState(false);
+  const [lastRemoteChangeBy, setLastRemoteChangeBy] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -87,8 +96,55 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const sheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const partnerSheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
+  const changePollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKnownBackupTimeRef = useRef<string | null>(null);
 
   const isConnected = !!settings.accessToken;
+
+  // Helper to check if error is auth-related
+  const isAuthError = (error: unknown): boolean => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return errorMessage.includes('invalid authentication') ||
+           errorMessage.includes('Invalid Credentials') ||
+           errorMessage.includes('401') ||
+           errorMessage.includes('Token expired') ||
+           errorMessage.includes('access_token');
+  };
+
+  // Wrap API calls to detect auth errors and show reconnect modal
+  const withAuthErrorHandling = useCallback(<T extends (...args: unknown[]) => Promise<unknown>>(
+    fn: T,
+    actionName: string
+  ): ((...args: Parameters<T>) => Promise<ReturnType<T> | undefined>) => {
+    return async (...args: Parameters<T>): Promise<ReturnType<T> | undefined> => {
+      try {
+        return await fn(...args) as ReturnType<T>;
+      } catch (error) {
+        if (isAuthError(error)) {
+          setShowReconnectModal(true);
+          // Store the action to retry after reconnect
+          setPendingAction(() => async () => {
+            try {
+              await fn(...args);
+            } catch (retryError) {
+              toast({
+                title: `${actionName} Failed`,
+                description: retryError instanceof Error ? retryError.message : 'Could not complete action.',
+                variant: 'destructive',
+              });
+            }
+          });
+          return undefined;
+        }
+        throw error;
+      }
+    };
+  }, [toast]);
+
+  const clearRemoteChangeNotification = useCallback(() => {
+    setHasNewRemoteChanges(false);
+    setLastRemoteChangeBy(null);
+  }, []);
 
   useEffect(() => {
     if (settings.accessToken) {
@@ -114,6 +170,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
           if (tokenResponse.error) {
             toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
             setIsLoading(false);
+            setShowReconnectModal(false);
             return;
           }
           try {
@@ -124,7 +181,16 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             googleDriveService.setAccessToken(tokenResponse.access_token);
             googleSheetsService.setAccessToken(tokenResponse.access_token);
             updateSettings({ accessToken: tokenResponse.access_token, connectedEmail: userInfo.email });
-            toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
+            
+            // Close reconnect modal and execute pending action
+            setShowReconnectModal(false);
+            if (pendingAction) {
+              toast({ title: 'Reconnected', description: 'Retrying your last action...' });
+              await pendingAction();
+              setPendingAction(null);
+            } else {
+              toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
+            }
           } catch {
             toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
           } finally {
@@ -135,7 +201,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     };
     document.body.appendChild(script);
     return () => { document.body.removeChild(script); };
-  }, [toast]);
+  }, [toast, pendingAction]);
 
   const updateSettings = useCallback((updates: Partial<GoogleDriveSettings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
@@ -167,7 +233,17 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       await googleDriveService.deleteOldBackups(10);
       toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
     } catch (error) {
-      toast({ title: 'Backup Failed', description: error instanceof Error ? error.message : 'Could not backup.', variant: 'destructive' });
+      if (isAuthError(error)) {
+        setShowReconnectModal(true);
+        setPendingAction(() => async () => {
+          await googleDriveService.uploadBackup(data);
+          updateSettings({ lastSyncTime: new Date().toISOString() });
+          await googleDriveService.deleteOldBackups(10);
+          toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
+        });
+      } else {
+        toast({ title: 'Backup Failed', description: error instanceof Error ? error.message : 'Could not backup.', variant: 'destructive' });
+      }
     } finally {
       setIsSyncing(false);
     }
@@ -186,7 +262,15 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       const list = await googleDriveService.listBackups();
       setBackups(list);
     } catch (error) {
-      toast({ title: 'Failed to Load Backups', description: error instanceof Error ? error.message : 'Could not load backups.', variant: 'destructive' });
+      if (isAuthError(error)) {
+        setShowReconnectModal(true);
+        setPendingAction(() => async () => {
+          const list = await googleDriveService.listBackups();
+          setBackups(list);
+        });
+      } else {
+        toast({ title: 'Failed to Load Backups', description: error instanceof Error ? error.message : 'Could not load backups.', variant: 'destructive' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -220,6 +304,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       toast({ title: 'Export Complete', description: 'Data exported to Google Sheets.' });
       return spreadsheetUrl;
     } catch (error) {
+      if (isAuthError(error)) {
+        setShowReconnectModal(true);
+        throw error; // Re-throw so caller knows it failed
+      }
       toast({ title: 'Export Failed', description: error instanceof Error ? error.message : 'Could not export.', variant: 'destructive' });
       throw error;
     } finally {
@@ -246,7 +334,19 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       updateSettings({ connectedSheet: { ...settings.connectedSheet, lastSyncedAt: new Date().toISOString() } });
       toast({ title: 'Sheet Updated', description: 'Your spreadsheet has been updated.' });
     } catch (error) {
-      toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not update sheet.', variant: 'destructive' });
+      if (isAuthError(error)) {
+        setShowReconnectModal(true);
+        const connectedSheet = settings.connectedSheet;
+        setPendingAction(() => async () => {
+          if (connectedSheet) {
+            await googleSheetsService.updateSpreadsheet(connectedSheet.spreadsheetId, data);
+            updateSettings({ connectedSheet: { ...connectedSheet, lastSyncedAt: new Date().toISOString() } });
+            toast({ title: 'Sheet Updated', description: 'Your spreadsheet has been updated.' });
+          }
+        });
+      } else {
+        toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not update sheet.', variant: 'destructive' });
+      }
     } finally {
       setIsSyncingSheet(false);
     }
@@ -263,7 +363,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       updateSettings({ connectedSheet, sheetAutoSyncEnabled: true });
       toast({ title: 'Sheet Created & Connected', description: 'A new spreadsheet has been created and connected.' });
     } catch (error) {
-      toast({ title: 'Failed to Create Sheet', description: error instanceof Error ? error.message : 'Could not create sheet.', variant: 'destructive' });
+      if (isAuthError(error)) {
+        setShowReconnectModal(true);
+      } else {
+        toast({ title: 'Failed to Create Sheet', description: error instanceof Error ? error.message : 'Could not create sheet.', variant: 'destructive' });
+      }
     } finally {
       setIsExporting(false);
     }
@@ -568,16 +672,86 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     };
   }, [scheduleSync, scheduleSheetSync, schedulePartnerSheetSync]);
 
+  // Poll for remote changes from shared users
+  useEffect(() => {
+    if (!isConnected) {
+      if (changePollIntervalRef.current) {
+        clearInterval(changePollIntervalRef.current);
+        changePollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const checkForRemoteChanges = async () => {
+      try {
+        const backupsList = await googleDriveService.listBackups();
+        if (backupsList.length > 0) {
+          const latestBackup = backupsList[0];
+          const latestBackupTime = latestBackup.createdTime;
+          
+          // If we have a last known time and the latest is newer
+          if (lastKnownBackupTimeRef.current && latestBackupTime > lastKnownBackupTimeRef.current) {
+            // Check if this backup was NOT made by current user by comparing times
+            // If last sync time is different from latest backup time, it's from another user
+            if (settings.lastSyncTime !== latestBackupTime) {
+              setHasNewRemoteChanges(true);
+              // Extract username from backup name if possible
+              const match = latestBackup.name.match(/bizsuite-backup-(.+?)\.json/);
+              setLastRemoteChangeBy(match ? 'a shared user' : 'another user');
+              
+              toast({
+                title: 'New Data Available',
+                description: 'A shared user has made changes. Click to refresh.',
+              });
+            }
+          }
+          
+          lastKnownBackupTimeRef.current = latestBackupTime;
+        }
+      } catch (error) {
+        // Silently ignore polling errors (might be auth issues which will be handled elsewhere)
+        console.debug('Change poll error:', error);
+      }
+    };
+
+    // Initial check
+    checkForRemoteChanges();
+
+    // Set up polling interval
+    changePollIntervalRef.current = setInterval(checkForRemoteChanges, CHANGE_POLL_INTERVAL);
+
+    return () => {
+      if (changePollIntervalRef.current) {
+        clearInterval(changePollIntervalRef.current);
+        changePollIntervalRef.current = null;
+      }
+    };
+  }, [isConnected, settings.lastSyncTime, toast]);
+
   const value: GoogleDriveContextValue = {
     isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true,
-    isSyncingPartnerSheet, settings, backups,
+    isSyncingPartnerSheet, settings, backups, hasNewRemoteChanges, lastRemoteChangeBy,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
+    clearRemoteChangeNotification,
     shareWithUser, getSharedUsers, removeSharedUser, updateUserPermission,
     createPartnerSheet, syncPartnerSheet, disconnectPartnerSheet, setPartnerSheetAutoSync,
   };
 
-  return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;
+  return (
+    <>
+      <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>
+      <ReconnectGoogleModal
+        isOpen={showReconnectModal}
+        onClose={() => {
+          setShowReconnectModal(false);
+          setPendingAction(null);
+        }}
+        onReconnect={connect}
+        isLoading={isLoading}
+      />
+    </>
+  );
 };
 
 declare global {
