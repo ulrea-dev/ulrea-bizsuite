@@ -1,5 +1,5 @@
 import { AppData } from '@/types/business';
-import { GoogleDriveBackup, SpreadsheetInfo } from '@/types/googleDrive';
+import { GoogleDriveBackup, SpreadsheetInfo, TokenExpiredError } from '@/types/googleDrive';
 
 const FOLDER_NAME = 'BizSuite Backups';
 const SHEETS_FOLDER_NAME = 'BizSuite Sheets';
@@ -28,7 +28,15 @@ class GoogleDriveService {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.error?.message || `Google Drive API error: ${response.status}`);
+      const status = response.status;
+      const message = error.error?.message || `Google Drive API error: ${status}`;
+      
+      // Detect token expiry (401 Unauthorized or 403 with auth-related message)
+      if (status === 401 || (status === 403 && message.toLowerCase().includes('auth'))) {
+        throw new TokenExpiredError(message);
+      }
+      
+      throw new Error(message);
     }
 
     return response;
@@ -108,8 +116,9 @@ class GoogleDriveService {
   async listBackups(): Promise<GoogleDriveBackup[]> {
     const folderId = await this.getOrCreateFolder();
 
+    // Include lastModifyingUser fields to track who made changes
     const response = await this.request(
-      `${DRIVE_API_BASE}/files?q='${folderId}' in parents and trashed=false&fields=files(id,name,createdTime,size)&orderBy=createdTime desc`
+      `${DRIVE_API_BASE}/files?q='${folderId}' in parents and trashed=false&fields=files(id,name,createdTime,size,lastModifyingUser(displayName,emailAddress))&orderBy=createdTime desc`
     );
 
     const data = await response.json();
@@ -118,7 +127,17 @@ class GoogleDriveService {
       name: file.name,
       createdTime: file.createdTime,
       size: parseInt(file.size) || 0,
+      modifiedBy: file.lastModifyingUser ? {
+        name: file.lastModifyingUser.displayName,
+        email: file.lastModifyingUser.emailAddress,
+      } : undefined,
     }));
+  }
+
+  // Get the latest backup info for change detection
+  async getLatestBackup(): Promise<GoogleDriveBackup | null> {
+    const backups = await this.listBackups();
+    return backups.length > 0 ? backups[0] : null;
   }
 
   async downloadBackup(fileId: string): Promise<AppData> {

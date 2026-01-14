@@ -2,11 +2,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { BusinessProvider } from "./contexts/BusinessContext";
-import { GoogleDriveProvider } from "./contexts/GoogleDriveContext";
+import { BusinessProvider, useBusiness } from "./contexts/BusinessContext";
+import { GoogleDriveProvider, useGoogleDrive } from "./contexts/GoogleDriveContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
+import { GoogleReconnectModal } from "./components/GoogleReconnectModal";
+import { SyncRequiredOverlay } from "./components/SyncRequiredOverlay";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -32,6 +34,44 @@ import { PartnersPage as AdminPartnersPage } from "./components/admin/PartnersPa
 import { PartnerAllocationsPage } from "./components/admin/PartnerAllocationsPage";
 import { PayablesPage } from "./components/admin/PayablesPage";
 import { ReceivablesPage } from "./components/admin/ReceivablesPage";
+
+// Component to handle Google Drive modals and overlays
+const GoogleDriveOverlays = () => {
+  const { 
+    showReconnectModal, 
+    isReconnecting, 
+    handleReconnect, 
+    remoteChange, 
+    isRefreshingFromRemote, 
+    refreshFromRemote 
+  } = useGoogleDrive();
+  const { dispatch } = useBusiness();
+
+  const handleRefreshFromRemote = async () => {
+    const data = await refreshFromRemote();
+    if (data) {
+      dispatch({ type: 'LOAD_DATA', payload: data });
+    }
+  };
+
+  return (
+    <>
+      <GoogleReconnectModal
+        open={showReconnectModal}
+        isReconnecting={isReconnecting}
+        onReconnect={handleReconnect}
+      />
+      {remoteChange && (
+        <SyncRequiredOverlay
+          modifiedBy={remoteChange.modifiedBy}
+          modifiedAt={remoteChange.modifiedAt}
+          isRefreshing={isRefreshingFromRemote}
+          onRefresh={handleRefreshFromRemote}
+        />
+      )}
+    </>
+  );
+};
 
 const App = () => (
   <BrowserRouter>
@@ -82,6 +122,7 @@ const App = () => (
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <GoogleDriveOverlays />
         <Toaster />
         <Sonner />
       </GoogleDriveProvider>
