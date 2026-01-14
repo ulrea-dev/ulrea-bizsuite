@@ -3,6 +3,27 @@ export interface GoogleDriveBackup {
   name: string;
   createdTime: string;
   size: number;
+  modifiedBy?: {
+    name?: string;
+    email: string;
+  };
+}
+
+export interface RemoteChange {
+  backupId: string;
+  modifiedBy: {
+    name?: string;
+    email: string;
+  };
+  modifiedAt: string;
+}
+
+// Custom error for token expiry
+export class TokenExpiredError extends Error {
+  constructor(message: string = 'Google session has expired') {
+    super(message);
+    this.name = 'TokenExpiredError';
+  }
 }
 
 export interface ConnectedSheet {
@@ -48,6 +69,9 @@ export interface GoogleDriveSettings {
   sheetAutoSyncEnabled: boolean;
   backupFolderId: string | null;
   partnerSheets: PartnerSheet[];
+  // Change detection
+  lastKnownBackupId: string | null;
+  lastKnownBackupTime: string | null;
 }
 
 export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
@@ -59,4 +83,6 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   sheetAutoSyncEnabled: false,
   backupFolderId: null,
   partnerSheets: [],
+  lastKnownBackupId: null,
+  lastKnownBackupTime: null,
 };
