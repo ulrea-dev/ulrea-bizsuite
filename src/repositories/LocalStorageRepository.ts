@@ -42,9 +42,11 @@ export class LocalStorageRepository implements IDataRepository {
       payables: [],
       receivables: [],
       renewalPayments: [],
+      userBusinessAccess: [],
       currentBusinessId: null,
       userSettings: {
         username: '',
+        userId: '',
         theme: 'light',
         defaultCurrency: SUPPORTED_CURRENCIES[0], // USD
         fontFamily: getDefaultFont(),
@@ -81,6 +83,7 @@ export class LocalStorageRepository implements IDataRepository {
         payables: data.payables || [],
         receivables: data.receivables || [],
         renewalPayments: data.renewalPayments || [],
+        userBusinessAccess: data.userBusinessAccess || [],
         // Ensure projects have clientPayments field (for backward compatibility)
         projects: (data.projects || []).map(project => ({
           ...project,
@@ -89,6 +92,8 @@ export class LocalStorageRepository implements IDataRepository {
         userSettings: {
           ...initialData.userSettings,
           ...data.userSettings,
+          // Generate userId if missing (backward compatibility)
+          userId: data.userSettings?.userId || '',
         },
       };
     } catch (error) {

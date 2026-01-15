@@ -73,6 +73,19 @@ export const settingsReducer = (state: AppData, action: BusinessAction): AppData
         exchangeRates: state.exchangeRates.filter(rate => rate.id !== action.payload),
       };
 
+    // User Business Access actions
+    case 'UPDATE_USER_BUSINESS_ACCESS':
+      return {
+        ...state,
+        userBusinessAccess: action.payload,
+      };
+
+    case 'SET_USER_ID':
+      return {
+        ...state,
+        userSettings: { ...state.userSettings, userId: action.payload },
+      };
+
     default:
       return null; // Not handled by this reducer
   }

@@ -26,6 +26,7 @@ import {
 } from '@/types/business';
 import { rootReducer, BusinessAction } from '@/reducers';
 import { useRepository } from '@/repositories';
+import { getUserAccessibleBusinessIds } from '@/utils/filterDataForUser';
 
 // Flag to prevent sync during restore operations
 let isRestoringData = false;
@@ -38,6 +39,7 @@ export type { BusinessAction } from '@/reducers';
 interface BusinessContextProps {
   data: AppData;
   currentBusiness: Business | null;
+  accessibleBusinesses: Business[];
   dispatch: React.Dispatch<BusinessAction>;
   // Helper functions used by components
   addBusiness: (input: {
@@ -98,6 +100,14 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
     [data.businesses, data.currentBusinessId]
   );
 
+  // Filter businesses based on user access
+  const accessibleBusinesses = useMemo(() => {
+    const userId = data.userSettings.userId;
+    if (!userId) return data.businesses; // Backward compatibility
+    const accessibleIds = getUserAccessibleBusinessIds(data, userId);
+    return data.businesses.filter(b => accessibleIds.includes(b.id));
+  }, [data]);
+
   // Helper: addBusiness used by BusinessSetup
   const addBusiness: BusinessContextProps['addBusiness'] = (input) => {
     const now = new Date().toISOString();
@@ -154,6 +164,7 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
     () => ({
       data,
       currentBusiness,
+      accessibleBusinesses,
       dispatch,
       addBusiness,
       switchBusiness,
@@ -162,7 +173,7 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
       exportData,
       importData,
     }),
-    [data, currentBusiness, repository]
+    [data, currentBusiness, accessibleBusinesses, repository]
   );
 
   return (

@@ -28,6 +28,7 @@ import {
   Payable,
   Receivable,
   RenewalPayment,
+  UserBusinessAccess,
 } from '@/types/business';
 
 /**
@@ -146,4 +147,7 @@ export type BusinessAction =
   // Renewal Payment actions
   | { type: 'ADD_RENEWAL_PAYMENT'; payload: RenewalPayment }
   | { type: 'UPDATE_RENEWAL_PAYMENT'; payload: { id: string; updates: Partial<RenewalPayment> } }
-  | { type: 'DELETE_RENEWAL_PAYMENT'; payload: string };
+  | { type: 'DELETE_RENEWAL_PAYMENT'; payload: string }
+  // User Business Access actions
+  | { type: 'UPDATE_USER_BUSINESS_ACCESS'; payload: UserBusinessAccess[] }
+  | { type: 'SET_USER_ID'; payload: string };

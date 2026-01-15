@@ -460,6 +460,16 @@ export interface Receivable {
   updatedAt: string;
 }
 
+// User business access control
+export type UserBusinessRole = 'owner' | 'admin' | 'viewer';
+
+export interface UserBusinessAccess {
+  userId: string;           // Unique identifier (generated on first login)
+  email?: string;           // Email for matching with Google Drive users
+  businessIds: string[];    // List of business IDs this user can access
+  role: UserBusinessRole;   // Role determines permissions
+}
+
 export interface AppData {
   businesses: Business[];
   projects: Project[];
@@ -482,9 +492,11 @@ export interface AppData {
   payables: Payable[];
   receivables: Receivable[];
   renewalPayments: RenewalPayment[];
+  userBusinessAccess: UserBusinessAccess[];  // Access control list
   currentBusinessId: string | null;
   userSettings: {
     username: string;
+    userId: string;         // Unique identifier (generated on first login)
     theme: 'light' | 'dark';
     defaultCurrency: Currency;
     fontFamily: FontOption;
