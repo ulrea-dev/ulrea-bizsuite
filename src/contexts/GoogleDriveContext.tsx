@@ -162,23 +162,15 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             googleSheetsService.setAccessToken(tokenResponse.access_token);
             updateSettings({ accessToken: tokenResponse.access_token, connectedEmail: userInfo.email });
             
-            // If reconnecting, retry pending operation
-            if (isReconnecting && pendingOperation) {
+            // If reconnecting, reload the app to ensure fresh data sync
+            if (isReconnecting) {
               setShowReconnectModal(false);
-              toast({ title: 'Reconnected', description: 'Retrying your last action...' });
+              setPendingOperation(null);
+              toast({ title: 'Reconnected', description: 'Reloading to sync your data...' });
               
-              // Wait a bit then retry
-              setTimeout(async () => {
-                if (pendingOperation.type === 'sync' && pendingOperation.data) {
-                  try {
-                    await googleDriveService.uploadBackup(pendingOperation.data);
-                    updateSettings({ lastSyncTime: new Date().toISOString() });
-                    toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
-                  } catch (error) {
-                    console.error('Retry sync failed:', error);
-                  }
-                }
-                setPendingOperation(null);
+              // Reload the page after a short delay to ensure settings are saved
+              setTimeout(() => {
+                window.location.reload();
               }, 500);
             } else {
               toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
