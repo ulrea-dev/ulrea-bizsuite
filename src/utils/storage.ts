@@ -35,9 +35,11 @@ const getInitialData = (): AppData => ({
   payables: [],
   receivables: [],
   renewalPayments: [],
+  userBusinessAccess: [],
   currentBusinessId: null,
   userSettings: {
     username: '',
+    userId: '',
     theme: 'light',
     defaultCurrency: SUPPORTED_CURRENCIES[0], // USD
     fontFamily: getDefaultFont(),

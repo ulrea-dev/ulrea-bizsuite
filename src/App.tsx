@@ -29,6 +29,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { AdminOverview } from "./components/admin/AdminOverview";
 import { BusinessesPage } from "./components/admin/BusinessesPage";
+import { BusinessAccessPage } from "./components/admin/BusinessAccessPage";
 import { BankAccountsPage } from "./components/admin/BankAccountsPage";
 import { PartnersPage as AdminPartnersPage } from "./components/admin/PartnersPage";
 import { PartnerAllocationsPage } from "./components/admin/PartnerAllocationsPage";
@@ -117,6 +118,7 @@ const App = () => (
             <Route element={<BusinessManagementLayout />}>
               <Route path="/business-management" element={<AdminOverview />} />
               <Route path="/business-management/businesses" element={<BusinessesPage />} />
+              <Route path="/business-management/business-access" element={<BusinessAccessPage />} />
               <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
               <Route path="/business-management/partners" element={<AdminPartnersPage />} />
               <Route path="/business-management/partner-allocations" element={<PartnerAllocationsPage />} />
