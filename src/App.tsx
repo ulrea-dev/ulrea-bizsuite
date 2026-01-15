@@ -2,7 +2,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { BusinessProvider, useBusiness } from "./contexts/BusinessContext";
+import { BusinessProvider, useBusiness, setRestoringData } from "./contexts/BusinessContext";
 import { GoogleDriveProvider, useGoogleDrive } from "./contexts/GoogleDriveContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
@@ -50,7 +50,11 @@ const GoogleDriveOverlays = () => {
   const handleRefreshFromRemote = async () => {
     const data = await refreshFromRemote();
     if (data) {
+      // CRITICAL: Prevent auto-sync during restore to avoid infinite loop
+      setRestoringData(true);
       dispatch({ type: 'LOAD_DATA', payload: data });
+      // Reset after a short delay to allow the useEffect to process
+      setTimeout(() => setRestoringData(false), 100);
     }
   };
 
