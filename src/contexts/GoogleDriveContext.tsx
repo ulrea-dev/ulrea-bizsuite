@@ -27,6 +27,8 @@ interface GoogleDriveContextValue {
   // Reconnect modal state
   showReconnectModal: boolean;
   isReconnecting: boolean;
+  reconnectSuccess: boolean;
+  closeReconnectModal: () => void;
   // Remote change detection
   remoteChange: RemoteChange | null;
   isRefreshingFromRemote: boolean;
@@ -87,6 +89,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   // Reconnect modal state
   const [showReconnectModal, setShowReconnectModal] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectSuccess, setReconnectSuccess] = useState(false);
   const [pendingOperation, setPendingOperation] = useState<{ type: string; data?: AppData } | null>(null);
   
   // Remote change detection state
@@ -162,16 +165,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             googleSheetsService.setAccessToken(tokenResponse.access_token);
             updateSettings({ accessToken: tokenResponse.access_token, connectedEmail: userInfo.email });
             
-            // If reconnecting, reload the app to ensure fresh data sync
+            // If reconnecting, show success and close modal
             if (isReconnecting) {
-              setShowReconnectModal(false);
               setPendingOperation(null);
-              toast({ title: 'Reconnected', description: 'Reloading to sync your data...' });
-              
-              // Reload the page after a short delay to ensure settings are saved
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
+              setReconnectSuccess(true);
             } else {
               toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
             }
@@ -794,10 +791,16 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     };
   }, [scheduleSync, scheduleSheetSync, schedulePartnerSheetSync]);
 
+  const closeReconnectModal = useCallback(() => {
+    setShowReconnectModal(false);
+    setReconnectSuccess(false);
+    setIsReconnecting(false);
+  }, []);
+
   const value: GoogleDriveContextValue = {
     isConnected, isLoading, isSyncing, isExporting, isSyncingSheet, isSharing, isConfigured: true,
     isSyncingPartnerSheet, settings, backups,
-    showReconnectModal, isReconnecting,
+    showReconnectModal, isReconnecting, reconnectSuccess, closeReconnectModal,
     remoteChange, isRefreshingFromRemote,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,

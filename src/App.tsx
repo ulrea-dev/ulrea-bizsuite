@@ -40,8 +40,10 @@ import { ReceivablesPage } from "./components/admin/ReceivablesPage";
 const GoogleDriveOverlays = () => {
   const { 
     showReconnectModal, 
-    isReconnecting, 
-    handleReconnect, 
+    isReconnecting,
+    reconnectSuccess,
+    handleReconnect,
+    closeReconnectModal,
     remoteChange, 
     isRefreshingFromRemote, 
     refreshFromRemote 
@@ -64,7 +66,9 @@ const GoogleDriveOverlays = () => {
       <GoogleReconnectModal
         open={showReconnectModal}
         isReconnecting={isReconnecting}
+        reconnectSuccess={reconnectSuccess}
         onReconnect={handleReconnect}
+        onClose={closeReconnectModal}
       />
       {remoteChange && (
         <SyncRequiredOverlay
