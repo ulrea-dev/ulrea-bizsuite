@@ -115,6 +115,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
   const isPollingRef = useRef(false);
   const lastUserSyncTimeRef = useRef<string | null>(null);
+  const isReconnectingRef = useRef(false);
 
   const isConnected = !!settings.accessToken;
 
@@ -165,8 +166,8 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             googleSheetsService.setAccessToken(tokenResponse.access_token);
             updateSettings({ accessToken: tokenResponse.access_token, connectedEmail: userInfo.email });
             
-            // If reconnecting, show success and close modal
-            if (isReconnecting) {
+            // If reconnecting, show success and close modal (use ref to avoid stale closure)
+            if (isReconnectingRef.current) {
               setPendingOperation(null);
               setReconnectSuccess(true);
             } else {
@@ -176,6 +177,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
             toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
           } finally {
             setIsLoading(false);
+            isReconnectingRef.current = false;
             setIsReconnecting(false);
           }
         },
@@ -183,7 +185,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     };
     document.body.appendChild(script);
     return () => { document.body.removeChild(script); };
-  }, [toast, isReconnecting, pendingOperation, updateSettings]);
+  }, [toast, updateSettings]);
 
   const connect = useCallback(() => {
     if (tokenClientRef.current) {
@@ -194,6 +196,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   const handleReconnect = useCallback(() => {
     if (tokenClientRef.current) {
+      isReconnectingRef.current = true;
       setIsReconnecting(true);
       tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
     }
