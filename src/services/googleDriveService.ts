@@ -43,17 +43,29 @@ class GoogleDriveService {
   }
 
   private async getOrCreateFolder(): Promise<string> {
-    // Search for existing folder
+    // Search for existing folders - include 'ownedByMe' to prioritize user's own folder
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`
+      `${DRIVE_API_BASE}/files?q=name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
     );
     const searchData = await searchResponse.json();
 
     if (searchData.files && searchData.files.length > 0) {
-      return searchData.files[0].id;
+      // First, try to find a folder we own
+      const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
+      if (ownedFolder) {
+        return ownedFolder.id;
+      }
+      
+      // If no owned folder, check if any shared folder allows us to add files
+      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren);
+      if (writableFolder) {
+        return writableFolder.id;
+      }
+      
+      // Folders exist but we can't write to them - create our own
     }
 
-    // Create folder if it doesn't exist
+    // Create folder if it doesn't exist or we don't have write access to existing ones
     const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
       method: 'POST',
       headers: {
@@ -172,17 +184,29 @@ class GoogleDriveService {
   }
 
   async getOrCreateSheetsFolder(): Promise<string> {
-    // Search for existing folder
+    // Search for existing folders - include 'ownedByMe' to prioritize user's own folder
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name='${SHEETS_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`
+      `${DRIVE_API_BASE}/files?q=name='${SHEETS_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
     );
     const searchData = await searchResponse.json();
 
     if (searchData.files && searchData.files.length > 0) {
-      return searchData.files[0].id;
+      // First, try to find a folder we own
+      const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
+      if (ownedFolder) {
+        return ownedFolder.id;
+      }
+      
+      // If no owned folder, check if any shared folder allows us to add files
+      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren);
+      if (writableFolder) {
+        return writableFolder.id;
+      }
+      
+      // Folders exist but we can't write to them - create our own
     }
 
-    // Create folder if it doesn't exist
+    // Create folder if it doesn't exist or we don't have write access to existing ones
     const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
       method: 'POST',
       headers: {
