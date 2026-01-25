@@ -9,6 +9,7 @@ import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudO
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTheme } from '@/hooks/useTheme';
 import { format } from 'date-fns';
+import { AccountSelectionModal } from './AccountSelectionModal';
 
 interface AuthProps {
   onLogin: (username: string) => void;
@@ -19,7 +20,24 @@ type AuthView = 'main' | 'newUser' | 'backupSelection';
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { data, dispatch } = useBusiness();
   const { theme, toggleTheme } = useTheme();
-  const { isConnected, isLoading: isGoogleLoading, connect, loadBackups, backups, restoreBackup } = useGoogleDrive();
+  const { 
+    isConnected, 
+    isLoading: isGoogleLoading, 
+    connect, 
+    loadBackups, 
+    backups, 
+    restoreBackup,
+    discoverAccounts,
+    currentAccount,
+    availableAccounts,
+    legacyFolders,
+    showAccountSelection,
+    isDiscoveringAccounts,
+    selectAccount,
+    createAccount,
+    migrateAccount,
+    closeAccountSelection,
+  } = useGoogleDrive();
   
   const [username, setUsername] = useState('');
   const [showSwitchUser, setShowSwitchUser] = useState(false);
@@ -35,37 +53,44 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   // Track if user explicitly connected (to differentiate from returning to login after logout)
   const [hasExplicitlyConnected, setHasExplicitlyConnected] = useState(false);
 
-  // Handle Google connection success - auto-restore latest backup (only when user explicitly connects)
+  // Handle Google connection success - discover accounts first
   useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && view === 'main') {
-      handleAutoRestoreFromGoogle();
+    if (isConnected && hasExplicitlyConnected && view === 'main' && !currentAccount) {
+      // Discover accounts after connecting
+      discoverAccounts();
     }
-  }, [isConnected, hasExplicitlyConnected]);
+  }, [isConnected, hasExplicitlyConnected, view, currentAccount, discoverAccounts]);
 
-  const handleAutoRestoreFromGoogle = async () => {
+  // When account is selected, load backups
+  useEffect(() => {
+    if (isConnected && hasExplicitlyConnected && currentAccount && view === 'main' && !isLoadingBackups) {
+      handleLoadBackupsForAccount();
+    }
+  }, [isConnected, hasExplicitlyConnected, currentAccount, view]);
+
+  const handleLoadBackupsForAccount = async () => {
     setIsLoadingBackups(true);
     try {
       await loadBackups();
-      // After loadBackups, check if there are backups to auto-restore
+      // After loading, check if we should auto-restore or show selection
     } catch (error) {
       console.error('Failed to load backups:', error);
-      // If loading fails, reset the explicit connection flag
       setHasExplicitlyConnected(false);
     } finally {
       setIsLoadingBackups(false);
     }
   };
 
-  // Auto-restore latest backup when backups are loaded and connected
+  // Auto-restore latest backup when backups are loaded
   useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups) {
+    if (isConnected && hasExplicitlyConnected && currentAccount && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups && !showAccountSelection) {
       // Auto-restore the latest backup
       handleRestoreBackup(backups[0].id);
-    } else if (isConnected && hasExplicitlyConnected && backups.length === 0 && !isLoadingBackups && view === 'main') {
+    } else if (isConnected && hasExplicitlyConnected && currentAccount && backups.length === 0 && !isLoadingBackups && view === 'main' && !showAccountSelection) {
       // No backups found, proceed to backup selection to show options
       setView('backupSelection');
     }
-  }, [isConnected, hasExplicitlyConnected, backups, view, isRestoring, isLoadingBackups]);
+  }, [isConnected, hasExplicitlyConnected, currentAccount, backups, view, isRestoring, isLoadingBackups, showAccountSelection]);
 
   const handleLoadGoogleBackups = async () => {
     setIsLoadingBackups(true);
@@ -82,7 +107,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleGoogleLogin = () => {
     setHasExplicitlyConnected(true);
     if (isConnected) {
-      handleLoadGoogleBackups();
+      // Already connected, discover accounts
+      if (currentAccount) {
+        handleLoadGoogleBackups();
+      } else {
+        discoverAccounts();
+      }
     } else {
       connect();
     }
@@ -185,6 +215,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
+  // Account selection handlers
+  const handleSelectAccount = (account: typeof availableAccounts[0]) => {
+    selectAccount(account);
+  };
+
+  const handleCreateAccount = async (name: string) => {
+    await createAccount(name);
+  };
+
+  const handleMigrateLegacy = async (folderId: string, name: string) => {
+    await migrateAccount(folderId, name);
+  };
+
   const renderBackupSelection = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -193,6 +236,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         </div>
         <h2 className="text-xl font-semibold text-foreground">Google Drive Connected</h2>
         <p className="text-sm text-muted-foreground mt-1">
+          {currentAccount && (
+            <span className="block text-xs text-primary mb-1">Workspace: {currentAccount.name}</span>
+          )}
           {backups.length > 0 
             ? `Found ${backups.length} backup${backups.length === 1 ? '' : 's'} in your Drive`
             : 'No backups found in your Drive'}
@@ -371,9 +417,9 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             onClick={handleGoogleLogin} 
             variant="outline" 
             className="w-full h-11 gap-2"
-            disabled={isGoogleLoading || isLoadingBackups}
+            disabled={isGoogleLoading || isLoadingBackups || isDiscoveringAccounts}
           >
-            {isGoogleLoading || isLoadingBackups ? (
+            {isGoogleLoading || isLoadingBackups || isDiscoveringAccounts ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -395,7 +441,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 />
               </svg>
             )}
-            {isLoadingBackups ? 'Loading backups...' : 'Continue with Google'}
+            {isDiscoveringAccounts ? 'Finding workspaces...' : isLoadingBackups ? 'Loading backups...' : 'Continue with Google'}
           </Button>
 
           {/* Divider */}
@@ -501,6 +547,19 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           </div>
         )}
       </div>
+
+      {/* Account Selection Modal */}
+      <AccountSelectionModal
+        isOpen={showAccountSelection}
+        onClose={closeAccountSelection}
+        accounts={availableAccounts}
+        legacyFolders={legacyFolders}
+        onSelectAccount={handleSelectAccount}
+        onCreateAccount={handleCreateAccount}
+        onMigrateLegacy={handleMigrateLegacy}
+        isLoading={isDiscoveringAccounts}
+        connectedEmail={null}
+      />
     </div>
   );
 };
