@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { googleDriveService } from '@/services/googleDriveService';
 import { googleSheetsService } from '@/services/googleSheetsService';
-import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet, TokenExpiredError, RemoteChange } from '@/types/googleDrive';
+import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet, TokenExpiredError, RemoteChange, BizSuiteAccount } from '@/types/googleDrive';
 import { AppData, Partner } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,6 +32,13 @@ interface GoogleDriveContextValue {
   // Remote change detection
   remoteChange: RemoteChange | null;
   isRefreshingFromRemote: boolean;
+  // Account/Workspace management
+  currentAccount: BizSuiteAccount | null;
+  availableAccounts: BizSuiteAccount[];
+  legacyFolders: Array<{ id: string; name: string; ownedByMe: boolean }>;
+  showAccountSelection: boolean;
+  isDiscoveringAccounts: boolean;
+  // Core methods
   connect: () => void;
   disconnect: () => void;
   syncNow: (data: AppData) => Promise<void>;
@@ -60,6 +67,13 @@ interface GoogleDriveContextValue {
   syncPartnerSheet: (partnerId: string, data: AppData) => Promise<void>;
   disconnectPartnerSheet: (partnerId: string) => void;
   setPartnerSheetAutoSync: (partnerId: string, enabled: boolean) => void;
+  // Account/Workspace functions
+  discoverAccounts: () => Promise<void>;
+  selectAccount: (account: BizSuiteAccount) => void;
+  createAccount: (name: string) => Promise<BizSuiteAccount>;
+  migrateAccount: (folderId: string, name: string) => Promise<BizSuiteAccount>;
+  closeAccountSelection: () => void;
+  switchAccount: () => void;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextValue | undefined>(undefined);
@@ -96,6 +110,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const [remoteChange, setRemoteChange] = useState<RemoteChange | null>(null);
   const [isRefreshingFromRemote, setIsRefreshingFromRemote] = useState(false);
   
+  // Account/Workspace state
+  const [currentAccount, setCurrentAccount] = useState<BizSuiteAccount | null>(null);
+  const [availableAccounts, setAvailableAccounts] = useState<BizSuiteAccount[]>([]);
+  const [legacyFolders, setLegacyFolders] = useState<Array<{ id: string; name: string; ownedByMe: boolean }>>([]);
+  const [showAccountSelection, setShowAccountSelection] = useState(false);
+  const [isDiscoveringAccounts, setIsDiscoveringAccounts] = useState(false);
+  
   const [settings, setSettings] = useState<GoogleDriveSettings>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -116,6 +137,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const isPollingRef = useRef(false);
   const lastUserSyncTimeRef = useRef<string | null>(null);
   const isReconnectingRef = useRef(false);
+  const pendingAccountSelectCallback = useRef<(() => void) | null>(null);
 
   const isConnected = !!settings.accessToken;
 
@@ -129,6 +151,19 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   }, [settings]);
+
+  // Restore current account from settings on mount
+  useEffect(() => {
+    if (settings.currentAccountId && settings.backupFolderId && !currentAccount) {
+      setCurrentAccount({
+        id: settings.currentAccountId,
+        name: settings.currentAccountName || 'Workspace',
+        folderId: settings.backupFolderId,
+        ownedByMe: true, // Assume owned, will be corrected on next discovery
+      });
+      googleDriveService.setCurrentAccountFolder(settings.backupFolderId);
+    }
+  }, [settings.currentAccountId, settings.backupFolderId, currentAccount]);
 
   const updateSettings = useCallback((updates: Partial<GoogleDriveSettings>) => {
     setSettings(prev => ({ ...prev, ...updates }));
@@ -171,6 +206,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
               setPendingOperation(null);
               setReconnectSuccess(true);
             } else {
+              // Execute callback if pending (e.g., from Auth flow)
+              if (pendingAccountSelectCallback.current) {
+                pendingAccountSelectCallback.current();
+                pendingAccountSelectCallback.current = null;
+              }
               toast({ title: 'Connected to Google Drive', description: `Signed in as ${userInfo.email}` });
             }
           } catch {
@@ -194,6 +234,12 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     }
   }, []);
 
+  // Connect with a callback for account discovery
+  const connectWithCallback = useCallback((callback: () => void) => {
+    pendingAccountSelectCallback.current = callback;
+    connect();
+  }, [connect]);
+
   const handleReconnect = useCallback(() => {
     if (tokenClientRef.current) {
       isReconnectingRef.current = true;
@@ -207,14 +253,104 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       google.accounts.oauth2.revoke(settings.accessToken, () => {});
     }
     googleDriveService.setAccessToken(null);
-    updateSettings({ accessToken: null, connectedEmail: null, lastSyncTime: null, connectedSheet: null, partnerSheets: [], lastKnownBackupId: null, lastKnownBackupTime: null });
+    googleDriveService.setCurrentAccountFolder(null);
+    setCurrentAccount(null);
+    setAvailableAccounts([]);
+    setLegacyFolders([]);
+    updateSettings({ 
+      accessToken: null, 
+      connectedEmail: null, 
+      lastSyncTime: null, 
+      connectedSheet: null, 
+      partnerSheets: [], 
+      lastKnownBackupId: null, 
+      lastKnownBackupTime: null,
+      currentAccountId: null,
+      currentAccountName: null,
+      backupFolderId: null,
+    });
     setBackups([]);
     setRemoteChange(null);
     toast({ title: 'Disconnected', description: 'Google Drive has been disconnected.' });
   }, [settings.accessToken, updateSettings, toast]);
 
-  const syncNow = useCallback(async (data: AppData) => {
+  // Account discovery
+  const discoverAccounts = useCallback(async () => {
     if (!isConnected) return;
+    
+    setIsDiscoveringAccounts(true);
+    try {
+      const [accounts, legacy] = await Promise.all([
+        googleDriveService.listBizSuiteAccounts(),
+        googleDriveService.findLegacyFolders(),
+      ]);
+      
+      setAvailableAccounts(accounts);
+      setLegacyFolders(legacy);
+      
+      // If only one account and no legacy folders, auto-select it
+      if (accounts.length === 1 && legacy.length === 0) {
+        selectAccount(accounts[0]);
+      } else if (accounts.length === 0 && legacy.length === 0) {
+        // No accounts, show creation flow
+        setShowAccountSelection(true);
+      } else {
+        // Multiple options, show selection
+        setShowAccountSelection(true);
+      }
+    } catch (error) {
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiry({ type: 'discoverAccounts' });
+      } else {
+        console.error('Failed to discover accounts:', error);
+        toast({ 
+          title: 'Failed to Load Workspaces', 
+          description: error instanceof Error ? error.message : 'Could not load workspaces.',
+          variant: 'destructive' 
+        });
+      }
+    } finally {
+      setIsDiscoveringAccounts(false);
+    }
+  }, [isConnected, handleTokenExpiry, toast]);
+
+  const selectAccount = useCallback((account: BizSuiteAccount) => {
+    setCurrentAccount(account);
+    googleDriveService.setCurrentAccountFolder(account.folderId);
+    updateSettings({
+      currentAccountId: account.id,
+      currentAccountName: account.name,
+      backupFolderId: account.folderId,
+    });
+    setShowAccountSelection(false);
+    toast({ 
+      title: 'Workspace Selected', 
+      description: `Using "${account.name}" workspace.` 
+    });
+  }, [updateSettings, toast]);
+
+  const createAccount = useCallback(async (name: string): Promise<BizSuiteAccount> => {
+    const account = await googleDriveService.createAccountFolder(name);
+    selectAccount(account);
+    return account;
+  }, [selectAccount]);
+
+  const migrateAccount = useCallback(async (folderId: string, name: string): Promise<BizSuiteAccount> => {
+    const account = await googleDriveService.migrateLegacyFolder(folderId, name);
+    selectAccount(account);
+    return account;
+  }, [selectAccount]);
+
+  const closeAccountSelection = useCallback(() => {
+    setShowAccountSelection(false);
+  }, []);
+
+  const switchAccount = useCallback(() => {
+    discoverAccounts();
+  }, [discoverAccounts]);
+
+  const syncNow = useCallback(async (data: AppData) => {
+    if (!isConnected || !currentAccount) return;
     setIsSyncing(true);
     try {
       const backup = await googleDriveService.uploadBackup(data);
@@ -236,13 +372,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       setIsSyncing(false);
     }
-  }, [isConnected, updateSettings, toast, handleTokenExpiry]);
+  }, [isConnected, currentAccount, updateSettings, toast, handleTokenExpiry]);
 
   const scheduleSync = useCallback((data: AppData) => {
-    if (!isConnected || !settings.autoSyncEnabled) return;
+    if (!isConnected || !settings.autoSyncEnabled || !currentAccount) return;
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(() => syncNow(data), DEBOUNCE_DELAY);
-  }, [isConnected, settings.autoSyncEnabled, syncNow]);
+  }, [isConnected, settings.autoSyncEnabled, currentAccount, syncNow]);
 
   const loadBackups = useCallback(async () => {
     if (!isConnected) return;
@@ -504,7 +640,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   // Remote change detection - poll for changes from other users
   const checkForRemoteChanges = useCallback(async () => {
-    if (!isConnected || isPollingRef.current || remoteChange) return;
+    if (!isConnected || !currentAccount || isPollingRef.current || remoteChange) return;
     
     isPollingRef.current = true;
     try {
@@ -541,11 +677,11 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       isPollingRef.current = false;
     }
-  }, [isConnected, settings.connectedEmail, settings.lastKnownBackupId, remoteChange, updateSettings, handleTokenExpiry]);
+  }, [isConnected, currentAccount, settings.connectedEmail, settings.lastKnownBackupId, remoteChange, updateSettings, handleTokenExpiry]);
 
   // Start/stop polling based on connection and window visibility
   useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected || !currentAccount) {
       if (changePollTimeoutRef.current) {
         clearInterval(changePollTimeoutRef.current);
         changePollTimeoutRef.current = null;
@@ -587,7 +723,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [isConnected, checkForRemoteChanges]);
+  }, [isConnected, currentAccount, checkForRemoteChanges]);
 
   // Refresh from remote change
   const refreshFromRemote = useCallback(async (): Promise<AppData | null> => {
@@ -637,9 +773,8 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     
     try {
       // Share backup folder if requested
-      if (resources.includes('folder')) {
-        const folderId = await googleDriveService.getBackupFolderId();
-        const result = await googleDriveService.shareWithUser(folderId, email, role, sendNotification);
+      if (resources.includes('folder') && currentAccount) {
+        const result = await googleDriveService.shareWithUser(currentAccount.folderId, email, role, sendNotification);
         if (!result.success && result.error) {
           errors.push(`Folder: ${result.error}`);
         }
@@ -670,14 +805,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       setIsSharing(false);
     }
-  }, [isConnected, settings.connectedSheet, handleTokenExpiry]);
+  }, [isConnected, currentAccount, settings.connectedSheet, handleTokenExpiry]);
 
   const getSharedUsers = useCallback(async (): Promise<SharedUser[]> => {
-    if (!isConnected) return [];
+    if (!isConnected || !currentAccount) return [];
     
     try {
-      const folderId = await googleDriveService.getBackupFolderId();
-      const permissions = await googleDriveService.listPermissions(folderId);
+      const permissions = await googleDriveService.listPermissions(currentAccount.folderId);
       
       return permissions
         .filter(p => p.email) // Filter out "anyone" permissions
@@ -695,19 +829,18 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       console.error('Failed to get shared users:', error);
       return [];
     }
-  }, [isConnected, handleTokenExpiry]);
+  }, [isConnected, currentAccount, handleTokenExpiry]);
 
   const removeSharedUser = useCallback(async (email: string): Promise<void> => {
-    if (!isConnected) throw new Error('Not connected to Google Drive');
+    if (!isConnected || !currentAccount) throw new Error('Not connected to Google Drive');
     
     setIsSharing(true);
     try {
       // Get folder permissions and remove matching email
-      const folderId = await googleDriveService.getBackupFolderId();
-      const folderPermissions = await googleDriveService.listPermissions(folderId);
+      const folderPermissions = await googleDriveService.listPermissions(currentAccount.folderId);
       const folderPerm = folderPermissions.find(p => p.email === email);
       if (folderPerm && folderPerm.role !== 'owner') {
-        await googleDriveService.removePermission(folderId, folderPerm.id);
+        await googleDriveService.removePermission(currentAccount.folderId, folderPerm.id);
       }
       
       // Also remove from connected sheet if exists
@@ -726,24 +859,23 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       setIsSharing(false);
     }
-  }, [isConnected, settings.connectedSheet, handleTokenExpiry]);
+  }, [isConnected, currentAccount, settings.connectedSheet, handleTokenExpiry]);
 
   const updateUserPermission = useCallback(async (
     email: string,
     newRole: 'reader' | 'writer' | 'commenter'
   ): Promise<{ success: boolean; errors: string[] }> => {
-    if (!isConnected) return { success: false, errors: ['Not connected to Google Drive'] };
+    if (!isConnected || !currentAccount) return { success: false, errors: ['Not connected to Google Drive'] };
     
     setIsSharing(true);
     const errors: string[] = [];
     
     try {
       // Update folder permission
-      const folderId = await googleDriveService.getBackupFolderId();
-      const folderPermissions = await googleDriveService.listPermissions(folderId);
+      const folderPermissions = await googleDriveService.listPermissions(currentAccount.folderId);
       const folderPerm = folderPermissions.find(p => p.email === email);
       if (folderPerm && folderPerm.role !== 'owner') {
-        const result = await googleDriveService.updatePermission(folderId, folderPerm.id, newRole);
+        const result = await googleDriveService.updatePermission(currentAccount.folderId, folderPerm.id, newRole);
         if (!result.success && result.error) {
           errors.push(`Folder: ${result.error}`);
         }
@@ -777,7 +909,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       setIsSharing(false);
     }
-  }, [isConnected, settings.connectedSheet, handleTokenExpiry]);
+  }, [isConnected, currentAccount, settings.connectedSheet, handleTokenExpiry]);
 
   useEffect(() => {
     const handleDataChange = (event: CustomEvent<AppData>) => {
@@ -805,11 +937,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     isSyncingPartnerSheet, settings, backups,
     showReconnectModal, isReconnecting, reconnectSuccess, closeReconnectModal,
     remoteChange, isRefreshingFromRemote,
+    currentAccount, availableAccounts, legacyFolders, showAccountSelection, isDiscoveringAccounts,
     connect, disconnect, syncNow, loadBackups, restoreBackup, setAutoSync, scheduleSync, exportToSheets,
     connectToSheet, disconnectSheet, syncToConnectedSheet, createAndConnectSheet, setSheetAutoSync,
     handleReconnect, refreshFromRemote, clearRemoteChange,
     shareWithUser, getSharedUsers, removeSharedUser, updateUserPermission,
     createPartnerSheet, syncPartnerSheet, disconnectPartnerSheet, setPartnerSheetAutoSync,
+    discoverAccounts, selectAccount, createAccount, migrateAccount, closeAccountSelection, switchAccount,
   };
 
   return <GoogleDriveContext.Provider value={value}>{children}</GoogleDriveContext.Provider>;

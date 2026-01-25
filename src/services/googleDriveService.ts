@@ -1,16 +1,26 @@
 import { AppData } from '@/types/business';
-import { GoogleDriveBackup, SpreadsheetInfo, TokenExpiredError } from '@/types/googleDrive';
+import { GoogleDriveBackup, SpreadsheetInfo, TokenExpiredError, BizSuiteAccount } from '@/types/googleDrive';
 
-const FOLDER_NAME = 'BizSuite Backups';
-const SHEETS_FOLDER_NAME = 'BizSuite Sheets';
+const FOLDER_NAME_PREFIX = 'BizSuite Backups';
+const SHEETS_FOLDER_NAME_PREFIX = 'BizSuite Sheets';
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API_BASE = 'https://www.googleapis.com/upload/drive/v3';
 
+// Generate a UUID for account IDs
+function generateAccountId(): string {
+  return crypto.randomUUID();
+}
+
 class GoogleDriveService {
   private accessToken: string | null = null;
+  private currentAccountFolderId: string | null = null;
 
   setAccessToken(token: string | null) {
     this.accessToken = token;
+  }
+
+  setCurrentAccountFolder(folderId: string | null) {
+    this.currentAccountFolderId = folderId;
   }
 
   private async request(url: string, options: RequestInit = {}) {
@@ -42,10 +52,169 @@ class GoogleDriveService {
     return response;
   }
 
-  private async getOrCreateFolder(): Promise<string> {
-    // Search for existing folders - include 'ownedByMe' to prioritize user's own folder
+  // ============ ACCOUNT/WORKSPACE MANAGEMENT ============
+
+  /**
+   * List all BizSuite accounts (workspaces) the user has access to.
+   * Searches for folders with appProperties.bizsuiteAccountId
+   */
+  async listBizSuiteAccounts(): Promise<BizSuiteAccount[]> {
+    // Search for folders with bizsuiteAccountId property
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
+      `${DRIVE_API_BASE}/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='bizsuiteAccountId' }&fields=files(id,name,ownedByMe,appProperties,owners(emailAddress),capabilities/canAddChildren,createdTime)`
+    );
+    const searchData = await searchResponse.json();
+
+    if (!searchData.files || searchData.files.length === 0) {
+      return [];
+    }
+
+    return searchData.files
+      .filter((f: any) => f.appProperties?.bizsuiteAccountId && f.appProperties?.bizsuiteAccountName)
+      .map((f: any) => ({
+        id: f.appProperties.bizsuiteAccountId,
+        name: f.appProperties.bizsuiteAccountName,
+        folderId: f.id,
+        ownedByMe: f.ownedByMe,
+        sharedBy: !f.ownedByMe && f.owners?.[0]?.emailAddress ? f.owners[0].emailAddress : undefined,
+        createdAt: f.createdTime,
+      }));
+  }
+
+  /**
+   * Search for legacy folders (without appProperties) that might need migration
+   */
+  async findLegacyFolders(): Promise<Array<{ id: string; name: string; ownedByMe: boolean }>> {
+    const searchResponse = await this.request(
+      `${DRIVE_API_BASE}/files?q=name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,appProperties)`
+    );
+    const searchData = await searchResponse.json();
+
+    if (!searchData.files) return [];
+
+    // Return folders that don't have bizsuiteAccountId yet
+    return searchData.files
+      .filter((f: any) => !f.appProperties?.bizsuiteAccountId)
+      .map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        ownedByMe: f.ownedByMe,
+      }));
+  }
+
+  /**
+   * Create a new BizSuite account folder with metadata
+   */
+  async createAccountFolder(accountName: string): Promise<BizSuiteAccount> {
+    const accountId = generateAccountId();
+    const folderName = `${FOLDER_NAME_PREFIX} - ${accountName}`;
+
+    const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+        appProperties: {
+          bizsuiteAccountId: accountId,
+          bizsuiteAccountName: accountName,
+        },
+      }),
+    });
+
+    const createData = await createResponse.json();
+    
+    return {
+      id: accountId,
+      name: accountName,
+      folderId: createData.id,
+      ownedByMe: true,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Migrate a legacy folder to the new account system
+   */
+  async migrateLegacyFolder(folderId: string, accountName: string): Promise<BizSuiteAccount> {
+    const accountId = generateAccountId();
+    const folderName = `${FOLDER_NAME_PREFIX} - ${accountName}`;
+
+    await this.request(`${DRIVE_API_BASE}/files/${folderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: folderName,
+        appProperties: {
+          bizsuiteAccountId: accountId,
+          bizsuiteAccountName: accountName,
+        },
+      }),
+    });
+
+    return {
+      id: accountId,
+      name: accountName,
+      folderId: folderId,
+      ownedByMe: true,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get folder ID for a specific account
+   */
+  async getAccountFolder(accountId: string): Promise<string | null> {
+    const searchResponse = await this.request(
+      `${DRIVE_API_BASE}/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='bizsuiteAccountId' and value='${accountId}' }&fields=files(id)`
+    );
+    const searchData = await searchResponse.json();
+
+    if (searchData.files && searchData.files.length > 0) {
+      return searchData.files[0].id;
+    }
+    return null;
+  }
+
+  /**
+   * Update account name
+   */
+  async updateAccountName(accountId: string, newName: string): Promise<void> {
+    const folderId = await this.getAccountFolder(accountId);
+    if (!folderId) throw new Error('Account folder not found');
+
+    const folderName = `${FOLDER_NAME_PREFIX} - ${newName}`;
+    
+    await this.request(`${DRIVE_API_BASE}/files/${folderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: folderName,
+        appProperties: {
+          bizsuiteAccountId: accountId,
+          bizsuiteAccountName: newName,
+        },
+      }),
+    });
+  }
+
+  // ============ BACKUP OPERATIONS (now use currentAccountFolderId) ============
+
+  private async getOrCreateFolder(): Promise<string> {
+    // If we have a current account folder, use it
+    if (this.currentAccountFolderId) {
+      return this.currentAccountFolderId;
+    }
+
+    // Fallback: search for any writable folder (for backwards compatibility)
+    const searchResponse = await this.request(
+      `${DRIVE_API_BASE}/files?q=name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
     );
     const searchData = await searchResponse.json();
 
@@ -61,24 +230,10 @@ class GoogleDriveService {
       if (writableFolder) {
         return writableFolder.id;
       }
-      
-      // Folders exist but we can't write to them - create our own
     }
 
-    // Create folder if it doesn't exist or we don't have write access to existing ones
-    const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: FOLDER_NAME,
-        mimeType: 'application/vnd.google-apps.folder',
-      }),
-    });
-
-    const createData = await createResponse.json();
-    return createData.id;
+    // No folder found and no account set - this shouldn't happen in normal flow
+    throw new Error('No workspace selected. Please select or create a workspace first.');
   }
 
   async uploadBackup(data: AppData): Promise<GoogleDriveBackup> {
@@ -186,7 +341,7 @@ class GoogleDriveService {
   async getOrCreateSheetsFolder(): Promise<string> {
     // Search for existing folders - include 'ownedByMe' to prioritize user's own folder
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name='${SHEETS_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
+      `${DRIVE_API_BASE}/files?q=name contains '${SHEETS_FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
     );
     const searchData = await searchResponse.json();
 
@@ -213,7 +368,7 @@ class GoogleDriveService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: SHEETS_FOLDER_NAME,
+        name: SHEETS_FOLDER_NAME_PREFIX,
         mimeType: 'application/vnd.google-apps.folder',
       }),
     });

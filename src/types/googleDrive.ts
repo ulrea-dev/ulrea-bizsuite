@@ -60,6 +60,17 @@ export interface PartnerSheet {
   autoSyncEnabled: boolean;
 }
 
+// BizSuite Account/Workspace - identified by appProperties in Google Drive
+export interface BizSuiteAccount {
+  id: string;              // UUID - stored in appProperties.bizsuiteAccountId
+  name: string;            // Human-readable name (e.g., "Opomu", "Team Alpha")
+  folderId: string;        // Google Drive backup folder ID
+  sheetsFolderId?: string; // Sheets folder ID (optional)
+  ownedByMe: boolean;      // Whether current user owns this account
+  sharedBy?: string;       // Email of owner if shared
+  createdAt?: string;      // When the account was created
+}
+
 export interface GoogleDriveSettings {
   autoSyncEnabled: boolean;
   lastSyncTime: string | null;
@@ -72,6 +83,9 @@ export interface GoogleDriveSettings {
   // Change detection
   lastKnownBackupId: string | null;
   lastKnownBackupTime: string | null;
+  // Account/Workspace management
+  currentAccountId: string | null;
+  currentAccountName: string | null;
 }
 
 export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
@@ -85,4 +99,6 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   partnerSheets: [],
   lastKnownBackupId: null,
   lastKnownBackupTime: null,
+  currentAccountId: null,
+  currentAccountName: null,
 };
