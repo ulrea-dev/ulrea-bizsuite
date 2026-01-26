@@ -59,9 +59,12 @@ class GoogleDriveService {
    * Searches for folders with appProperties.bizsuiteAccountId
    */
   async listBizSuiteAccounts(): Promise<BizSuiteAccount[]> {
-    // Search for folders with bizsuiteAccountId property
+    // Search for folders that match BizSuite naming pattern, then filter by appProperties
+    // Note: Google Drive API doesn't support "appProperties has { key='x' }" without a value
+    // So we search by folder name pattern and filter client-side
+    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and trashed=false and name contains '${FOLDER_NAME_PREFIX}'`);
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='bizsuiteAccountId' }&fields=files(id,name,ownedByMe,appProperties,owners(emailAddress),capabilities/canAddChildren,createdTime)`
+      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,appProperties,owners(emailAddress),capabilities/canAddChildren,createdTime)`
     );
     const searchData = await searchResponse.json();
 
@@ -69,6 +72,7 @@ class GoogleDriveService {
       return [];
     }
 
+    // Filter to only folders with bizsuiteAccountId in appProperties
     return searchData.files
       .filter((f: any) => f.appProperties?.bizsuiteAccountId && f.appProperties?.bizsuiteAccountName)
       .map((f: any) => ({
@@ -85,8 +89,9 @@ class GoogleDriveService {
    * Search for legacy folders (without appProperties) that might need migration
    */
   async findLegacyFolders(): Promise<Array<{ id: string; name: string; ownedByMe: boolean }>> {
+    const query = encodeURIComponent(`name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,appProperties)`
+      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,appProperties)`
     );
     const searchData = await searchResponse.json();
 
@@ -169,13 +174,16 @@ class GoogleDriveService {
    * Get folder ID for a specific account
    */
   async getAccountFolder(accountId: string): Promise<string | null> {
+    // Search by folder name pattern, then filter by appProperties
+    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and trashed=false and name contains '${FOLDER_NAME_PREFIX}'`);
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='bizsuiteAccountId' and value='${accountId}' }&fields=files(id)`
+      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,appProperties)`
     );
     const searchData = await searchResponse.json();
 
     if (searchData.files && searchData.files.length > 0) {
-      return searchData.files[0].id;
+      const folder = searchData.files.find((f: any) => f.appProperties?.bizsuiteAccountId === accountId);
+      return folder?.id || null;
     }
     return null;
   }
