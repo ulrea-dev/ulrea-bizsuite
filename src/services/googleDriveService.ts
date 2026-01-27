@@ -221,23 +221,32 @@ class GoogleDriveService {
     }
 
     // Fallback: search for any writable folder (for backwards compatibility)
+    const query = encodeURIComponent(
+      `name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    );
     const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
+      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
     );
     const searchData = await searchResponse.json();
 
     if (searchData.files && searchData.files.length > 0) {
-      // First, try to find a folder we own
+      // Priority 1: Folder we own
       const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
       if (ownedFolder) {
         return ownedFolder.id;
       }
       
-      // If no owned folder, check if any shared folder allows us to add files
-      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren);
+      // Priority 2: Shared folder with write access
+      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren === true);
       if (writableFolder) {
         return writableFolder.id;
       }
+      
+      // Folders exist but none are writable - provide clear error
+      throw new Error(
+        'You have access to a BizSuite folder but cannot write to it. ' +
+        'Please ask the folder owner to give you Editor access, or select a different workspace.'
+      );
     }
 
     // No folder found and no account set - this shouldn't happen in normal flow
