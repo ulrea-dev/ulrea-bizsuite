@@ -379,7 +379,16 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
         lastKnownBackupId: backup.id,
         lastKnownBackupTime: backup.createdTime,
       });
-      await googleDriveService.deleteOldBackups(10);
+      
+      // Try to clean up old backups, but don't fail the entire sync if this fails
+      // (e.g., secondary users may not have permission to delete files created by others)
+      try {
+        await googleDriveService.deleteOldBackups(10);
+      } catch (cleanupError) {
+        // Silently ignore cleanup errors - the backup itself succeeded
+        console.log('Could not clean up old backups:', cleanupError);
+      }
+      
       toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
