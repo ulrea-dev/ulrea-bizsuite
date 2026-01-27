@@ -207,15 +207,22 @@ const ProjectsPage: React.FC = () => {
                 onNavigateToTeam={() => navigate('/team')}
                 onNavigateToProject={(projectId) => navigate(`/works/projects/${projectId}`)}
               />
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+              {/* Action buttons - always visible on mobile, hover on desktop */}
+              <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleViewProject(project);
                   }}
-                  className="h-8 w-8 p-0"
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleViewProject(project);
+                  }}
+                  className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm"
                 >
                   <Eye className="h-3 w-3" />
                 </Button>
@@ -223,10 +230,16 @@ const ProjectsPage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleEditProject(project);
                   }}
-                  className="h-8 w-8 p-0"
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleEditProject(project);
+                  }}
+                  className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm"
                 >
                   <Edit className="h-3 w-3" />
                 </Button>
@@ -234,6 +247,12 @@ const ProjectsPage: React.FC = () => {
                   size="sm"
                   variant="destructive"
                   onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteProject(project);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     handleDeleteProject(project);
                   }}
