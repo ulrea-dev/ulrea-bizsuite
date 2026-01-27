@@ -349,8 +349,26 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     discoverAccounts();
   }, [discoverAccounts]);
 
+  // Auto-trigger account discovery for connected users without a workspace selected
+  useEffect(() => {
+    if (isConnected && !settings.currentAccountId && !showAccountSelection && !isDiscoveringAccounts) {
+      discoverAccounts();
+    }
+  }, [isConnected, settings.currentAccountId, showAccountSelection, isDiscoveringAccounts, discoverAccounts]);
+
   const syncNow = useCallback(async (data: AppData) => {
-    if (!isConnected || !currentAccount) return;
+    if (!isConnected) return;
+    
+    // If no account selected, trigger discovery
+    if (!currentAccount) {
+      toast({
+        title: 'Workspace Required',
+        description: 'Please select or create a workspace first.',
+      });
+      discoverAccounts();
+      return;
+    }
+    
     setIsSyncing(true);
     try {
       const backup = await googleDriveService.uploadBackup(data);
@@ -372,7 +390,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } finally {
       setIsSyncing(false);
     }
-  }, [isConnected, currentAccount, updateSettings, toast, handleTokenExpiry]);
+  }, [isConnected, currentAccount, discoverAccounts, updateSettings, toast, handleTokenExpiry]);
 
   const scheduleSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.autoSyncEnabled || !currentAccount) return;
