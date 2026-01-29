@@ -1,197 +1,184 @@
 
 
-## Plan: Fix Backup and Sync Failures After Account-Based System Implementation
+## Plan: Fix Project Card Action Buttons on Mobile
 
-### Root Causes Identified
+### Problem Summary
 
-1. **Query Encoding Issue**: The `getOrCreateFolder()` fallback query is NOT URL-encoded, potentially causing API errors
-2. **Missing Account Migration Flow**: Existing connected users don't have `currentAccountId`/`backupFolderId` in their settings, so `currentAccount` is never set, causing sync to fail
-3. **Silent Fallback Failures**: When `getOrCreateFolder()` falls back to searching, it may find folders the user can see but can't write to (shared folders without Editor access)
+1. **View/Edit buttons not working on mobile** - The `ProjectCard` has a click handler that navigates to the project detail page, which conflicts with the button actions. The `onTouchEnd` and `onClick` handlers together can cause issues on mobile devices.
 
----
+2. **Delete button overlapping with other icons** - All three action buttons are cramped in the top-right corner.
 
-### Solution Overview
-
-1. **Fix query encoding** in `getOrCreateFolder()` fallback
-2. **Add migration detection** on app load for connected users without a workspace selected
-3. **Auto-trigger account discovery** for existing users who are connected but don't have an account set
-4. **Improve permission checking** to ensure we only return folders we can actually write to
+3. **Delete needs proper double verification** - Current `window.confirm()` dialogs are not user-friendly. Need a proper AlertDialog component with two-step confirmation.
 
 ---
 
-### Part 1: Fix Query Encoding in getOrCreateFolder
+### Solution
 
-**File: `src/services/googleDriveService.ts`** (line 224-226)
+#### Part 1: Fix Button Click Handling
 
-The fallback query needs to be URL-encoded like other methods:
+Remove `onTouchEnd` handlers (which can cause double-firing) and instead use a more reliable approach:
+- Keep only `onClick` handlers
+- Add `pointer-events-auto` to ensure buttons capture clicks
+- Use `onPointerDown` with `e.stopPropagation()` to prevent the parent card from receiving the event
+
+#### Part 2: Separate Delete Button Position
+
+Move the delete button to a different position (bottom-right corner) to avoid overlapping and accidental taps. This also visually separates destructive actions from non-destructive ones.
+
+#### Part 3: Proper AlertDialog for Delete Confirmation
+
+Replace `window.confirm()` with a two-step AlertDialog:
+1. First dialog: "Are you sure you want to delete this project?"
+2. Second dialog (after clicking Continue): "This action cannot be undone. Type the project name to confirm."
+
+---
+
+### Implementation Details
+
+**File: `src/pages/ProjectsPage.tsx`**
+
+**Changes:**
+1. Add state for delete confirmation dialogs
+2. Replace `onTouchEnd` with `onPointerDown` for event capture
+3. Move delete button to bottom-right of card
+4. Create two-step AlertDialog for delete confirmation
 
 ```typescript
-private async getOrCreateFolder(): Promise<string> {
-  if (this.currentAccountFolderId) {
-    return this.currentAccountFolderId;
-  }
+// New state for delete confirmation
+const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+const [confirmationText, setConfirmationText] = useState('');
 
-  // Encode the query properly
-  const query = encodeURIComponent(
-    `name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-  );
-  const searchResponse = await this.request(
-    `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
-  );
-  // ... rest of the logic
-}
-```
+// Updated delete handler - opens first dialog
+const handleDeleteProject = (project: Project) => {
+  setProjectToDelete(project);
+  setDeleteStep(1);
+};
 
----
-
-### Part 2: Auto-Trigger Account Discovery for Connected Users Without Workspace
-
-**File: `src/contexts/GoogleDriveContext.tsx`**
-
-Add a new `useEffect` that detects when a user is connected but has no workspace selected, and automatically triggers account discovery:
-
-```typescript
-// Detect connected users who need to select/migrate a workspace
-useEffect(() => {
-  // User is connected but has no account selected
-  if (isConnected && !settings.currentAccountId && !showAccountSelection && !isDiscoveringAccounts) {
-    // Trigger account discovery - this will show the selection modal
-    discoverAccounts();
-  }
-}, [isConnected, settings.currentAccountId, showAccountSelection, isDiscoveringAccounts, discoverAccounts]);
-```
-
-This ensures:
-- Existing users who connect see the workspace selection modal
-- New users who just authenticated see it too
-- Users who already have a workspace selected skip this
-
----
-
-### Part 3: Improve Fallback Logic with Better Permission Checking
-
-**File: `src/services/googleDriveService.ts`**
-
-The fallback should be more robust - if it finds folders but none are writable, the error message should guide the user:
-
-```typescript
-private async getOrCreateFolder(): Promise<string> {
-  if (this.currentAccountFolderId) {
-    return this.currentAccountFolderId;
-  }
-
-  const query = encodeURIComponent(
-    `name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-  );
-  const searchResponse = await this.request(
-    `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
-  );
-  const searchData = await searchResponse.json();
-
-  if (searchData.files && searchData.files.length > 0) {
-    // Priority 1: Folder we own
-    const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
-    if (ownedFolder) {
-      return ownedFolder.id;
-    }
-    
-    // Priority 2: Shared folder with write access
-    const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren === true);
-    if (writableFolder) {
-      return writableFolder.id;
-    }
-    
-    // Folders exist but none are writable - provide clear error
-    throw new Error(
-      'You have access to a BizSuite folder but cannot write to it. ' +
-      'Please ask the folder owner to give you Editor access, or select a different workspace.'
-    );
-  }
-
-  throw new Error('No workspace selected. Please select or create a workspace first.');
-}
-```
-
----
-
-### Part 4: Update syncNow to Handle Missing Account Gracefully
-
-**File: `src/contexts/GoogleDriveContext.tsx`**
-
-Currently `syncNow` silently returns if no account is set. Change it to show a helpful message:
-
-```typescript
-const syncNow = useCallback(async (data: AppData) => {
-  if (!isConnected) return;
+// Actual delete after confirmation
+const confirmDelete = () => {
+  if (!projectToDelete) return;
   
-  // If no account selected, trigger discovery
-  if (!currentAccount) {
-    toast({
-      title: 'Workspace Required',
-      description: 'Please select or create a workspace first.',
-    });
-    discoverAccounts();
-    return;
-  }
+  dispatch({
+    type: 'DELETE_PROJECT',
+    payload: projectToDelete.id
+  });
   
-  setIsSyncing(true);
-  // ... rest of sync logic
-}, [isConnected, currentAccount, discoverAccounts, updateSettings, toast, handleTokenExpiry]);
+  toast({
+    title: "Project Deleted",
+    description: `Project "${projectToDelete.name}" has been permanently deleted.`,
+    variant: "destructive"
+  });
+  
+  setProjectToDelete(null);
+  setConfirmationText('');
+  setDeleteStep(1);
+};
+```
+
+**Button Layout Changes:**
+```tsx
+{/* View and Edit buttons - top right */}
+<div className="absolute top-3 right-3 flex gap-1.5 z-20">
+  <Button size="sm" ... onClick={...}>
+    <Eye />
+  </Button>
+  <Button size="sm" ... onClick={...}>
+    <Edit />
+  </Button>
+</div>
+
+{/* Delete button - bottom right, separate from other actions */}
+<div className="absolute bottom-3 right-3 z-20">
+  <Button size="sm" variant="destructive" ...>
+    <Trash2 />
+  </Button>
+</div>
+```
+
+**AlertDialog for Delete Confirmation:**
+```tsx
+<AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
+  <AlertDialogContent>
+    {deleteStep === 1 ? (
+      <>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete "{projectToDelete?.name}"?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <Button variant="destructive" onClick={() => setDeleteStep(2)}>
+            Continue
+          </Button>
+        </AlertDialogFooter>
+      </>
+    ) : (
+      <>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. All project data will be permanently deleted.
+            Type "{projectToDelete?.name}" to confirm.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Input 
+          value={confirmationText}
+          onChange={(e) => setConfirmationText(e.target.value)}
+          placeholder="Type project name..."
+        />
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => { setDeleteStep(1); setConfirmationText(''); }}>
+            Cancel
+          </AlertDialogCancel>
+          <Button 
+            variant="destructive" 
+            onClick={confirmDelete}
+            disabled={confirmationText !== projectToDelete?.name}
+          >
+            Delete Permanently
+          </Button>
+        </AlertDialogFooter>
+      </>
+    )}
+  </AlertDialogContent>
+</AlertDialog>
 ```
 
 ---
 
-### Files Changed Summary
+### Files Changed
 
 | File | Changes |
 |------|---------|
-| `src/services/googleDriveService.ts` | URL-encode query in `getOrCreateFolder()`, improve error messages |
-| `src/contexts/GoogleDriveContext.tsx` | Add auto-discovery effect for connected users, update `syncNow` to handle missing account |
+| `src/pages/ProjectsPage.tsx` | Fix button handlers, separate delete button position, add AlertDialog for two-step delete confirmation |
 
 ---
 
-### Flow After Fix
+### Visual Layout After Fix
 
 ```text
-User loads app (already connected, no workspace set)
-    |
-    v
-useEffect detects: isConnected=true, currentAccountId=null
-    |
-    v
-discoverAccounts() is called automatically
-    |
-    v
-Account Selection Modal appears
-    |
-    v
-User selects existing workspace or creates new one
-    |
-    v
-currentAccount is set, folder ID is stored
-    |
-    v
-Backup works correctly, sync works correctly
++----------------------------------+
+|  Project Name         [👁] [✏]  |  <- View/Edit top-right
+|  Description...                  |
+|                                  |
+|  Project details...              |
+|                                  |
+|  Payment progress...     [🗑]   |  <- Delete bottom-right
++----------------------------------+
 ```
 
 ---
 
-### Technical Details
+### Key Technical Points
 
-**Query Encoding Fix (Critical)**:
-```diff
-- `${DRIVE_API_BASE}/files?q=name contains '${FOLDER_NAME_PREFIX}' and ...`
-+ const query = encodeURIComponent(`name contains '${FOLDER_NAME_PREFIX}' and ...`);
-+ `${DRIVE_API_BASE}/files?q=${query}&fields=...`
-```
+1. **Remove `onTouchEnd`** - Using both `onClick` and `onTouchEnd` with the same action causes double-firing on some mobile browsers
 
-**Auto-Discovery Effect**:
-- Only triggers once when conditions are met
-- `isDiscoveringAccounts` flag prevents multiple triggers
-- Works for both fresh page loads and reconnections
+2. **Add `onPointerDown` with `stopPropagation`** - This prevents the parent card's click from ever receiving the event
 
-**Sync Improvements**:
-- Users get feedback when workspace is missing
-- Account selection is triggered automatically
-- No more silent failures
+3. **Increase button touch targets** - Use larger buttons (h-9 w-9 instead of h-8 w-8) for better mobile usability
+
+4. **AlertDialog over confirm()** - Native `confirm()` dialogs are not styled and can be dismissed accidentally. AlertDialog provides better UX and requires explicit user action
 
