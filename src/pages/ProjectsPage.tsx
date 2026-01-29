@@ -4,13 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Eye, Edit, Trash2, FolderKanban, ArrowLeft } from 'lucide-react';
+import { Plus, Search, Eye, Edit, Trash2, FolderKanban } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { EnhancedProjectModal } from '@/components/EnhancedProjectModal';
 import { ProjectCard } from '@/components/ProjectCard';
 import { Project } from '@/types/business';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/storage';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ProjectsPage: React.FC = () => {
   const { data, currentBusiness, dispatch } = useBusiness();
@@ -21,6 +31,11 @@ const ProjectsPage: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Delete confirmation state
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [confirmationText, setConfirmationText] = useState('');
 
   const currentProjects = data.projects.filter(project => 
     project.businessId === currentBusiness?.id
@@ -52,28 +67,33 @@ const ProjectsPage: React.FC = () => {
   };
 
   const handleDeleteProject = (project: Project) => {
-    const firstConfirmation = confirm(
-      `Are you sure you want to delete the project "${project.name}"?`
-    );
-    
-    if (!firstConfirmation) return;
-    
-    const secondConfirmation = confirm(
-      `This action cannot be undone. All project data, payments, and allocations will be permanently deleted.\n\nType "DELETE" to confirm you want to proceed.`
-    );
-    
-    if (!secondConfirmation) return;
+    setProjectToDelete(project);
+    setDeleteStep(1);
+  };
+
+  const confirmDelete = () => {
+    if (!projectToDelete) return;
     
     dispatch({
       type: 'DELETE_PROJECT',
-      payload: project.id
+      payload: projectToDelete.id
     });
     
     toast({
       title: "Project Deleted",
-      description: `Project "${project.name}" has been permanently deleted.`,
+      description: `Project "${projectToDelete.name}" has been permanently deleted.`,
       variant: "destructive"
     });
+    
+    setProjectToDelete(null);
+    setConfirmationText('');
+    setDeleteStep(1);
+  };
+
+  const handleCancelDelete = () => {
+    setProjectToDelete(null);
+    setConfirmationText('');
+    setDeleteStep(1);
   };
 
   if (!currentBusiness) {
@@ -207,58 +227,49 @@ const ProjectsPage: React.FC = () => {
                 onNavigateToTeam={() => navigate('/team')}
                 onNavigateToProject={(projectId) => navigate(`/works/projects/${projectId}`)}
               />
-              {/* Action buttons - always visible on mobile, hover on desktop */}
-              <div className="absolute top-4 right-4 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
+              {/* View and Edit buttons - top right */}
+              <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
                 <Button
                   size="sm"
                   variant="outline"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleViewProject(project);
                   }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleViewProject(project);
-                  }}
-                  className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm"
+                  className="h-9 w-9 p-0 bg-background/90 backdrop-blur-sm pointer-events-auto"
                 >
-                  <Eye className="h-3 w-3" />
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleEditProject(project);
                   }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleEditProject(project);
-                  }}
-                  className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm"
+                  className="h-9 w-9 p-0 bg-background/90 backdrop-blur-sm pointer-events-auto"
                 >
-                  <Edit className="h-3 w-3" />
+                  <Edit className="h-4 w-4" />
                 </Button>
+              </div>
+              {/* Delete button - bottom right, separate from other actions */}
+              <div className="absolute bottom-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
                 <Button
                   size="sm"
                   variant="destructive"
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     handleDeleteProject(project);
                   }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleDeleteProject(project);
-                  }}
-                  className="h-8 w-8 p-0"
+                  className="h-9 w-9 p-0 pointer-events-auto"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -272,6 +283,56 @@ const ProjectsPage: React.FC = () => {
         project={selectedProject}
         mode={modalMode}
       />
+
+      {/* Two-step Delete Confirmation Dialog */}
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && handleCancelDelete()}>
+        <AlertDialogContent>
+          {deleteStep === 1 ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{projectToDelete?.name}"? This will remove all project data, payments, and allocations.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={handleCancelDelete}>Cancel</AlertDialogCancel>
+                <Button variant="destructive" onClick={() => setDeleteStep(2)}>
+                  Continue
+                </Button>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. All project data will be permanently deleted.
+                  Type "<span className="font-semibold text-foreground">{projectToDelete?.name}</span>" to confirm.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input 
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Type project name to confirm..."
+                className="my-2"
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={handleCancelDelete}>
+                  Cancel
+                </AlertDialogCancel>
+                <Button 
+                  variant="destructive" 
+                  onClick={confirmDelete}
+                  disabled={confirmationText !== projectToDelete?.name}
+                >
+                  Delete Permanently
+                </Button>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
