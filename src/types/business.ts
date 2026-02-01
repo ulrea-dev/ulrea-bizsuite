@@ -5,16 +5,150 @@ export interface Currency {
   isCustom?: boolean;
 }
 
+// Business Model Type - determines app behavior and available features
+export type BusinessModel = 'service' | 'product' | 'hybrid';
+
 export interface Business {
   id: string;
   name: string;
   type: string;
+  businessModel: BusinessModel; // Determines which features are available
   currency: Currency;
   currentBalance: number;
   minimumBalance: number;
   createdAt: string;
   updatedAt: string;
 }
+
+// ============= Product-Based Business Entities =============
+
+// Product Entity
+export interface Product {
+  id: string;
+  businessId: string;
+  name: string;
+  sku: string;                    // Stock Keeping Unit
+  description?: string;
+  category?: string;
+  unitPrice: number;
+  costPrice: number;              // For profit calculation
+  currency: string;
+  unit: string;                   // e.g., "pcs", "kg", "liters"
+  currentStock: number;
+  minimumStock: number;           // For reorder alerts
+  status: 'active' | 'discontinued' | 'out-of-stock';
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Customer/Distributor Entity (Product business equivalent of Client)
+export type CustomerType = 'retail' | 'wholesale' | 'distributor';
+
+export interface Customer {
+  id: string;
+  businessId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  type: CustomerType;
+  address?: string;
+  totalPurchases: number;
+  outstandingBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Order Item for Sales Orders
+export interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  total: number;
+}
+
+// Sales Order Status Types
+export type SalesOrderStatus = 'draft' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type PaymentStatusType = 'pending' | 'partial' | 'paid';
+
+// Sales Order
+export interface SalesOrder {
+  id: string;
+  businessId: string;
+  customerId: string;
+  orderNumber: string;
+  items: OrderItem[];
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  currency: string;
+  status: SalesOrderStatus;
+  paymentStatus: PaymentStatusType;
+  paidAmount: number;
+  orderDate: string;
+  deliveryDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Production Batch Status
+export type ProductionBatchStatus = 'planned' | 'in-progress' | 'completed' | 'cancelled';
+
+// Production Batch (for manufacturing)
+export interface ProductionBatch {
+  id: string;
+  businessId: string;
+  productId: string;
+  batchNumber: string;
+  quantity: number;
+  status: ProductionBatchStatus;
+  startDate: string;
+  completionDate?: string;
+  productionCost: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Purchase Item for Purchase Orders
+export interface PurchaseItem {
+  id: string;
+  productId?: string;
+  itemName: string;
+  quantity: number;
+  unitCost: number;
+  receivedQuantity: number;
+  total: number;
+}
+
+// Purchase Order Status
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
+
+// Procurement/Purchase Order
+export interface PurchaseOrder {
+  id: string;
+  businessId: string;
+  supplierName: string;
+  orderNumber: string;
+  items: PurchaseItem[];
+  total: number;
+  currency: string;
+  status: PurchaseOrderStatus;
+  orderDate: string;
+  expectedDate?: string;
+  receivedDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============= Service-Based Business Entities =============
 
 export interface TeamMember {
   id: string;
@@ -471,32 +605,50 @@ export interface UserBusinessAccess {
 }
 
 export interface AppData {
+  // Core entities
   businesses: Business[];
   projects: Project[];
   teamMembers: TeamMember[];
   partners: Partner[];
   clients: Client[];
   payments: Payment[];
+  
+  // Salary & Payroll
   salaryRecords: SalaryRecord[];
   salaryPayments: SalaryPayment[];
   payrollPeriods: PayrollPeriod[];
   payslips: Payslip[];
+  
+  // Financial
   exchangeRates: ExchangeRate[];
   customCurrencies: Currency[];
-  quickTasks: QuickTask[];
-  retainers: Retainer[];
-  renewals: Renewal[];
   expenses: Expense[];
   extraPayments: ExtraPayment[];
   bankAccounts: BankAccount[];
   payables: Payable[];
   receivables: Receivable[];
+  
+  // Service-based business entities
+  quickTasks: QuickTask[];
+  retainers: Retainer[];
+  renewals: Renewal[];
   renewalPayments: RenewalPayment[];
-  userBusinessAccess: UserBusinessAccess[];  // Access control list
+  
+  // Product-based business entities
+  products: Product[];
+  customers: Customer[];
+  salesOrders: SalesOrder[];
+  productionBatches: ProductionBatch[];
+  purchaseOrders: PurchaseOrder[];
+  
+  // Access control
+  userBusinessAccess: UserBusinessAccess[];
   currentBusinessId: string | null;
+  
+  // User preferences
   userSettings: {
     username: string;
-    userId: string;         // Unique identifier (generated on first login)
+    userId: string;
     theme: 'light' | 'dark';
     defaultCurrency: Currency;
     fontFamily: FontOption;

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useMemo, useRe
 import {
   AppData,
   Business,
+  BusinessModel,
   Project,
   TeamMember,
   Client,
@@ -45,6 +46,7 @@ interface BusinessContextProps {
   addBusiness: (input: {
     name: string;
     type: string;
+    businessModel: BusinessModel;
     currentBalance: number;
     minimumBalance: number;
     currency: Currency;
@@ -115,6 +117,7 @@ export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) 
       id: repository.generateId(),
       name: input.name,
       type: input.type,
+      businessModel: input.businessModel,
       currency: input.currency,
       currentBalance: input.currentBalance,
       minimumBalance: input.minimumBalance,

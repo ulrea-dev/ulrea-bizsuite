@@ -14,29 +14,47 @@ import { localStorageRepository } from '@/repositories';
 const STORAGE_KEY = 'bizsuite-data';
 
 const getInitialData = (): AppData => ({
+  // Core entities
   businesses: [],
   projects: [],
   teamMembers: [],
   partners: [],
   clients: [],
   payments: [],
+  
+  // Salary & Payroll
   salaryRecords: [],
   salaryPayments: [],
   payrollPeriods: [],
   payslips: [],
+  
+  // Financial
   exchangeRates: [],
   customCurrencies: [],
-  quickTasks: [],
-  retainers: [],
-  renewals: [],
   expenses: [],
   extraPayments: [],
   bankAccounts: [],
   payables: [],
   receivables: [],
+  
+  // Service-based business entities
+  quickTasks: [],
+  retainers: [],
+  renewals: [],
   renewalPayments: [],
+  
+  // Product-based business entities
+  products: [],
+  customers: [],
+  salesOrders: [],
+  productionBatches: [],
+  purchaseOrders: [],
+  
+  // Access control
   userBusinessAccess: [],
   currentBusinessId: null,
+  
+  // User preferences
   userSettings: {
     username: '',
     userId: '',

@@ -21,29 +21,47 @@ const BACKUP_VERSION = '1.0.0';
 export class LocalStorageRepository implements IDataRepository {
   private getInitialData(): AppData {
     return {
+      // Core entities
       businesses: [],
       projects: [],
       teamMembers: [],
       partners: [],
       clients: [],
       payments: [],
+      
+      // Salary & Payroll
       salaryRecords: [],
       salaryPayments: [],
       payrollPeriods: [],
       payslips: [],
+      
+      // Financial
       exchangeRates: [],
       customCurrencies: [],
-      quickTasks: [],
-      retainers: [],
-      renewals: [],
       expenses: [],
       extraPayments: [],
       bankAccounts: [],
       payables: [],
       receivables: [],
+      
+      // Service-based business entities
+      quickTasks: [],
+      retainers: [],
+      renewals: [],
       renewalPayments: [],
+      
+      // Product-based business entities
+      products: [],
+      customers: [],
+      salesOrders: [],
+      productionBatches: [],
+      purchaseOrders: [],
+      
+      // Access control
       userBusinessAccess: [],
       currentBusinessId: null,
+      
+      // User preferences
       userSettings: {
         username: '',
         userId: '',
@@ -84,6 +102,17 @@ export class LocalStorageRepository implements IDataRepository {
         receivables: data.receivables || [],
         renewalPayments: data.renewalPayments || [],
         userBusinessAccess: data.userBusinessAccess || [],
+        // Product-based business entities (backward compatibility)
+        products: data.products || [],
+        customers: data.customers || [],
+        salesOrders: data.salesOrders || [],
+        productionBatches: data.productionBatches || [],
+        purchaseOrders: data.purchaseOrders || [],
+        // Ensure businesses have businessModel field (backward compatibility - default to 'service')
+        businesses: (data.businesses || []).map(business => ({
+          ...business,
+          businessModel: business.businessModel || 'service',
+        })),
         // Ensure projects have clientPayments field (for backward compatibility)
         projects: (data.projects || []).map(project => ({
           ...project,
