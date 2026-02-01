@@ -65,21 +65,39 @@ export interface ExportedData {
  * This list must be updated when new top-level fields are added to AppData
  */
 export const APP_DATA_KEYS: (keyof AppData)[] = [
+  // Core entities
   'businesses',
   'projects',
   'teamMembers',
   'partners',
   'clients',
   'payments',
+  // Salary & Payroll
   'salaryRecords',
   'salaryPayments',
   'payrollPeriods',
   'payslips',
+  // Financial
   'exchangeRates',
   'customCurrencies',
+  'expenses',
+  'extraPayments',
+  'bankAccounts',
+  'payables',
+  'receivables',
+  // Service-based
   'quickTasks',
   'retainers',
-  'expenses',
+  'renewals',
+  'renewalPayments',
+  // Product-based
+  'products',
+  'customers',
+  'salesOrders',
+  'productionBatches',
+  'purchaseOrders',
+  // Access control & settings
+  'userBusinessAccess',
   'currentBusinessId',
   'userSettings',
 ];
