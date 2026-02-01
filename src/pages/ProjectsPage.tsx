@@ -11,82 +11,109 @@ import { ProjectCard } from '@/components/ProjectCard';
 import { Project } from '@/types/business';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/storage';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 const ProjectsPage: React.FC = () => {
-  const {
-    data,
-    currentBusiness,
-    dispatch
-  } = useBusiness();
+  const { data, currentBusiness, dispatch } = useBusiness();
   const navigate = useNavigate();
+  
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
+  
   // Delete confirmation state
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
   const [confirmationText, setConfirmationText] = useState('');
-  const currentProjects = data.projects.filter(project => project.businessId === currentBusiness?.id);
+
+  const currentProjects = data.projects.filter(project => 
+    project.businessId === currentBusiness?.id
+  );
+
   const filteredProjects = currentProjects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
   const handleCreateProject = () => {
     setSelectedProject(null);
     setModalMode('create');
     setShowProjectModal(true);
   };
+
   const handleViewProject = (project: Project) => {
     setSelectedProject(project);
     setModalMode('view');
     setShowProjectModal(true);
   };
+
   const handleEditProject = (project: Project) => {
     setSelectedProject(project);
     setModalMode('edit');
     setShowProjectModal(true);
   };
+
   const handleDeleteProject = (project: Project) => {
     setProjectToDelete(project);
     setDeleteStep(1);
   };
+
   const confirmDelete = () => {
     if (!projectToDelete) return;
+    
     dispatch({
       type: 'DELETE_PROJECT',
       payload: projectToDelete.id
     });
+    
     toast({
       title: "Project Deleted",
       description: `Project "${projectToDelete.name}" has been permanently deleted.`,
       variant: "destructive"
     });
+    
     setProjectToDelete(null);
     setConfirmationText('');
     setDeleteStep(1);
   };
+
   const handleCancelDelete = () => {
     setProjectToDelete(null);
     setConfirmationText('');
     setDeleteStep(1);
   };
+
   if (!currentBusiness) {
-    return <div className="p-6">
+    return (
+      <div className="p-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <h3 className="text-lg font-medium mb-2">No Business Selected</h3>
             <p className="text-muted-foreground">Please select a business to manage projects</p>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
+
   const activeProjects = currentProjects.filter(p => p.status === 'active');
   const totalValue = currentProjects.reduce((sum, p) => sum + p.totalValue, 0);
-  return <div className="space-y-4 sm:space-y-6">
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Projects</h1>
@@ -138,7 +165,12 @@ const ProjectsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search projects..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -160,50 +192,103 @@ const ProjectsPage: React.FC = () => {
         </div>
       </div>
 
-      {filteredProjects.length === 0 ? <Card>
+      {filteredProjects.length === 0 ? (
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <div className="p-4 bg-muted rounded-full mb-4">
               <Plus className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
             <p className="text-muted-foreground text-center mb-6">
-              {searchTerm || statusFilter !== 'all' ? 'No projects match your current filters' : 'Get started by creating your first project'}
+              {searchTerm || statusFilter !== 'all' 
+                ? 'No projects match your current filters'
+                : 'Get started by creating your first project'
+              }
             </p>
             <Button onClick={handleCreateProject}>
               <Plus className="h-4 w-4 mr-2" />
               Create Project
             </Button>
           </CardContent>
-        </Card> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {filteredProjects.map(project => <div key={project.id} className="relative group">
-              <ProjectCard project={project} currency={currentBusiness.currency} clientName={project.clientId ? data.clients.find(c => c.id === project.clientId)?.name : undefined} teamMembers={project.allocationTeamAllocations?.map(alloc => ({
-          id: alloc.memberId,
-          name: alloc.memberName
-        })) || []} onNavigateToClient={() => navigate('/clients')} onNavigateToTeam={() => navigate('/team')} onNavigateToProject={projectId => navigate(`/works/projects/${projectId}`)} />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+          {filteredProjects.map(project => (
+            <div key={project.id} className="relative group">
+              <ProjectCard 
+                project={project} 
+                currency={currentBusiness.currency}
+                clientName={project.clientId ? data.clients.find(c => c.id === project.clientId)?.name : undefined}
+                teamMembers={project.allocationTeamAllocations?.map(alloc => ({
+                    id: alloc.memberId,
+                    name: alloc.memberName
+                   })) || []}
+                onNavigateToClient={() => navigate('/clients')}
+                onNavigateToTeam={() => navigate('/team')}
+                onNavigateToProject={(projectId) => navigate(`/works/projects/${projectId}`)}
+              />
               {/* View and Edit buttons - top right */}
               <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
-                
-                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleViewProject(project);
+                  }}
+                  className="h-9 w-9 p-0 bg-background/90 backdrop-blur-sm pointer-events-auto"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleEditProject(project);
+                  }}
+                  className="h-9 w-9 p-0 bg-background/90 backdrop-blur-sm pointer-events-auto"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
               </div>
               {/* Delete button - bottom right, separate from other actions */}
               <div className="absolute bottom-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20">
-                <Button size="sm" variant="destructive" onPointerDown={e => e.stopPropagation()} onClick={e => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleDeleteProject(project);
-          }} className="h-9 w-9 p-0 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteProject(project);
+                  }}
+                  className="h-9 w-9 p-0 pointer-events-auto"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-            </div>)}
-        </div>}
+            </div>
+          ))}
+        </div>
+      )}
 
-      <EnhancedProjectModal isOpen={showProjectModal} onClose={() => setShowProjectModal(false)} project={selectedProject} mode={modalMode} />
+      <EnhancedProjectModal
+        isOpen={showProjectModal}
+        onClose={() => setShowProjectModal(false)}
+        project={selectedProject}
+        mode={modalMode}
+      />
 
       {/* Two-step Delete Confirmation Dialog */}
-      <AlertDialog open={!!projectToDelete} onOpenChange={open => !open && handleCancelDelete()}>
+      <AlertDialog open={!!projectToDelete} onOpenChange={(open) => !open && handleCancelDelete()}>
         <AlertDialogContent>
-          {deleteStep === 1 ? <>
+          {deleteStep === 1 ? (
+            <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Project?</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -216,7 +301,9 @@ const ProjectsPage: React.FC = () => {
                   Continue
                 </Button>
               </AlertDialogFooter>
-            </> : <>
+            </>
+          ) : (
+            <>
               <AlertDialogHeader>
                 <AlertDialogTitle>Final Confirmation</AlertDialogTitle>
                 <AlertDialogDescription>
@@ -224,18 +311,30 @@ const ProjectsPage: React.FC = () => {
                   Type "<span className="font-semibold text-foreground">{projectToDelete?.name}</span>" to confirm.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <Input value={confirmationText} onChange={e => setConfirmationText(e.target.value)} placeholder="Type project name to confirm..." className="my-2" />
+              <Input 
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Type project name to confirm..."
+                className="my-2"
+              />
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={handleCancelDelete}>
                   Cancel
                 </AlertDialogCancel>
-                <Button variant="destructive" onClick={confirmDelete} disabled={confirmationText !== projectToDelete?.name}>
+                <Button 
+                  variant="destructive" 
+                  onClick={confirmDelete}
+                  disabled={confirmationText !== projectToDelete?.name}
+                >
                   Delete Permanently
                 </Button>
               </AlertDialogFooter>
-            </>}
+            </>
+          )}
         </AlertDialogContent>
       </AlertDialog>
-    </div>;
+    </div>
+  );
 };
+
 export default ProjectsPage;
