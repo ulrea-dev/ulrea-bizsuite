@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo, useRef, type ReactNode, type Dispatch, type FC } from 'react';
 import {
   AppData,
   Business,
@@ -41,7 +41,7 @@ interface BusinessContextProps {
   data: AppData;
   currentBusiness: Business | null;
   accessibleBusinesses: Business[];
-  dispatch: React.Dispatch<BusinessAction>;
+  dispatch: Dispatch<BusinessAction>;
   // Helper functions used by components
   addBusiness: (input: {
     name: string;
@@ -71,10 +71,10 @@ export const useBusiness = (): BusinessContextProps => {
 };
 
 interface BusinessProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const BusinessProvider: React.FC<BusinessProviderProps> = ({ children }) => {
+export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
   const { repository } = useRepository();
   
   // Initialize state from repository
