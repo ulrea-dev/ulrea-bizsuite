@@ -1,216 +1,20 @@
 
 
-## Plan: Multi-Model Business Support (Service, Product, and Hybrid)
+## Plan: Phase 2 - Dynamic Navigation and Product Catalog
 
 ### Overview
 
-This plan introduces a **business model selection system** that adapts the entire app experience based on whether a business is service-based, product-based, or hybrid. The UI, navigation, terminology, and features will dynamically adjust.
+This phase will make the sidebar navigation dynamic based on the business model, and create the full product catalog functionality for product-based businesses.
 
 ---
 
-### Business Model Types
-
-| Model | Description | Key Entities | Example Businesses |
-|-------|-------------|--------------|-------------------|
-| **Service** | Projects and client work | Projects, Clients, Retainers | Agencies, Consulting, Freelancing |
-| **Product** | Physical goods | Products, Customers, Inventory | Manufacturing, Retail, Distribution |
-| **Hybrid** | Both services and products | All entities available | Tech companies selling products + services |
-
----
-
-### Part 1: Update Business Entity and Setup
-
-**File: `src/types/business.ts`**
-
-Add a new `businessModel` field to the Business interface:
-
-```typescript
-export type BusinessModel = 'service' | 'product' | 'hybrid';
-
-export interface Business {
-  id: string;
-  name: string;
-  type: string;              // Free text (e.g., "Digital Agency", "Manufacturing")
-  businessModel: BusinessModel;  // NEW: Determines app behavior
-  currency: Currency;
-  currentBalance: number;
-  minimumBalance: number;
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-**File: `src/components/BusinessSetup.tsx`**
-
-Add business model selection with clear descriptions:
-
-```text
-+------------------------------------------+
-|  Business Model                          |
-|  +------------------------------------+  |
-|  | Service-Based                      |  |
-|  | Projects, clients, retainers       |  |
-|  +------------------------------------+  |
-|  | Product-Based                      |  |
-|  | Products, inventory, customers     |  |
-|  +------------------------------------+  |
-|  | Hybrid (Both)                      |  |
-|  | Full features for both models      |  |
-|  +------------------------------------+  |
-+------------------------------------------+
-```
-
----
-
-### Part 2: New Product-Based Entities
-
-**File: `src/types/business.ts`** - Add new interfaces:
-
-```typescript
-// Product Entity
-export interface Product {
-  id: string;
-  businessId: string;
-  name: string;
-  sku: string;                    // Stock Keeping Unit
-  description?: string;
-  category?: string;
-  unitPrice: number;
-  costPrice: number;              // For profit calculation
-  currency: string;
-  unit: string;                   // e.g., "pcs", "kg", "liters"
-  currentStock: number;
-  minimumStock: number;           // For reorder alerts
-  status: 'active' | 'discontinued' | 'out-of-stock';
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Customer/Distributor Entity (Product business equivalent of Client)
-export interface Customer {
-  id: string;
-  businessId: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  type: 'retail' | 'wholesale' | 'distributor';
-  address?: string;
-  totalPurchases: number;
-  outstandingBalance: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Sales Order
-export interface SalesOrder {
-  id: string;
-  businessId: string;
-  customerId: string;
-  orderNumber: string;
-  items: OrderItem[];
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-  currency: string;
-  status: 'draft' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  paymentStatus: 'pending' | 'partial' | 'paid';
-  paidAmount: number;
-  orderDate: string;
-  deliveryDate?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrderItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  total: number;
-}
-
-// Production Batch (for manufacturing)
-export interface ProductionBatch {
-  id: string;
-  businessId: string;
-  productId: string;
-  batchNumber: string;
-  quantity: number;
-  status: 'planned' | 'in-progress' | 'completed' | 'cancelled';
-  startDate: string;
-  completionDate?: string;
-  productionCost: number;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Procurement/Purchase Order
-export interface PurchaseOrder {
-  id: string;
-  businessId: string;
-  supplierName: string;
-  orderNumber: string;
-  items: PurchaseItem[];
-  total: number;
-  currency: string;
-  status: 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
-  orderDate: string;
-  expectedDate?: string;
-  receivedDate?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PurchaseItem {
-  id: string;
-  productId?: string;
-  itemName: string;
-  quantity: number;
-  unitCost: number;
-  receivedQuantity: number;
-  total: number;
-}
-```
-
----
-
-### Part 3: Update AppData to Include New Entities
-
-**File: `src/types/business.ts`**
-
-```typescript
-export interface AppData {
-  // ... existing fields ...
-  
-  // Product-based business entities
-  products: Product[];
-  customers: Customer[];
-  salesOrders: SalesOrder[];
-  productionBatches: ProductionBatch[];
-  purchaseOrders: PurchaseOrder[];
-  
-  // ... rest of existing fields ...
-}
-```
-
----
-
-### Part 4: Dynamic Navigation Based on Business Model
+### Part 1: Dynamic Navigation in AppSidebar
 
 **File: `src/components/AppSidebar.tsx`**
 
-The navigation will change based on `currentBusiness.businessModel`:
+Transform the static navigation items into dynamic ones based on `currentBusiness?.businessModel`:
 
-**Service-Based Navigation (Current):**
-```text
+**Service-Based Navigation (current behavior):**
 - Dashboard
 - Works (Projects, Quick Tasks, Retainers, Renewals)
 - Team
@@ -218,30 +22,12 @@ The navigation will change based on `currentBusiness.businessModel`:
 - Financials
 - Analytics
 - Settings
-```
 
 **Product-Based Navigation:**
-```text
 - Dashboard
-- Products (Catalog, Categories)
-- Sales (Orders, Invoices)
-- Customers (Retail, Wholesale, Distributors)
-- Inventory (Stock, Reorder)
-- Production (Batches, Planning)
-- Procurement (Purchase Orders, Suppliers)
-- Team
-- Financials
-- Analytics
-- Settings
-```
-
-**Hybrid Navigation:**
-```text
-- Dashboard
-- Works (Projects, Quick Tasks, Retainers, Renewals)
-- Products (Catalog, Categories)
-- Sales (Orders, Invoices)
-- Clients & Customers
+- Products (Catalog)
+- Sales (Orders)
+- Customers
 - Inventory
 - Production
 - Procurement
@@ -249,39 +35,115 @@ The navigation will change based on `currentBusiness.businessModel`:
 - Financials
 - Analytics
 - Settings
+
+**Hybrid Navigation:**
+- All of the above combined
+
+**Implementation approach:**
+```typescript
+// Use useMemo to compute navigation based on business model
+const navigationItems = useMemo(() => {
+  const businessModel = currentBusiness?.businessModel || 'service';
+  
+  // Base items for all models
+  const baseItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+  ];
+  
+  // Service-specific items
+  const serviceItems = [
+    { id: 'works', label: 'Works', ... },
+    { id: 'clients', label: 'Clients', ... },
+  ];
+  
+  // Product-specific items
+  const productItems = [
+    { id: 'products', label: 'Products', icon: Package, path: '/products' },
+    { id: 'sales', label: 'Sales', icon: ShoppingCart, path: '/sales' },
+    { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
+    { id: 'inventory', label: 'Inventory', icon: Warehouse, path: '/inventory' },
+    { id: 'production', label: 'Production', icon: Factory, path: '/production' },
+    { id: 'procurement', label: 'Procurement', icon: Truck, path: '/procurement' },
+  ];
+  
+  // Build navigation based on model
+  if (businessModel === 'service') {
+    return [...baseItems, ...serviceItems, ...commonItems];
+  } else if (businessModel === 'product') {
+    return [...baseItems, ...productItems, ...commonItems];
+  } else {
+    // Hybrid - show both
+    return [...baseItems, ...serviceItems, ...productItems, ...commonItems];
+  }
+}, [currentBusiness?.businessModel]);
 ```
 
 ---
 
-### Part 5: New Pages and Components
+### Part 2: Product Reducer
 
-| Component | Purpose |
-|-----------|---------|
-| `ProductsPage.tsx` | List/manage products with filtering |
-| `ProductModal.tsx` | Add/edit product details |
-| `ProductDetailPage.tsx` | Individual product view with stock history |
-| `CustomersPage.tsx` | List customers/distributors |
-| `CustomerModal.tsx` | Add/edit customer |
-| `SalesOrdersPage.tsx` | List sales orders |
-| `SalesOrderModal.tsx` | Create/edit sales order |
-| `InventoryPage.tsx` | Stock overview, low-stock alerts |
-| `ProductionPage.tsx` | Production batches management |
-| `ProcurementPage.tsx` | Purchase orders, supplier management |
+**File: `src/reducers/productReducer.ts`** (NEW)
+
+Create a reducer to handle product CRUD operations:
+
+```typescript
+import { AppData, Product } from '@/types/business';
+import { BusinessAction } from './types';
+
+export const productReducer = (state: AppData, action: BusinessAction): AppData | null => {
+  switch (action.type) {
+    case 'ADD_PRODUCT':
+      return {
+        ...state,
+        products: [...state.products, action.payload],
+      };
+      
+    case 'UPDATE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.map(p =>
+          p.id === action.payload.id ? { ...p, ...action.payload.updates } : p
+        ),
+      };
+      
+    case 'DELETE_PRODUCT':
+      return {
+        ...state,
+        products: state.products.filter(p => p.id !== action.payload),
+      };
+      
+    case 'UPDATE_PRODUCT_STOCK':
+      return {
+        ...state,
+        products: state.products.map(p => {
+          if (p.id === action.payload.id) {
+            const newStock = action.payload.type === 'add'
+              ? p.currentStock + action.payload.quantity
+              : p.currentStock - action.payload.quantity;
+            return { ...p, currentStock: Math.max(0, newStock) };
+          }
+          return p;
+        }),
+      };
+      
+    default:
+      return null;
+  }
+};
+```
 
 ---
 
-### Part 6: New Reducers and Actions
+### Part 3: Update Action Types
 
-**Files to create:**
-- `src/reducers/productReducer.ts`
-- `src/reducers/customerReducer.ts`
-- `src/reducers/salesReducer.ts`
-- `src/reducers/inventoryReducer.ts`
-- `src/reducers/productionReducer.ts`
-- `src/reducers/procurementReducer.ts`
+**File: `src/reducers/types.ts`**
 
-**New action types in `src/reducers/types.ts`:**
+Add product-related actions:
+
 ```typescript
+import { Product, Customer, SalesOrder, ProductionBatch, PurchaseOrder } from '@/types/business';
+
+// Add to BusinessAction union:
 // Product actions
 | { type: 'ADD_PRODUCT'; payload: Product }
 | { type: 'UPDATE_PRODUCT'; payload: { id: string; updates: Partial<Product> } }
@@ -292,150 +154,244 @@ The navigation will change based on `currentBusiness.businessModel`:
 | { type: 'ADD_CUSTOMER'; payload: Customer }
 | { type: 'UPDATE_CUSTOMER'; payload: { id: string; updates: Partial<Customer> } }
 | { type: 'DELETE_CUSTOMER'; payload: string }
-
-// Sales Order actions
-| { type: 'ADD_SALES_ORDER'; payload: SalesOrder }
-| { type: 'UPDATE_SALES_ORDER'; payload: { id: string; updates: Partial<SalesOrder> } }
-| { type: 'DELETE_SALES_ORDER'; payload: string }
-
-// Production actions
-| { type: 'ADD_PRODUCTION_BATCH'; payload: ProductionBatch }
-| { type: 'UPDATE_PRODUCTION_BATCH'; payload: { id: string; updates: Partial<ProductionBatch> } }
-| { type: 'DELETE_PRODUCTION_BATCH'; payload: string }
-
-// Purchase Order actions
-| { type: 'ADD_PURCHASE_ORDER'; payload: PurchaseOrder }
-| { type: 'UPDATE_PURCHASE_ORDER'; payload: { id: string; updates: Partial<PurchaseOrder> } }
-| { type: 'DELETE_PURCHASE_ORDER'; payload: string }
 ```
 
 ---
 
-### Part 7: Dashboard Adaptation
+### Part 4: Register Reducer in Root
 
-The dashboard will show different widgets based on business model:
+**File: `src/reducers/rootReducer.ts`**
 
-**Service Dashboard:**
-- Active Projects
-- Pending Payments
-- Client Overview
-- Revenue Chart
+Add productReducer to the domain reducers list:
 
-**Product Dashboard:**
-- Sales Summary
-- Low Stock Alerts
-- Top Selling Products
-- Recent Orders
-- Production Status
-- Revenue vs Cost Chart
+```typescript
+import { productReducer } from './productReducer';
 
-**Hybrid Dashboard:**
-- Combined metrics from both models
-- Toggle between views
-
----
-
-### Implementation Phases
-
-**Phase 1 - Foundation ✅ COMPLETED**
-1. ✅ Add `businessModel` field to Business entity
-2. ✅ Update BusinessSetup with model selection
-3. ✅ Create basic type definitions for product entities
-4. ✅ Update AppData structure
-5. ✅ Add empty arrays for new entities in repository
-
-**Phase 2 - Product Catalog** (Next)
-1. ProductsPage and ProductModal
-2. Product reducer and actions
-3. Basic CRUD for products
-
-**Phase 3 - Customers and Sales**
-1. CustomersPage and CustomerModal
-2. SalesOrdersPage and SalesOrderModal
-3. Order processing workflow
-
-**Phase 4 - Inventory and Stock**
-1. InventoryPage with stock overview
-2. Low stock alerts
-3. Stock adjustment history
-
-**Phase 5 - Production and Procurement**
-1. ProductionPage and batch management
-2. ProcurementPage and purchase orders
-3. Supplier management
-
-**Phase 6 - Dynamic Navigation and Dashboard**
-1. Conditional navigation based on business model
-2. Model-specific dashboard widgets
-3. Analytics for product businesses
+const domainReducers = [
+  businessReducer,
+  projectReducer,
+  teamReducer,
+  clientReducer,
+  paymentReducer,
+  salaryReducer,
+  settingsReducer,
+  taskReducer,
+  accountReducer,
+  productReducer,  // NEW
+];
+```
 
 ---
 
-### Files to Create/Modify Summary
+### Part 5: Products Page
+
+**File: `src/pages/ProductsPage.tsx`** (NEW)
+
+A page to list and manage products with:
+- Search and filter functionality
+- Grid/table view toggle
+- Stock status indicators
+- Quick actions (edit, delete, adjust stock)
+
+Key features:
+- Filter products by category, status
+- Sort by name, price, stock level
+- Low stock alerts highlighted
+- Profit margin display (unitPrice - costPrice)
+
+```typescript
+const ProductsPage: React.FC = () => {
+  const { data, currentBusiness, dispatch } = useBusiness();
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  
+  // Filter products for current business
+  const businessProducts = data.products.filter(
+    p => p.businessId === currentBusiness?.id
+  );
+  
+  // Apply search and filters
+  const filteredProducts = businessProducts.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+  
+  return (
+    <div className="space-y-6">
+      {/* Header with Add button */}
+      {/* Search and filters */}
+      {/* Product grid/table */}
+    </div>
+  );
+};
+```
+
+---
+
+### Part 6: Product Modal
+
+**File: `src/components/ProductModal.tsx`** (NEW)
+
+A modal dialog for adding/editing products:
+
+Fields:
+- Name (required)
+- SKU (required, auto-generated option)
+- Description
+- Category (select or create new)
+- Unit Price (required)
+- Cost Price (required)
+- Currency (defaults to business currency)
+- Unit (pcs, kg, liters, etc.)
+- Current Stock
+- Minimum Stock (for reorder alerts)
+- Status (active, discontinued, out-of-stock)
+- Image URL (optional)
+
+```typescript
+interface ProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product?: Product | null;
+  mode: 'create' | 'edit' | 'view';
+}
+```
+
+---
+
+### Part 7: Add Routes
+
+**File: `src/App.tsx`**
+
+Add routes for product-based business pages:
+
+```typescript
+import ProductsPage from "./pages/ProductsPage";
+import CustomersPage from "./pages/CustomersPage";
+
+// Inside Routes:
+{/* Products Section (for product/hybrid businesses) */}
+<Route path="/products" element={<ProductsPage />} />
+<Route path="/products/:productId" element={<ProductDetailPage />} />
+<Route path="/customers" element={<CustomersPage />} />
+<Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+<Route path="/sales" element={<SalesOrdersPage />} />
+<Route path="/inventory" element={<InventoryPage />} />
+<Route path="/production" element={<ProductionPage />} />
+<Route path="/procurement" element={<ProcurementPage />} />
+```
+
+Note: Some pages will be placeholder stubs initially (SalesOrdersPage, InventoryPage, etc.) to be implemented in later phases.
+
+---
+
+### Part 8: Customer Reducer
+
+**File: `src/reducers/customerReducer.ts`** (NEW)
+
+Similar to product reducer for customer CRUD:
+
+```typescript
+export const customerReducer = (state: AppData, action: BusinessAction): AppData | null => {
+  switch (action.type) {
+    case 'ADD_CUSTOMER':
+      return { ...state, customers: [...state.customers, action.payload] };
+    case 'UPDATE_CUSTOMER':
+      return {
+        ...state,
+        customers: state.customers.map(c =>
+          c.id === action.payload.id ? { ...c, ...action.payload.updates } : c
+        ),
+      };
+    case 'DELETE_CUSTOMER':
+      return { ...state, customers: state.customers.filter(c => c.id !== action.payload) };
+    default:
+      return null;
+  }
+};
+```
+
+---
+
+### Part 9: Customers Page
+
+**File: `src/pages/CustomersPage.tsx`** (NEW)
+
+A page to list and manage customers/distributors:
+- Filter by type (retail, wholesale, distributor)
+- Show total purchases and outstanding balance
+- Link to customer detail page
+
+---
+
+### Part 10: Customer Modal
+
+**File: `src/components/CustomerModal.tsx`** (NEW)
+
+Modal for adding/editing customers:
+- Name
+- Email
+- Phone
+- Company
+- Type (retail/wholesale/distributor)
+- Address
+
+---
+
+### Files Summary
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/types/business.ts` | Modify | Add BusinessModel type and product entities |
-| `src/components/BusinessSetup.tsx` | Modify | Add business model selection UI |
-| `src/contexts/BusinessContext.tsx` | Modify | Update addBusiness to include model |
-| `src/reducers/businessReducer.ts` | Modify | Handle new business model field |
-| `src/repositories/LocalStorageRepository.ts` | Modify | Initialize new entity arrays |
-| `src/components/AppSidebar.tsx` | Modify | Dynamic navigation based on model |
-| `src/components/DashboardHome.tsx` | Modify | Model-specific dashboard |
+| `src/components/AppSidebar.tsx` | Modify | Dynamic navigation based on business model |
+| `src/reducers/types.ts` | Modify | Add product and customer action types |
+| `src/reducers/rootReducer.ts` | Modify | Register new reducers |
 | `src/reducers/productReducer.ts` | Create | Product CRUD reducer |
 | `src/reducers/customerReducer.ts` | Create | Customer CRUD reducer |
-| `src/reducers/salesReducer.ts` | Create | Sales order reducer |
-| `src/components/ProductsPage.tsx` | Create | Products listing page |
+| `src/pages/ProductsPage.tsx` | Create | Products listing page |
 | `src/components/ProductModal.tsx` | Create | Product form modal |
-| `src/components/CustomersPage.tsx` | Create | Customers listing page |
+| `src/pages/CustomersPage.tsx` | Create | Customers listing page |
 | `src/components/CustomerModal.tsx` | Create | Customer form modal |
-| `src/components/SalesOrdersPage.tsx` | Create | Sales orders page |
+| `src/App.tsx` | Modify | Add routes for new pages |
+| `src/reducers/index.ts` | Modify | Export new reducers |
 
 ---
 
-### Backward Compatibility
-
-- Existing businesses without `businessModel` will default to `'service'`
-- All current functionality remains unchanged for service businesses
-- Data migration handled automatically in repository load
-
----
-
-### Visual Flow: Business Setup
+### Visual: Navigation Comparison
 
 ```text
-Step 1: Business Name
-+----------------------------------+
-|  Business Name: [_______________]|
-+----------------------------------+
-
-Step 2: Business Model Selection
-+----------------------------------+
-|  What type of business is this?  |
-|                                  |
-|  [ ] Service-Based               |
-|      For agencies, consulting,   |
-|      freelancing. Manage         |
-|      projects and clients.       |
-|                                  |
-|  [ ] Product-Based               |
-|      For retail, manufacturing,  |
-|      distribution. Manage        |
-|      products and customers.     |
-|                                  |
-|  [ ] Hybrid (Both)               |
-|      For businesses that offer   |
-|      both services and products. |
-+----------------------------------+
-
-Step 3: Additional Details
-+----------------------------------+
-|  Business Type: [_______________]|
-|  (e.g., "Furniture Manufacturing"|
-|  "Clothing Retail", etc.)        |
-|                                  |
-|  Currency: [USD v]               |
-|  Current Balance: [___________]  |
-+----------------------------------+
+SERVICE MODEL:              PRODUCT MODEL:              HYBRID MODEL:
++---------------+           +---------------+           +---------------+
+| Dashboard     |           | Dashboard     |           | Dashboard     |
+| Works >       |           | Products      |           | Works >       |
+|  - Projects   |           | Sales         |           | Products      |
+|  - Tasks      |           | Customers     |           | Sales         |
+|  - Retainers  |           | Inventory     |           | Clients       |
+|  - Renewals   |           | Production    |           | Customers     |
+| Team          |           | Procurement   |           | Inventory     |
+| Clients       |           | Team          |           | Production    |
+| Financials >  |           | Financials >  |           | Procurement   |
+| Analytics     |           | Analytics     |           | Team          |
+| Settings      |           | Settings      |           | Financials >  |
++---------------+           +---------------+           | Analytics     |
+                                                        | Settings      |
+                                                        +---------------+
 ```
+
+---
+
+### Key Technical Points
+
+1. **Business Model Check**: Navigation items are computed using `useMemo` based on `currentBusiness?.businessModel`, with fallback to 'service' for backward compatibility
+
+2. **Route Protection**: All new routes remain within the protected route structure
+
+3. **Business Filtering**: Products and customers are filtered by `businessId` to show only items belonging to the current business
+
+4. **Stock Management**: `UPDATE_PRODUCT_STOCK` action allows increment/decrement of stock without replacing the entire product
+
+5. **Stub Pages**: Production, Procurement, and Inventory pages will be created as simple placeholder components to be expanded in later phases
 
