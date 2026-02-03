@@ -1,419 +1,243 @@
 
 
-## Plan: To-Do List Section with Multi-Assignee Support
+## Plan: To-Do System Enhancements
 
-### Overview
-
-This plan creates a new major section of the app - **To-Do List** - as a standalone productivity hub for managing daily and weekly tasks across all your businesses. Tasks can be assigned to three types of people: **Team Members**, **Partners**, and **Operators** (workspace owners/admins).
+This plan implements three features to enhance the To-Do system: dashboard notifications, recurring tasks, and drag-and-drop rescheduling.
 
 ---
 
-### Assignee Types Explained
+### Feature 1: Dashboard Notifications for Tasks
 
-| Type | Who They Are | Source |
-|------|--------------|--------|
-| **Self** | Current logged-in user | `userSettings.userId` |
-| **Team Members** | Employees/contractors working on tasks | `teamMembers[]` |
-| **Partners** | Business partners (sales/managing) | `partners[]` |
-| **Operators** | Workspace owners/admins managing businesses | `userBusinessAccess[]` (owner/admin roles) |
+Add a notification banner on the main dashboard showing overdue and upcoming tasks, following the existing renewal reminders pattern.
 
----
+**File: `src/hooks/useTodoReminders.ts`** (NEW)
 
-### Part 1: Data Types
-
-**File: `src/types/business.ts`**
-
-Add new ToDo entity with multi-assignee support:
+Create a hook similar to `useRenewalReminders.ts`:
 
 ```typescript
-// To-Do Priority Levels
-export type ToDoPriority = 'low' | 'medium' | 'high' | 'urgent';
+export const useTodoReminders = () => {
+  const { data } = useBusiness();
+  const [dismissed, setDismissed] = useState(false);
 
-// What the to-do is linked to
-export type ToDoLinkType = 
-  | 'project' 
-  | 'quick-task' 
-  | 'retainer' 
-  | 'client' 
-  | 'product' 
-  | 'sales-order'
-  | 'expense'
-  | 'renewal'
-  | 'general';
+  const stats = useMemo(() => {
+    const todos = data.todos || [];
+    const today = new Date().toISOString().split('T')[0];
+    const pending = todos.filter(t => t.status === 'pending');
+    
+    const overdue = pending.filter(t => t.dueDate < today);
+    const dueToday = pending.filter(t => t.dueDate === today);
+    const dueTomorrow = pending.filter(t => /* tomorrow check */);
+    
+    return { overdue, dueToday, dueTomorrow, totalUrgent: overdue.length + dueToday.length };
+  }, [data.todos]);
 
-// Who the task is assigned to
-export type ToDoAssigneeType = 'self' | 'team-member' | 'partner' | 'operator';
-
-// Main To-Do Entity
-export interface ToDo {
-  id: string;
-  businessId?: string;         // Optional - can be cross-business or specific
-  title: string;
-  description?: string;
-  
-  // Timing
-  dueDate: string;             // ISO date (the target date)
-  originalDueDate?: string;    // Tracks if task was carried forward
-  isRecurring?: boolean;
-  recurringPattern?: 'daily' | 'weekly' | 'monthly';
-  
-  // Status
-  status: 'pending' | 'done' | 'cancelled';
-  completedAt?: string;
-  
-  // Priority
-  priority: ToDoPriority;
-  
-  // Assignment - supports multiple assignee types
-  assigneeType: ToDoAssigneeType;
-  assigneeId?: string;         // Team member ID, Partner ID, or Operator userId
-  assigneeName?: string;       // Cached name for quick display
-  createdBy: string;           // Who created this task (userId)
-  
-  // Links to other entities
-  linkType: ToDoLinkType;
-  linkedEntityId?: string;     // ID of the linked project/client/etc.
-  linkedEntityName?: string;   // Cached name for quick display
-  
-  // Metadata
-  tags?: string[];
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-Add to AppData:
-```typescript
-export interface AppData {
-  // ... existing fields
-  todos: ToDo[];
-}
-```
-
----
-
-### Part 2: Reducer for To-Do CRUD
-
-**File: `src/reducers/todoReducer.ts`** (NEW)
-
-```typescript
-import { AppData, ToDo } from '@/types/business';
-import { BusinessAction } from './types';
-
-export const todoReducer = (state: AppData, action: BusinessAction): AppData | null => {
-  switch (action.type) {
-    case 'ADD_TODO':
-      return {
-        ...state,
-        todos: [...(state.todos || []), action.payload],
-      };
-
-    case 'UPDATE_TODO':
-      return {
-        ...state,
-        todos: (state.todos || []).map(todo =>
-          todo.id === action.payload.id
-            ? { ...todo, ...action.payload.updates, updatedAt: new Date().toISOString() }
-            : todo
-        ),
-      };
-
-    case 'DELETE_TODO':
-      return {
-        ...state,
-        todos: (state.todos || []).filter(todo => todo.id !== action.payload),
-      };
-
-    case 'COMPLETE_TODO':
-      return {
-        ...state,
-        todos: (state.todos || []).map(todo =>
-          todo.id === action.payload
-            ? { ...todo, status: 'done', completedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
-            : todo
-        ),
-      };
-
-    case 'CARRY_FORWARD_TODO':
-      return {
-        ...state,
-        todos: (state.todos || []).map(todo =>
-          todo.id === action.payload.id
-            ? { 
-                ...todo, 
-                originalDueDate: todo.originalDueDate || todo.dueDate,
-                dueDate: action.payload.newDueDate,
-                updatedAt: new Date().toISOString() 
-              }
-            : todo
-        ),
-      };
-
-    case 'BULK_CARRY_FORWARD_TODOS':
-      const today = new Date().toISOString().split('T')[0];
-      return {
-        ...state,
-        todos: (state.todos || []).map(todo => {
-          if (action.payload.ids.includes(todo.id)) {
-            return {
-              ...todo,
-              originalDueDate: todo.originalDueDate || todo.dueDate,
-              dueDate: action.payload.newDueDate,
-              updatedAt: new Date().toISOString(),
-            };
-          }
-          return todo;
-        }),
-      };
-
-    default:
-      return null;
-  }
+  return {
+    ...stats,
+    shouldShowReminder: stats.totalUrgent > 0 && !dismissed,
+    dismissReminder: () => setDismissed(true),
+  };
 };
 ```
 
+**File: `src/components/DashboardHome.tsx`** (MODIFY)
+
+Add a task reminder banner below the renewal reminder:
+
+- Red alert for overdue tasks
+- Yellow/orange for tasks due today
+- Show count and "View To-Do" button
+- Dismissible like renewal banner
+
 ---
 
-### Part 3: Action Types
+### Feature 2: Recurring Tasks Functionality
 
-**File: `src/reducers/types.ts`**
+Implement the recurring task logic using the existing `isRecurring` and `recurringPattern` fields.
 
-Add ToDo actions:
+**File: `src/types/business.ts`** (MODIFY)
+
+Add additional recurring task fields:
 
 ```typescript
-import { ToDo } from '@/types/business';
-
-// Add to BusinessAction union:
-// To-Do actions
-| { type: 'ADD_TODO'; payload: ToDo }
-| { type: 'UPDATE_TODO'; payload: { id: string; updates: Partial<ToDo> } }
-| { type: 'DELETE_TODO'; payload: string }
-| { type: 'COMPLETE_TODO'; payload: string }
-| { type: 'CARRY_FORWARD_TODO'; payload: { id: string; newDueDate: string } }
-| { type: 'BULK_CARRY_FORWARD_TODOS'; payload: { ids: string[]; newDueDate: string } }
-```
-
----
-
-### Part 4: To-Do Layout & Sidebar
-
-**File: `src/layouts/TodoLayout.tsx`** (NEW)
-
-Similar structure to BusinessManagementLayout - a standalone section with its own navigation.
-
-**File: `src/components/TodoSidebar.tsx`** (NEW)
-
-Navigation items with badge counts:
-- Overview (summary dashboard)
-- Today (daily focus) - badge: pending count
-- This Week (weekly planning)
-- Upcoming (future tasks)
-- Overdue (urgent attention) - badge: overdue count (red)
-- By Assignee (filter by person)
-- All Tasks (complete list)
-- Back to BizSuite link
-
----
-
-### Part 5: Assignee Selector Component
-
-**File: `src/components/todos/AssigneeSelector.tsx`** (NEW)
-
-A reusable component for selecting assignees across all three types:
-
-```typescript
-interface AssigneeSelectorProps {
-  assigneeType: ToDoAssigneeType;
-  assigneeId?: string;
-  businessId?: string;
-  onSelect: (type: ToDoAssigneeType, id?: string, name?: string) => void;
-}
-
-// Groups assignees into sections:
-// - Self (always first option)
-// - Operators (from userBusinessAccess with owner/admin role)
-// - Team Members (filtered by businessId if provided)
-// - Partners (filtered by businessId if provided)
-```
-
-Visual structure:
-```text
-+----------------------------------+
-| Assign To                        |
-+----------------------------------+
-| ◉ Self                           |
-+----------------------------------+
-| OPERATORS                        |
-|   ○ John Owner (owner)           |
-|   ○ Jane Admin (admin)           |
-+----------------------------------+
-| TEAM MEMBERS                     |
-|   ○ Mike Developer               |
-|   ○ Sarah Designer               |
-+----------------------------------+
-| PARTNERS                         |
-|   ○ Alex Partner (sales)         |
-|   ○ Chris Partner (managing)     |
-+----------------------------------+
-```
-
----
-
-### Part 6: Entity Link Selector Component
-
-**File: `src/components/todos/EntityLinkSelector.tsx`** (NEW)
-
-A component for linking tasks to business entities:
-
-```typescript
-interface EntityLinkSelectorProps {
-  linkType: ToDoLinkType;
-  linkedEntityId?: string;
-  businessId?: string;
-  onSelect: (type: ToDoLinkType, id?: string, name?: string) => void;
-}
-
-// Shows different dropdowns based on business model:
-// Service: Projects, Quick Tasks, Retainers, Clients, Expenses, Renewals
-// Product: Products, Sales Orders, Customers, Expenses
-// Hybrid: All of the above
-```
-
----
-
-### Part 7: To-Do Modal
-
-**File: `src/components/TodoModal.tsx`** (NEW)
-
-Form fields:
-- Title (required)
-- Description (optional)
-- Due Date (date picker)
-- Priority (Low/Medium/High/Urgent)
-- Business (dropdown - optional, for cross-business view)
-- Assign To (AssigneeSelector component)
-  - Self
-  - Select Operator
-  - Select Team Member
-  - Select Partner
-- Link To (EntityLinkSelector component)
-  - None (General task)
-  - Project / Quick Task / Retainer / Client
-  - Product / Sales Order / Customer
-- Notes (optional textarea)
-
----
-
-### Part 8: Core Pages
-
-**File: `src/components/todos/TodoOverview.tsx`** (NEW)
-
-Dashboard showing:
-- Summary cards (Today's tasks, This week, Overdue, Completion rate)
-- Quick-add task form
-- Today's priority tasks
-- Upcoming deadlines
-- Task distribution by assignee (pie chart)
-
-**File: `src/components/todos/TodayPage.tsx`** (NEW)
-
-Daily focus view:
-- Header with date
-- Sections: Overdue (red), Due Today, Completed Today
-- Checkbox to mark done
-- "Carry to Tomorrow" action
-- Assignee avatar/badge on each task
-
-**File: `src/components/todos/WeekPage.tsx`** (NEW)
-
-Weekly planning view:
-- Week header with navigation
-- Daily columns or list view
-- Task counts per day
-- Drag-and-drop (future enhancement)
-
-**File: `src/components/todos/OverduePage.tsx`** (NEW)
-
-Urgent attention view:
-- All overdue tasks prominently displayed
-- "Days overdue" indicator
-- Bulk actions: Complete All, Reschedule All, Cancel All
-- Filtered by assignee option
-
-**File: `src/components/todos/ByAssigneePage.tsx`** (NEW)
-
-View grouped by person:
-- Tabs or dropdown: Self | Operators | Team Members | Partners
-- Shows workload per person
-- Task counts and completion rates
-
-**File: `src/components/todos/AllTodosPage.tsx`** (NEW)
-
-Complete list with filters:
-- Search
-- Filter by: Business, Status, Priority, Assignee Type, Assignee, Link Type
-- Sort by: Due date, Priority, Created date, Assignee
-- Bulk actions
-
----
-
-### Part 9: Routing
-
-**File: `src/App.tsx`**
-
-Add new route group:
-
-```typescript
-import { TodoLayout } from "./layouts/TodoLayout";
-import { TodoOverview } from "./components/todos/TodoOverview";
-// ... other imports
-
-<Route element={<TodoLayout />}>
-  <Route path="/todos" element={<TodoOverview />} />
-  <Route path="/todos/today" element={<TodayPage />} />
-  <Route path="/todos/week" element={<WeekPage />} />
-  <Route path="/todos/upcoming" element={<UpcomingPage />} />
-  <Route path="/todos/overdue" element={<OverduePage />} />
-  <Route path="/todos/by-assignee" element={<ByAssigneePage />} />
-  <Route path="/todos/all" element={<AllTodosPage />} />
-</Route>
-```
-
----
-
-### Part 10: Main App Integration
-
-**File: `src/components/AppSidebar.tsx`**
-
-Add To-Do quick access with overdue badge:
-
-```typescript
-// In navigation items:
-{ 
-  id: 'todos', 
-  label: 'To-Do', 
-  icon: ListTodo, 
-  path: '/todos',
-  badge: overdueCount // Shows red badge if overdue tasks exist
+export interface ToDo {
+  // ... existing fields
+  isRecurring?: boolean;
+  recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  recurringEndDate?: string;          // When to stop recurring
+  parentRecurringId?: string;         // Link to original recurring task
+  lastGeneratedDate?: string;         // Track last auto-generation
 }
 ```
 
+**File: `src/reducers/types.ts`** (MODIFY)
+
+Add new action for completing recurring tasks:
+
+```typescript
+| { type: 'COMPLETE_RECURRING_TODO'; payload: string }
+```
+
+**File: `src/reducers/todoReducer.ts`** (MODIFY)
+
+Add `COMPLETE_RECURRING_TODO` action that:
+1. Marks current task as done
+2. Creates next occurrence based on pattern
+3. Links new task to parent via `parentRecurringId`
+
+```typescript
+case 'COMPLETE_RECURRING_TODO':
+  const todo = state.todos.find(t => t.id === action.payload);
+  if (!todo || !todo.isRecurring) return state;
+  
+  const nextDueDate = calculateNextDate(todo.dueDate, todo.recurringPattern);
+  
+  // Check if within end date
+  if (todo.recurringEndDate && nextDueDate > todo.recurringEndDate) {
+    // Just complete, don't create new
+    return { ...state, todos: state.todos.map(t => t.id === todo.id ? { ...t, status: 'done', completedAt: now } : t) };
+  }
+  
+  const newTodo = {
+    ...todo,
+    id: generateId(),
+    dueDate: nextDueDate,
+    status: 'pending',
+    parentRecurringId: todo.parentRecurringId || todo.id,
+    createdAt: now,
+  };
+  
+  return {
+    ...state,
+    todos: state.todos.map(t => t.id === todo.id ? { ...t, status: 'done', completedAt: now } : t).concat(newTodo),
+  };
+```
+
+**File: `src/components/TodoModal.tsx`** (MODIFY)
+
+Add recurring task options in the form:
+- Toggle: "Recurring task"
+- Frequency dropdown: Daily / Weekly / Monthly
+- Optional end date picker
+
+**File: `src/components/todos/TodoItem.tsx`** (MODIFY)
+
+- Show recurring indicator icon (Repeat icon) on recurring tasks
+- Change complete handler to dispatch `COMPLETE_RECURRING_TODO` for recurring tasks
+
 ---
 
-### Part 11: Initialize Data
+### Feature 3: Drag-and-Drop in Week View
 
-**File: `src/repositories/LocalStorageRepository.ts`**
+Add drag-and-drop functionality to reschedule tasks between days.
 
-Add `todos: []` to initial data structure.
+**Package Installation:**
 
-**File: `src/reducers/rootReducer.ts`**
+```bash
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
+```
 
-Register todoReducer in domain reducers.
+**File: `src/components/todos/DraggableTodoItem.tsx`** (NEW)
 
-**File: `src/reducers/index.ts`**
+Create a draggable wrapper for TodoItem:
 
-Export todoReducer.
+```typescript
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+
+export const DraggableTodoItem: React.FC<{ todo: ToDo }> = ({ todo }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: todo.id,
+    data: { todo },
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <TodoItem todo={todo} compact />
+    </div>
+  );
+};
+```
+
+**File: `src/components/todos/DroppableDay.tsx`** (NEW)
+
+Create a droppable container for each day:
+
+```typescript
+import { useDroppable } from '@dnd-kit/core';
+
+export const DroppableDay: React.FC<{ 
+  date: string; 
+  children: React.ReactNode;
+  isToday: boolean;
+  isPast: boolean;
+}> = ({ date, children, isToday, isPast }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: date,
+    data: { date },
+  });
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      className={cn(
+        "rounded-lg border p-4 min-h-[100px] transition-colors",
+        isToday && "border-primary bg-primary/5",
+        isPast && "opacity-60",
+        isOver && "border-primary border-dashed bg-primary/10"
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+**File: `src/components/todos/WeekPage.tsx`** (MODIFY)
+
+Wrap content with DndContext and handle drag-end events:
+
+```typescript
+import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core';
+
+export const WeekPage: React.FC = () => {
+  const { dispatch } = useBusiness();
+  const [activeTask, setActiveTask] = useState<ToDo | null>(null);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    const todoId = active.id as string;
+    const newDate = over.id as string;
+    
+    dispatch({
+      type: 'CARRY_FORWARD_TODO',
+      payload: { id: todoId, newDueDate: newDate },
+    });
+    
+    setActiveTask(null);
+  };
+
+  return (
+    <DndContext 
+      onDragStart={({ active }) => setActiveTask(active.data.current?.todo)}
+      onDragEnd={handleDragEnd}
+    >
+      {/* Week view with DroppableDay and DraggableTodoItem */}
+      
+      <DragOverlay>
+        {activeTask && <TodoItem todo={activeTask} compact />}
+      </DragOverlay>
+    </DndContext>
+  );
+};
+```
 
 ---
 
@@ -421,173 +245,123 @@ Export todoReducer.
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/types/business.ts` | Modify | Add ToDo interface with multi-assignee types |
-| `src/reducers/types.ts` | Modify | Add ToDo action types |
-| `src/reducers/todoReducer.ts` | Create | CRUD operations for todos |
-| `src/reducers/rootReducer.ts` | Modify | Register todoReducer |
-| `src/reducers/index.ts` | Modify | Export todoReducer |
-| `src/layouts/TodoLayout.tsx` | Create | Layout wrapper for todo pages |
-| `src/components/TodoSidebar.tsx` | Create | Navigation for todo section |
-| `src/components/todos/AssigneeSelector.tsx` | Create | Multi-type assignee picker |
-| `src/components/todos/EntityLinkSelector.tsx` | Create | Entity link picker |
-| `src/components/todos/TodoOverview.tsx` | Create | Overview dashboard |
-| `src/components/todos/TodayPage.tsx` | Create | Daily task view |
-| `src/components/todos/WeekPage.tsx` | Create | Weekly planning view |
-| `src/components/todos/UpcomingPage.tsx` | Create | Future tasks view |
-| `src/components/todos/OverduePage.tsx` | Create | Overdue tasks view |
-| `src/components/todos/AllTodosPage.tsx` | Create | Complete task list |
-| `src/components/todos/ByAssigneePage.tsx` | Create | View by assignee |
-| `src/components/TodoModal.tsx` | Create | Add/Edit todo form |
-| `src/App.tsx` | Modify | Add todo routes |
-| `src/components/AppSidebar.tsx` | Modify | Add todo navigation |
-| `src/repositories/LocalStorageRepository.ts` | Modify | Initialize todos array |
+| `src/hooks/useTodoReminders.ts` | Create | Hook for task notification stats |
+| `src/components/DashboardHome.tsx` | Modify | Add task notification banner |
+| `src/types/business.ts` | Modify | Add recurring task fields |
+| `src/reducers/types.ts` | Modify | Add COMPLETE_RECURRING_TODO action |
+| `src/reducers/todoReducer.ts` | Modify | Implement recurring task completion logic |
+| `src/components/TodoModal.tsx` | Modify | Add recurring task form fields |
+| `src/components/todos/TodoItem.tsx` | Modify | Show recurring icon, handle recurring completion |
+| `src/components/todos/DraggableTodoItem.tsx` | Create | Draggable task wrapper |
+| `src/components/todos/DroppableDay.tsx` | Create | Droppable day container |
+| `src/components/todos/WeekPage.tsx` | Modify | Add DndContext and drag handlers |
+| `package.json` | Modify | Add @dnd-kit dependencies |
 
 ---
 
-### Visual: Assignment Flow
+### Visual: Dashboard with Task Notifications
+
+```text
++------------------------------------------------------------------+
+| Dashboard                                                         |
+| Welcome to Acme Corp                                             |
++------------------------------------------------------------------+
+
++------------------------------------------------------------------+
+| ⚠️ 3 renewals due soon                           [View Renewals] |
+| 1 overdue, 2 due within 7 days                             [X]   |
++------------------------------------------------------------------+
+
++------------------------------------------------------------------+
+| 📋 5 tasks need attention                           [View To-Do] |
+| 2 overdue, 3 due today                                     [X]   |
++------------------------------------------------------------------+
+
+| Active Works | Team Members | Retainer MRR | Team Budget |
+```
+
+---
+
+### Visual: Recurring Task in Modal
 
 ```text
 +----------------------------------------------------------+
 | New Task                                      [Save]      |
 +----------------------------------------------------------+
-| Title: Review Q4 financial reports                        |
-| Due: Feb 5, 2025          Priority: [High ▼]             |
+| Title: Weekly team standup                                |
 +----------------------------------------------------------+
-| Business: [All Businesses ▼] or [Specific Business ▼]    |
+| Due: Feb 10, 2025          Priority: [Medium ▼]          |
 +----------------------------------------------------------+
-| ASSIGN TO                                                 |
+| ☑ Recurring Task                                          |
 +----------------------------------------------------------+
-| ◉ Self                                                    |
-| ○ Operator: John Owner                                    |
-| ○ Operator: Jane Admin                                    |
-| ○ Team Member: Mike Developer                             |
-| ○ Team Member: Sarah Designer                             |
-| ○ Partner: Alex Sales Partner                             |
-| ○ Partner: Chris Managing Partner                         |
-+----------------------------------------------------------+
-| LINK TO                                                   |
-+----------------------------------------------------------+
-| ○ None (General Task)                                     |
-| ○ Project: Website Redesign                               |
-| ○ Client: Acme Corp                                       |
-| ○ Retainer: Monthly Support                               |
+| Frequency: [Weekly ▼]                                     |
+| End Date:  [Optional] [Pick date...]                      |
 +----------------------------------------------------------+
 ```
 
 ---
 
-### Visual: Today's Tasks with Assignees
+### Visual: Week View with Drag-and-Drop
 
 ```text
-+----------------------------------------------------------------+
-| Today - Tuesday, February 4, 2025                  [+ Add Task] |
-| 5 tasks • 2 completed                                           |
-+----------------------------------------------------------------+
++------------------------------------------------------------------+
+| This Week - Feb 3-9, 2025                          [+ Add Task]  |
++------------------------------------------------------------------+
 
-+----------------------------------------------------------------+
-| ⚠️ OVERDUE (1 task)                                             |
-+----------------------------------------------------------------+
-| [ ] Review project proposal                    🔴 HIGH          |
-|     👤 John Owner (operator) • Project: Website Redesign       |
-|     (1 day overdue)                          [↻ Move] [✓ Done] |
-+----------------------------------------------------------------+
++----------------+  +----------------+  +----------------+
+| Mon 3          |  | Tue 4 (Today)  |  | Wed 5          |
+| 2 tasks        |  | 3 tasks        |  | 1 task         |
+|----------------|  |----------------|  |----------------|
+| ≡ Review docs  |  | ≡ Team call    |  | ≡ Submit report|
+| ≡ Email client |  | ≡ Design review|  |                |
+|                |  | ≡ Budget update|  |                |
++----------------+  +----------------+  +----------------+
 
-+----------------------------------------------------------------+
-| DUE TODAY (2 tasks)                                             |
-+----------------------------------------------------------------+
-| [ ] Send invoice to client                    🟡 MEDIUM         |
-|     👤 Self • Client: Acme Corp              [✓ Done]          |
-|                                                                 |
-| [ ] Review design mockups                     🟢 LOW            |
-|     👤 Sarah Designer (team) • Project: App  [✓ Done]          |
-+----------------------------------------------------------------+
+                    ↓ Drag task here ↓
+                    (highlighted when dragging)
 
-+----------------------------------------------------------------+
-| COMPLETED TODAY ✓                                               |
-+----------------------------------------------------------------+
-| [✓] Morning standup notes                     Jane Admin        |
-| [✓] Update client on progress                 Self              |
-+----------------------------------------------------------------+
++----------------+  +----------------+  +----------------+
+| Thu 6          |  | Fri 7          |  | Sat 8          |
+| 0 tasks        |  | 2 tasks        |  | 0 tasks        |
+|----------------|  |----------------|  |----------------|
+| No tasks       |  | ≡ Weekly report|  | No tasks       |
+|                |  | 🔄 Team standup|  |                |
++----------------+  +----------------+  +----------------+
+
+🔄 = Recurring task indicator
+≡ = Drag handle
 ```
-
----
-
-### Visual: By Assignee View
-
-```text
-+----------------------------------------------------------------+
-| Tasks by Assignee                              [+ Add Task]     |
-+----------------------------------------------------------------+
-
-+------------------+------------------+------------------+
-| SELF             | OPERATORS        | TEAM MEMBERS     |
-| 8 tasks          | 12 tasks         | 15 tasks         |
-| 2 overdue        | 1 overdue        | 3 overdue        |
-+------------------+------------------+------------------+
-
-+----------------------------------------------------------------+
-| [Self ▼] [Operators ▼] [Team Members ▼] [Partners ▼]           |
-+----------------------------------------------------------------+
-
-| Assignee          | Pending | Overdue | Done Today | Total     |
-|-------------------|---------|---------|------------|-----------|
-| Self              | 6       | 2       | 4          | 12        |
-| John Owner        | 5       | 0       | 2          | 7         |
-| Jane Admin        | 4       | 1       | 3          | 8         |
-| Mike Developer    | 8       | 2       | 1          | 11        |
-| Sarah Designer    | 4       | 1       | 2          | 7         |
-| Alex Partner      | 3       | 0       | 0          | 3         |
-+----------------------------------------------------------------+
-```
-
----
-
-### Key Behaviors
-
-1. **Multi-Assignee Support**: Tasks can be assigned to Self, Team Members, Partners, or Operators - covering all stakeholders
-
-2. **Operator Detection**: Operators are pulled from `userBusinessAccess` where role is 'owner' or 'admin'
-
-3. **Business Filtering**: When a business is selected, Team Members and Partners are filtered by their `businessIds`
-
-4. **Cross-Business Tasks**: Tasks without a `businessId` are visible across all businesses (for operators managing multiple businesses)
-
-5. **Overdue Detection**: Tasks with `dueDate < today` and `status !== 'done'` are flagged
-
-6. **Carry Forward**: Preserves `originalDueDate` to track how many times a task was postponed
-
-7. **Entity Linking**: Tasks can link to Projects, Clients, Products, etc. based on business model
 
 ---
 
 ### Implementation Order
 
-**Phase 1: Core Infrastructure**
-1. Add ToDo types to business.ts
-2. Add actions to types.ts
-3. Create todoReducer.ts
-4. Register reducer
-5. Initialize todos in repository
+**Phase 1: Dashboard Notifications**
+1. Create `useTodoReminders.ts` hook
+2. Add notification banner to `DashboardHome.tsx`
 
-**Phase 2: Layout & Navigation**
-1. Create TodoLayout.tsx
-2. Create TodoSidebar.tsx
-3. Add routes to App.tsx
-4. Add navigation link in AppSidebar
+**Phase 2: Recurring Tasks**
+1. Update `business.ts` with additional recurring fields
+2. Add `COMPLETE_RECURRING_TODO` action
+3. Implement reducer logic
+4. Update `TodoModal.tsx` with recurring options
+5. Update `TodoItem.tsx` to show indicator and handle completion
 
-**Phase 3: Modal & Selectors**
-1. Create AssigneeSelector component
-2. Create EntityLinkSelector component
-3. Create TodoModal
+**Phase 3: Drag-and-Drop**
+1. Install @dnd-kit packages
+2. Create `DraggableTodoItem.tsx`
+3. Create `DroppableDay.tsx`
+4. Update `WeekPage.tsx` with DndContext
 
-**Phase 4: Core Pages**
-1. TodoOverview (dashboard)
-2. TodayPage (daily focus)
-3. OverduePage (urgent tasks)
+---
 
-**Phase 5: Additional Views**
-1. WeekPage
-2. UpcomingPage
-3. AllTodosPage
-4. ByAssigneePage
+### Technical Notes
+
+1. **Recurring Task ID Chain**: Use `parentRecurringId` to link all instances back to the original task for analytics/history
+
+2. **DndContext Sensors**: Consider adding keyboard sensors for accessibility
+
+3. **Performance**: DragOverlay renders the dragged item outside the normal flow, preventing layout shifts
+
+4. **Touch Support**: @dnd-kit has built-in touch support for mobile drag-and-drop
 
