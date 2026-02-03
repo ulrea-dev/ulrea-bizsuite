@@ -12,6 +12,8 @@ import {
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
 import { TodoItem } from './TodoItem';
+import { ToDo } from '@/types/business';
+import { migrateTodoAssignees } from '@/utils/todoMigration';
 
 export const AllTodosPage: React.FC = () => {
   const { data } = useBusiness();
@@ -21,16 +23,16 @@ export const AllTodosPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [businessFilter, setBusinessFilter] = useState<string>('all');
 
-  const filteredTodos = useMemo(() => {
-    let todos = data.todos || [];
+  const filteredTodos = useMemo((): ToDo[] => {
+    let todos: ToDo[] = (data.todos || []).map(migrateTodoAssignees);
 
-    // Search filter
+    // Search filter - check all assignee names
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       todos = todos.filter(t => 
         t.title.toLowerCase().includes(query) ||
         t.description?.toLowerCase().includes(query) ||
-        t.assigneeName?.toLowerCase().includes(query) ||
+        t.assignees?.some(a => a.name.toLowerCase().includes(query)) ||
         t.linkedEntityName?.toLowerCase().includes(query)
       );
     }

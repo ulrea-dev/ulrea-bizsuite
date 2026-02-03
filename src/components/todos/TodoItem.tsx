@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, MoreHorizontal, CalendarClock, User, Link2, Pencil, Trash2, ArrowRight, Repeat } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Check, MoreHorizontal, CalendarClock, Users, Link2, Pencil, Trash2, ArrowRight, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { ToDo, ToDoPriority } from '@/types/business';
+import { ToDo, ToDoPriority, ToDoAssignee } from '@/types/business';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { TodoModal } from '@/components/TodoModal';
@@ -30,6 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { migrateTodoAssignees, getAssigneeDisplayNames } from '@/utils/todoMigration';
 
 interface TodoItemProps {
   todo: ToDo;
@@ -51,10 +52,14 @@ const priorityIcons: Record<ToDoPriority, string> = {
   urgent: '🔴',
 };
 
-export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) => {
+export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, showDate }) => {
   const { dispatch } = useBusiness();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Migrate legacy single-assignee to array format
+  const todo = useMemo(() => migrateTodoAssignees(rawTodo), [rawTodo]);
+  const assignees = todo.assignees || [];
 
   const today = new Date().toISOString().split('T')[0];
   const isOverdue = todo.dueDate < today && todo.status === 'pending';
@@ -104,10 +109,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) =
               {todo.title}
             </p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {todo.assigneeName && (
+              {assignees.length > 0 && (
                 <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {todo.assigneeName}
+                  <Users className="h-3 w-3" />
+                  {getAssigneeDisplayNames(assignees, 2)}
                 </span>
               )}
               {todo.linkedEntityName && (
@@ -195,14 +200,26 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) =
           )}
           
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            {todo.assigneeName && (
-              <span className="flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {todo.assigneeName}
-                {todo.assigneeType !== 'self' && (
-                  <span className="text-muted-foreground/60">({todo.assigneeType})</span>
-                )}
-              </span>
+            {assignees.length > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1 cursor-default">
+                      <Users className="h-3 w-3" />
+                      {getAssigneeDisplayNames(assignees, 3)}
+                    </span>
+                  </TooltipTrigger>
+                  {assignees.length > 3 && (
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        {assignees.map(a => (
+                          <div key={`${a.type}-${a.id}`}>{a.name}</div>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             )}
             {todo.linkedEntityName && (
               <span className="flex items-center gap-1">

@@ -1,30 +1,38 @@
 import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { X, Users } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { ToDoAssigneeType } from '@/types/business';
+import { ToDoAssignee, ToDoAssigneeType } from '@/types/business';
+import { cn } from '@/lib/utils';
 
 interface AssigneeSelectorProps {
-  assigneeType: ToDoAssigneeType;
-  assigneeId?: string;
+  assignees: ToDoAssignee[];
   businessId?: string;
-  onSelect: (type: ToDoAssigneeType, id?: string, name?: string) => void;
+  onChange: (assignees: ToDoAssignee[]) => void;
+}
+
+interface PersonOption {
+  id: string;
+  name: string;
+  type: ToDoAssigneeType;
+  subtitle?: string;
 }
 
 export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
-  assigneeType,
-  assigneeId,
+  assignees,
   businessId,
-  onSelect,
+  onChange,
 }) => {
   const { data } = useBusiness();
+
+  // Build Self option
+  const selfOption: PersonOption = useMemo(() => ({
+    id: data.userSettings.userId || 'self',
+    name: data.userSettings.username || 'Self',
+    type: 'self',
+  }), [data.userSettings]);
 
   // Get operators (users with owner/admin roles)
   const operators = useMemo(() => {
@@ -34,7 +42,8 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
       .map(access => ({
         id: access.userId,
         name: access.email || `User ${access.userId.slice(0, 8)}`,
-        role: access.role,
+        type: 'operator' as ToDoAssigneeType,
+        subtitle: access.role,
       }));
   }, [data.userBusinessAccess]);
 
@@ -47,7 +56,8 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
     return members.map(m => ({
       id: m.id,
       name: m.name,
-      role: m.role,
+      type: 'team-member' as ToDoAssigneeType,
+      subtitle: m.role,
     }));
   }, [data.teamMembers, businessId]);
 
@@ -60,100 +70,128 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
     return partnerList.map(p => ({
       id: p.id,
       name: p.name,
-      type: p.type,
+      type: 'partner' as ToDoAssigneeType,
+      subtitle: p.type,
     }));
   }, [data.partners, businessId]);
 
-  const handleTypeChange = (type: ToDoAssigneeType) => {
-    if (type === 'self') {
-      onSelect('self', data.userSettings.userId, data.userSettings.username || 'Self');
+  const isSelected = (option: PersonOption) => {
+    return assignees.some(a => a.id === option.id && a.type === option.type);
+  };
+
+  const toggleAssignee = (option: PersonOption) => {
+    if (isSelected(option)) {
+      onChange(assignees.filter(a => !(a.id === option.id && a.type === option.type)));
     } else {
-      onSelect(type, '', '');
+      onChange([...assignees, { type: option.type, id: option.id, name: option.name }]);
     }
   };
 
-  const handlePersonSelect = (personId: string) => {
-    if (assigneeType === 'operator') {
-      const operator = operators.find(o => o.id === personId);
-      onSelect('operator', personId, operator?.name);
-    } else if (assigneeType === 'team-member') {
-      const member = teamMembers.find(m => m.id === personId);
-      onSelect('team-member', personId, member?.name);
-    } else if (assigneeType === 'partner') {
-      const partner = partners.find(p => p.id === personId);
-      onSelect('partner', personId, partner?.name);
-    }
+  const removeAssignee = (assignee: ToDoAssignee) => {
+    onChange(assignees.filter(a => !(a.id === assignee.id && a.type === assignee.type)));
   };
+
+  const renderCheckbox = (option: PersonOption) => (
+    <div
+      key={`${option.type}-${option.id}`}
+      className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+      onClick={() => toggleAssignee(option)}
+    >
+      <Checkbox
+        checked={isSelected(option)}
+        onCheckedChange={() => toggleAssignee(option)}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{option.name}</p>
+        {option.subtitle && (
+          <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-3">
-      <Label>Assign To</Label>
-      
-      <RadioGroup
-        value={assigneeType}
-        onValueChange={(v) => handleTypeChange(v as ToDoAssigneeType)}
-        className="space-y-2"
-      >
-        <div className="flex items-center space-x-2">
-          <RadioGroupItem value="self" id="self" />
-          <Label htmlFor="self" className="font-normal cursor-pointer">
-            Self ({data.userSettings.username || 'Me'})
-          </Label>
+      <div className="flex items-center justify-between">
+        <Label className="flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Assign To
+        </Label>
+        {assignees.length > 0 && (
+          <Badge variant="secondary" className="text-xs">
+            {assignees.length} selected
+          </Badge>
+        )}
+      </div>
+
+      {/* Selected Assignees Chips */}
+      {assignees.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {assignees.map((assignee) => (
+            <Badge
+              key={`${assignee.type}-${assignee.id}`}
+              variant="outline"
+              className="pr-1 flex items-center gap-1"
+            >
+              <span className="text-xs">{assignee.name}</span>
+              <button
+                type="button"
+                onClick={() => removeAssignee(assignee)}
+                className="ml-0.5 hover:bg-muted rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Assignee Options */}
+      <div className="border rounded-lg divide-y max-h-[280px] overflow-y-auto">
+        {/* Self */}
+        <div className="p-2">
+          {renderCheckbox(selfOption)}
         </div>
 
+        {/* Operators */}
         {operators.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="operator" id="operator" />
-            <Label htmlFor="operator" className="font-normal cursor-pointer">
-              Operator
-            </Label>
+          <div className="p-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
+              Operators
+            </p>
+            {operators.map(renderCheckbox)}
           </div>
         )}
 
+        {/* Team Members */}
         {teamMembers.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="team-member" id="team-member" />
-            <Label htmlFor="team-member" className="font-normal cursor-pointer">
-              Team Member
-            </Label>
+          <div className="p-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
+              Team Members
+            </p>
+            {teamMembers.map(renderCheckbox)}
           </div>
         )}
 
+        {/* Partners */}
         {partners.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="partner" id="partner" />
-            <Label htmlFor="partner" className="font-normal cursor-pointer">
-              Partner
-            </Label>
+          <div className="p-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
+              Partners
+            </p>
+            {partners.map(renderCheckbox)}
           </div>
         )}
-      </RadioGroup>
 
-      {/* Person selector dropdown */}
-      {assigneeType !== 'self' && (
-        <Select value={assigneeId || ''} onValueChange={handlePersonSelect}>
-          <SelectTrigger>
-            <SelectValue placeholder={`Select ${assigneeType.replace('-', ' ')}`} />
-          </SelectTrigger>
-          <SelectContent>
-            {assigneeType === 'operator' && operators.map((op) => (
-              <SelectItem key={op.id} value={op.id}>
-                {op.name} ({op.role})
-              </SelectItem>
-            ))}
-            {assigneeType === 'team-member' && teamMembers.map((member) => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.name} • {member.role}
-              </SelectItem>
-            ))}
-            {assigneeType === 'partner' && partners.map((partner) => (
-              <SelectItem key={partner.id} value={partner.id}>
-                {partner.name} ({partner.type})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+        {/* Empty State */}
+        {operators.length === 0 && teamMembers.length === 0 && partners.length === 0 && (
+          <div className="p-4 text-center text-sm text-muted-foreground">
+            No team members or partners available.
+            {businessId && ' Try selecting a different business.'}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

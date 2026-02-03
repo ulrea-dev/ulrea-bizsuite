@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
 import { TodoItem } from './TodoItem';
-import { ToDoAssigneeType } from '@/types/business';
+import { ToDoAssigneeType, ToDo } from '@/types/business';
+import { migrateTodoAssignees } from '@/utils/todoMigration';
 
 export const ByAssigneePage: React.FC = () => {
   const { data } = useBusiness();
@@ -16,19 +17,24 @@ export const ByAssigneePage: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
 
   const { tasksByAssignee, stats } = useMemo(() => {
-    const todos = data.todos || [];
+    const todos = (data.todos || []).map(migrateTodoAssignees);
     const pending = todos.filter(t => t.status === 'pending');
 
-    // Group by assignee type
-    const byType: Record<ToDoAssigneeType, typeof todos> = {
-      self: pending.filter(t => t.assigneeType === 'self'),
-      operator: pending.filter(t => t.assigneeType === 'operator'),
-      'team-member': pending.filter(t => t.assigneeType === 'team-member'),
-      partner: pending.filter(t => t.assigneeType === 'partner'),
+    // Helper to check if a todo has an assignee of a specific type
+    const hasAssigneeType = (todo: ToDo, type: ToDoAssigneeType) => {
+      return todo.assignees?.some(a => a.type === type) || false;
+    };
+
+    // Group by assignee type - a task can appear in multiple groups if it has multiple assignee types
+    const byType: Record<ToDoAssigneeType, ToDo[]> = {
+      self: pending.filter(t => hasAssigneeType(t, 'self')),
+      operator: pending.filter(t => hasAssigneeType(t, 'operator')),
+      'team-member': pending.filter(t => hasAssigneeType(t, 'team-member')),
+      partner: pending.filter(t => hasAssigneeType(t, 'partner')),
     };
 
     // Calculate stats
-    const calcStats = (tasks: typeof todos) => ({
+    const calcStats = (tasks: ToDo[]) => ({
       total: tasks.length,
       overdue: tasks.filter(t => t.dueDate < today).length,
       dueToday: tasks.filter(t => t.dueDate === today).length,
@@ -47,21 +53,24 @@ export const ByAssigneePage: React.FC = () => {
 
   // Get unique assignees for detailed view
   const assigneeDetails = useMemo(() => {
-    const todos = data.todos || [];
+    const todos = (data.todos || []).map(migrateTodoAssignees);
     const pending = todos.filter(t => t.status === 'pending');
     
-    const details: Record<string, { name: string; type: ToDoAssigneeType; tasks: typeof todos }> = {};
+    const details: Record<string, { name: string; type: ToDoAssigneeType; tasks: ToDo[] }> = {};
     
     pending.forEach(todo => {
-      const key = todo.assigneeId || 'self';
-      if (!details[key]) {
-        details[key] = {
-          name: todo.assigneeName || 'Self',
-          type: todo.assigneeType,
-          tasks: [],
-        };
-      }
-      details[key].tasks.push(todo);
+      const assignees = todo.assignees || [];
+      assignees.forEach(assignee => {
+        const key = `${assignee.type}-${assignee.id}`;
+        if (!details[key]) {
+          details[key] = {
+            name: assignee.name,
+            type: assignee.type,
+            tasks: [],
+          };
+        }
+        details[key].tasks.push(todo);
+      });
     });
 
     return Object.entries(details).sort((a, b) => b[1].tasks.length - a[1].tasks.length);
