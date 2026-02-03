@@ -109,9 +109,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       { id: 'procurement', label: 'Procurement', icon: Truck, path: '/procurement' },
     ];
     
-    // Common items for all models
+    // Common items for all models (Team moved to Admin Console)
     const commonItems: NavItem[] = [
-      { id: 'team', label: 'Team', icon: Users, path: '/team' },
       { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials', subItems: financialsSubItems },
       { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
       { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },

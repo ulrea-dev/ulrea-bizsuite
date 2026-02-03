@@ -12,7 +12,8 @@ import {
   Sun,
   Download,
   Users,
-  Layers
+  Layers,
+  UserCog
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -40,6 +41,7 @@ const navigationItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, path: '/business-management' },
   { id: 'businesses', label: 'Businesses', icon: Building2, path: '/business-management/businesses' },
   { id: 'business-access', label: 'Business Access', icon: Users, path: '/business-management/business-access' },
+  { id: 'team-members', label: 'Team Members', icon: UserCog, path: '/business-management/team-members' },
   { id: 'bank-accounts', label: 'Bank Accounts', icon: Wallet, path: '/business-management/bank-accounts' },
   { id: 'partners', label: 'Partners', icon: Users, path: '/business-management/partners' },
   { id: 'partner-allocations', label: 'Partner Allocations', icon: Layers, path: '/business-management/partner-allocations' },

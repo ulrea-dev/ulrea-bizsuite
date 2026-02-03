@@ -18,7 +18,6 @@ import RetainersPage from "./pages/RetainersPage";
 import RenewalsDashboardPage from "./pages/RenewalsDashboardPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import RetainerDetailPage from "./pages/RetainerDetailPage";
-import TeamPage from "./pages/TeamPage";
 import ClientsPage from "./pages/ClientsPage";
 import RevenuePage from "./pages/RevenuePage";
 import PaymentsPage from "./pages/PaymentsPage";
@@ -30,6 +29,7 @@ import SettingsPage from "./pages/SettingsPage";
 import { AdminOverview } from "./components/admin/AdminOverview";
 import { BusinessesPage } from "./components/admin/BusinessesPage";
 import { BusinessAccessPage } from "./components/admin/BusinessAccessPage";
+import { TeamMembersPage } from "./components/admin/TeamMembersPage";
 import { BankAccountsPage } from "./components/admin/BankAccountsPage";
 import { PartnersPage as AdminPartnersPage } from "./components/admin/PartnersPage";
 import { PartnerAllocationsPage } from "./components/admin/PartnerAllocationsPage";
@@ -128,7 +128,7 @@ const App = () => (
               <Route path="/projects" element={<Navigate to="/works/projects" replace />} />
               <Route path="/projects/:projectId" element={<Navigate to="/works/projects" replace />} />
               
-              <Route path="/team" element={<TeamPage />} />
+              <Route path="/team" element={<Navigate to="/business-management/team-members" replace />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
@@ -137,6 +137,7 @@ const App = () => (
               <Route path="/business-management" element={<AdminOverview />} />
               <Route path="/business-management/businesses" element={<BusinessesPage />} />
               <Route path="/business-management/business-access" element={<BusinessAccessPage />} />
+              <Route path="/business-management/team-members" element={<TeamMembersPage />} />
               <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
               <Route path="/business-management/partners" element={<AdminPartnersPage />} />
               <Route path="/business-management/partner-allocations" element={<PartnerAllocationsPage />} />
