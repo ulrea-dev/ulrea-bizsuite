@@ -1,241 +1,184 @@
 
 
-## Plan: To-Do System Enhancements
+## Plan: Multi-Assignee Support for To-Do Tasks
 
-This plan implements three features to enhance the To-Do system: dashboard notifications, recurring tasks, and drag-and-drop rescheduling.
+### Overview
 
----
-
-### Feature 1: Dashboard Notifications for Tasks
-
-Add a notification banner on the main dashboard showing overdue and upcoming tasks, following the existing renewal reminders pattern.
-
-**File: `src/hooks/useTodoReminders.ts`** (NEW)
-
-Create a hook similar to `useRenewalReminders.ts`:
-
-```typescript
-export const useTodoReminders = () => {
-  const { data } = useBusiness();
-  const [dismissed, setDismissed] = useState(false);
-
-  const stats = useMemo(() => {
-    const todos = data.todos || [];
-    const today = new Date().toISOString().split('T')[0];
-    const pending = todos.filter(t => t.status === 'pending');
-    
-    const overdue = pending.filter(t => t.dueDate < today);
-    const dueToday = pending.filter(t => t.dueDate === today);
-    const dueTomorrow = pending.filter(t => /* tomorrow check */);
-    
-    return { overdue, dueToday, dueTomorrow, totalUrgent: overdue.length + dueToday.length };
-  }, [data.todos]);
-
-  return {
-    ...stats,
-    shouldShowReminder: stats.totalUrgent > 0 && !dismissed,
-    dismissReminder: () => setDismissed(true),
-  };
-};
-```
-
-**File: `src/components/DashboardHome.tsx`** (MODIFY)
-
-Add a task reminder banner below the renewal reminder:
-
-- Red alert for overdue tasks
-- Yellow/orange for tasks due today
-- Show count and "View To-Do" button
-- Dismissible like renewal banner
+This plan modifies the To-Do system to allow assigning tasks to multiple people across Operators, Team Members, and Partners. Currently, tasks can only have a single assignee - this change will allow multiple assignees per task.
 
 ---
 
-### Feature 2: Recurring Tasks Functionality
+### Current vs New Data Model
 
-Implement the recurring task logic using the existing `isRecurring` and `recurringPattern` fields.
-
-**File: `src/types/business.ts`** (MODIFY)
-
-Add additional recurring task fields:
-
+**Current (Single Assignee):**
 ```typescript
-export interface ToDo {
-  // ... existing fields
-  isRecurring?: boolean;
-  recurringPattern?: 'daily' | 'weekly' | 'monthly';
-  recurringEndDate?: string;          // When to stop recurring
-  parentRecurringId?: string;         // Link to original recurring task
-  lastGeneratedDate?: string;         // Track last auto-generation
+interface ToDo {
+  assigneeType: ToDoAssigneeType;  // 'self' | 'team-member' | 'partner' | 'operator'
+  assigneeId?: string;
+  assigneeName?: string;
 }
 ```
 
-**File: `src/reducers/types.ts`** (MODIFY)
-
-Add new action for completing recurring tasks:
-
+**New (Multiple Assignees):**
 ```typescript
-| { type: 'COMPLETE_RECURRING_TODO'; payload: string }
+interface ToDoAssignee {
+  type: ToDoAssigneeType;
+  id: string;
+  name: string;
+}
+
+interface ToDo {
+  assignees: ToDoAssignee[];  // Array of assignees
+  // Keep legacy fields for backward compatibility during migration
+  assigneeType?: ToDoAssigneeType;
+  assigneeId?: string;
+  assigneeName?: string;
+}
 ```
-
-**File: `src/reducers/todoReducer.ts`** (MODIFY)
-
-Add `COMPLETE_RECURRING_TODO` action that:
-1. Marks current task as done
-2. Creates next occurrence based on pattern
-3. Links new task to parent via `parentRecurringId`
-
-```typescript
-case 'COMPLETE_RECURRING_TODO':
-  const todo = state.todos.find(t => t.id === action.payload);
-  if (!todo || !todo.isRecurring) return state;
-  
-  const nextDueDate = calculateNextDate(todo.dueDate, todo.recurringPattern);
-  
-  // Check if within end date
-  if (todo.recurringEndDate && nextDueDate > todo.recurringEndDate) {
-    // Just complete, don't create new
-    return { ...state, todos: state.todos.map(t => t.id === todo.id ? { ...t, status: 'done', completedAt: now } : t) };
-  }
-  
-  const newTodo = {
-    ...todo,
-    id: generateId(),
-    dueDate: nextDueDate,
-    status: 'pending',
-    parentRecurringId: todo.parentRecurringId || todo.id,
-    createdAt: now,
-  };
-  
-  return {
-    ...state,
-    todos: state.todos.map(t => t.id === todo.id ? { ...t, status: 'done', completedAt: now } : t).concat(newTodo),
-  };
-```
-
-**File: `src/components/TodoModal.tsx`** (MODIFY)
-
-Add recurring task options in the form:
-- Toggle: "Recurring task"
-- Frequency dropdown: Daily / Weekly / Monthly
-- Optional end date picker
-
-**File: `src/components/todos/TodoItem.tsx`** (MODIFY)
-
-- Show recurring indicator icon (Repeat icon) on recurring tasks
-- Change complete handler to dispatch `COMPLETE_RECURRING_TODO` for recurring tasks
 
 ---
 
-### Feature 3: Drag-and-Drop in Week View
+### Part 1: Data Type Updates
 
-Add drag-and-drop functionality to reschedule tasks between days.
+**File: `src/types/business.ts`**
 
-**Package Installation:**
-
-```bash
-npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
-```
-
-**File: `src/components/todos/DraggableTodoItem.tsx`** (NEW)
-
-Create a draggable wrapper for TodoItem:
+Add new interface and update ToDo:
 
 ```typescript
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+// New interface for individual assignee
+export interface ToDoAssignee {
+  type: ToDoAssigneeType;
+  id: string;
+  name: string;
+}
 
-export const DraggableTodoItem: React.FC<{ todo: ToDo }> = ({ todo }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: todo.id,
-    data: { todo },
-  });
+export interface ToDo {
+  // ... existing fields
+  
+  // NEW: Multiple assignees support
+  assignees: ToDoAssignee[];
+  
+  // DEPRECATED: Keep for backward compatibility
+  assigneeType?: ToDoAssigneeType;
+  assigneeId?: string;
+  assigneeName?: string;
+}
+```
 
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.5 : 1,
+---
+
+### Part 2: Multi-Select Assignee Component
+
+**File: `src/components/todos/AssigneeSelector.tsx`** (MODIFY)
+
+Transform from radio/single-select to checkbox/multi-select:
+
+- Replace RadioGroup with Checkbox list
+- Group by category: Self, Operators, Team Members, Partners
+- Show selected count badge
+- Display selected assignees as chips/badges
+- Allow removing individual assignees
+
+Visual structure:
+```text
++------------------------------------------+
+| Assignees (3 selected)                    |
++------------------------------------------+
+| ☑ Self                                    |
++------------------------------------------+
+| OPERATORS                                 |
+|   ☐ John Owner (owner)                    |
+|   ☑ Jane Admin (admin)                    |
++------------------------------------------+
+| TEAM MEMBERS                              |
+|   ☑ Mike Developer                        |
+|   ☐ Sarah Designer                        |
++------------------------------------------+
+| PARTNERS                                  |
+|   ☐ Alex Sales Partner                    |
+|   ☐ Chris Managing Partner                |
++------------------------------------------+
+| Selected:                                 |
+| [Self ×] [Jane Admin ×] [Mike ×]         |
++------------------------------------------+
+```
+
+---
+
+### Part 3: Update Todo Modal
+
+**File: `src/components/TodoModal.tsx`** (MODIFY)
+
+- Change state from single assignee to array:
+  ```typescript
+  const [assignees, setAssignees] = useState<ToDoAssignee[]>([]);
+  ```
+- Update AssigneeSelector props and callbacks
+- Save `assignees` array to todo data
+- Initialize from existing todo's assignees array
+
+---
+
+### Part 4: Update Todo Item Display
+
+**File: `src/components/todos/TodoItem.tsx`** (MODIFY)
+
+Display multiple assignees:
+- Show avatar stack or comma-separated names
+- Tooltip showing full list if many assignees
+- Handle both old `assigneeName` and new `assignees` array for backward compatibility
+
+```text
+Before: 👤 John Owner (operator)
+After:  👤 Self, Jane Admin, Mike  (+2 more)
+```
+
+---
+
+### Part 5: Update Filtering Logic
+
+**File: `src/components/todos/ByAssigneePage.tsx`** (MODIFY)
+
+- Update filter logic to check if assignee exists in `assignees` array
+- Count tasks per assignee correctly when task has multiple assignees
+
+**File: `src/components/todos/AllTodosPage.tsx`** (MODIFY)
+
+- Add assignee filter dropdown
+- Search should check all assignee names
+
+---
+
+### Part 6: Backward Compatibility Migration
+
+**File: `src/utils/todoMigration.ts`** (NEW)
+
+Create a migration utility that converts old single-assignee format to new array format:
+
+```typescript
+export const migrateTodoAssignees = (todo: ToDo): ToDo => {
+  // If already has assignees array, return as-is
+  if (todo.assignees && todo.assignees.length > 0) {
+    return todo;
+  }
+  
+  // Migrate from legacy single assignee
+  if (todo.assigneeType && todo.assigneeId) {
+    return {
+      ...todo,
+      assignees: [{
+        type: todo.assigneeType,
+        id: todo.assigneeId,
+        name: todo.assigneeName || 'Unknown',
+      }],
+    };
+  }
+  
+  // Default to self
+  return {
+    ...todo,
+    assignees: [],
   };
-
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <TodoItem todo={todo} compact />
-    </div>
-  );
-};
-```
-
-**File: `src/components/todos/DroppableDay.tsx`** (NEW)
-
-Create a droppable container for each day:
-
-```typescript
-import { useDroppable } from '@dnd-kit/core';
-
-export const DroppableDay: React.FC<{ 
-  date: string; 
-  children: React.ReactNode;
-  isToday: boolean;
-  isPast: boolean;
-}> = ({ date, children, isToday, isPast }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: date,
-    data: { date },
-  });
-
-  return (
-    <div 
-      ref={setNodeRef} 
-      className={cn(
-        "rounded-lg border p-4 min-h-[100px] transition-colors",
-        isToday && "border-primary bg-primary/5",
-        isPast && "opacity-60",
-        isOver && "border-primary border-dashed bg-primary/10"
-      )}
-    >
-      {children}
-    </div>
-  );
-};
-```
-
-**File: `src/components/todos/WeekPage.tsx`** (MODIFY)
-
-Wrap content with DndContext and handle drag-end events:
-
-```typescript
-import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core';
-
-export const WeekPage: React.FC = () => {
-  const { dispatch } = useBusiness();
-  const [activeTask, setActiveTask] = useState<ToDo | null>(null);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (!over || active.id === over.id) return;
-    
-    const todoId = active.id as string;
-    const newDate = over.id as string;
-    
-    dispatch({
-      type: 'CARRY_FORWARD_TODO',
-      payload: { id: todoId, newDueDate: newDate },
-    });
-    
-    setActiveTask(null);
-  };
-
-  return (
-    <DndContext 
-      onDragStart={({ active }) => setActiveTask(active.data.current?.todo)}
-      onDragEnd={handleDragEnd}
-    >
-      {/* Week view with DroppableDay and DraggableTodoItem */}
-      
-      <DragOverlay>
-        {activeTask && <TodoItem todo={activeTask} compact />}
-      </DragOverlay>
-    </DndContext>
-  );
 };
 ```
 
@@ -245,123 +188,87 @@ export const WeekPage: React.FC = () => {
 
 | File | Action | Description |
 |------|--------|-------------|
-| `src/hooks/useTodoReminders.ts` | Create | Hook for task notification stats |
-| `src/components/DashboardHome.tsx` | Modify | Add task notification banner |
-| `src/types/business.ts` | Modify | Add recurring task fields |
-| `src/reducers/types.ts` | Modify | Add COMPLETE_RECURRING_TODO action |
-| `src/reducers/todoReducer.ts` | Modify | Implement recurring task completion logic |
-| `src/components/TodoModal.tsx` | Modify | Add recurring task form fields |
-| `src/components/todos/TodoItem.tsx` | Modify | Show recurring icon, handle recurring completion |
-| `src/components/todos/DraggableTodoItem.tsx` | Create | Draggable task wrapper |
-| `src/components/todos/DroppableDay.tsx` | Create | Droppable day container |
-| `src/components/todos/WeekPage.tsx` | Modify | Add DndContext and drag handlers |
-| `package.json` | Modify | Add @dnd-kit dependencies |
+| `src/types/business.ts` | Modify | Add ToDoAssignee interface, update ToDo |
+| `src/components/todos/AssigneeSelector.tsx` | Modify | Convert to multi-select checkbox UI |
+| `src/components/TodoModal.tsx` | Modify | Handle assignees array state |
+| `src/components/todos/TodoItem.tsx` | Modify | Display multiple assignees |
+| `src/components/todos/ByAssigneePage.tsx` | Modify | Update filter logic for arrays |
+| `src/components/todos/AllTodosPage.tsx` | Modify | Add assignee filter (already has status filter) |
+| `src/utils/todoMigration.ts` | Create | Migration utility for backward compatibility |
 
 ---
 
-### Visual: Dashboard with Task Notifications
-
-```text
-+------------------------------------------------------------------+
-| Dashboard                                                         |
-| Welcome to Acme Corp                                             |
-+------------------------------------------------------------------+
-
-+------------------------------------------------------------------+
-| ⚠️ 3 renewals due soon                           [View Renewals] |
-| 1 overdue, 2 due within 7 days                             [X]   |
-+------------------------------------------------------------------+
-
-+------------------------------------------------------------------+
-| 📋 5 tasks need attention                           [View To-Do] |
-| 2 overdue, 3 due today                                     [X]   |
-+------------------------------------------------------------------+
-
-| Active Works | Team Members | Retainer MRR | Team Budget |
-```
-
----
-
-### Visual: Recurring Task in Modal
+### Visual: Multi-Assignee in Todo Modal
 
 ```text
 +----------------------------------------------------------+
 | New Task                                      [Save]      |
 +----------------------------------------------------------+
-| Title: Weekly team standup                                |
+| Title: Review Q4 financial reports                        |
+| Due: Feb 5, 2025          Priority: [High ▼]             |
 +----------------------------------------------------------+
-| Due: Feb 10, 2025          Priority: [Medium ▼]          |
+| ASSIGNEES                                                 |
 +----------------------------------------------------------+
-| ☑ Recurring Task                                          |
-+----------------------------------------------------------+
-| Frequency: [Weekly ▼]                                     |
-| End Date:  [Optional] [Pick date...]                      |
+| ☑ Self                                                    |
+|                                                          |
+| OPERATORS                                                 |
+| ☐ John Owner (owner)                                      |
+| ☑ Jane Admin (admin)                                      |
+|                                                          |
+| TEAM MEMBERS                                              |
+| ☑ Mike Developer                                          |
+| ☐ Sarah Designer                                          |
+|                                                          |
+| PARTNERS                                                  |
+| ☐ Alex Sales Partner                                      |
+|                                                          |
+| Selected: [Self ×] [Jane Admin ×] [Mike Developer ×]     |
 +----------------------------------------------------------+
 ```
 
 ---
 
-### Visual: Week View with Drag-and-Drop
+### Visual: Multi-Assignee Display in Task Item
 
 ```text
-+------------------------------------------------------------------+
-| This Week - Feb 3-9, 2025                          [+ Add Task]  |
-+------------------------------------------------------------------+
++----------------------------------------------------------------+
+| [ ] Review Q4 financial reports              🟠 HIGH            |
+|     👤 Self, Jane Admin, Mike Developer                        |
+|     🔗 Project: Website Redesign                               |
+|     📅 Feb 5, 2025                                             |
++----------------------------------------------------------------+
 
-+----------------+  +----------------+  +----------------+
-| Mon 3          |  | Tue 4 (Today)  |  | Wed 5          |
-| 2 tasks        |  | 3 tasks        |  | 1 task         |
-|----------------|  |----------------|  |----------------|
-| ≡ Review docs  |  | ≡ Team call    |  | ≡ Submit report|
-| ≡ Email client |  | ≡ Design review|  |                |
-|                |  | ≡ Budget update|  |                |
-+----------------+  +----------------+  +----------------+
-
-                    ↓ Drag task here ↓
-                    (highlighted when dragging)
-
-+----------------+  +----------------+  +----------------+
-| Thu 6          |  | Fri 7          |  | Sat 8          |
-| 0 tasks        |  | 2 tasks        |  | 0 tasks        |
-|----------------|  |----------------|  |----------------|
-| No tasks       |  | ≡ Weekly report|  | No tasks       |
-|                |  | 🔄 Team standup|  |                |
-+----------------+  +----------------+  +----------------+
-
-🔄 = Recurring task indicator
-≡ = Drag handle
+With overflow (more than 3 assignees):
++----------------------------------------------------------------+
+| [ ] Large team task                          🟡 MEDIUM          |
+|     👤 Self, Jane Admin, Mike... (+2 more)                     |
+|     📅 Feb 6, 2025                                             |
++----------------------------------------------------------------+
 ```
+
+---
+
+### Note on Status Filter
+
+The status filter (pending/done/cancelled) already exists in `AllTodosPage.tsx` at lines 89-98. It's fully functional with the current implementation. No changes needed for status filtering.
 
 ---
 
 ### Implementation Order
 
-**Phase 1: Dashboard Notifications**
-1. Create `useTodoReminders.ts` hook
-2. Add notification banner to `DashboardHome.tsx`
+**Phase 1: Data Model**
+1. Add `ToDoAssignee` interface to `business.ts`
+2. Update `ToDo` interface with `assignees` array
+3. Create migration utility
 
-**Phase 2: Recurring Tasks**
-1. Update `business.ts` with additional recurring fields
-2. Add `COMPLETE_RECURRING_TODO` action
-3. Implement reducer logic
-4. Update `TodoModal.tsx` with recurring options
-5. Update `TodoItem.tsx` to show indicator and handle completion
+**Phase 2: Selector Component**
+1. Rewrite `AssigneeSelector.tsx` for multi-select
 
-**Phase 3: Drag-and-Drop**
-1. Install @dnd-kit packages
-2. Create `DraggableTodoItem.tsx`
-3. Create `DroppableDay.tsx`
-4. Update `WeekPage.tsx` with DndContext
+**Phase 3: Modal & Display**
+1. Update `TodoModal.tsx` state management
+2. Update `TodoItem.tsx` display logic
 
----
-
-### Technical Notes
-
-1. **Recurring Task ID Chain**: Use `parentRecurringId` to link all instances back to the original task for analytics/history
-
-2. **DndContext Sensors**: Consider adding keyboard sensors for accessibility
-
-3. **Performance**: DragOverlay renders the dragged item outside the normal flow, preventing layout shifts
-
-4. **Touch Support**: @dnd-kit has built-in touch support for mobile drag-and-drop
+**Phase 4: Filtering**
+1. Update `ByAssigneePage.tsx` filter logic
+2. Add assignee filter to `AllTodosPage.tsx` if needed
 
