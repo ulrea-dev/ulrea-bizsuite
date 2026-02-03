@@ -29,6 +29,8 @@ import {
   Receivable,
   RenewalPayment,
   UserBusinessAccess,
+  Product,
+  Customer,
 } from '@/types/business';
 
 /**
@@ -150,4 +152,13 @@ export type BusinessAction =
   | { type: 'DELETE_RENEWAL_PAYMENT'; payload: string }
   // User Business Access actions
   | { type: 'UPDATE_USER_BUSINESS_ACCESS'; payload: UserBusinessAccess[] }
-  | { type: 'SET_USER_ID'; payload: string };
+  | { type: 'SET_USER_ID'; payload: string }
+  // Product actions
+  | { type: 'ADD_PRODUCT'; payload: Product }
+  | { type: 'UPDATE_PRODUCT'; payload: { id: string; updates: Partial<Product> } }
+  | { type: 'DELETE_PRODUCT'; payload: string }
+  | { type: 'UPDATE_PRODUCT_STOCK'; payload: { id: string; quantity: number; type: 'add' | 'subtract' } }
+  // Customer actions
+  | { type: 'ADD_CUSTOMER'; payload: Customer }
+  | { type: 'UPDATE_CUSTOMER'; payload: { id: string; updates: Partial<Customer> } }
+  | { type: 'DELETE_CUSTOMER'; payload: string };

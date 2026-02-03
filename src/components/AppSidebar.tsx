@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown, FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt, CreditCard } from 'lucide-react';
+import { Building2, Home, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown, FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt, CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -34,29 +34,35 @@ interface AppSidebarProps {
   onCreateBusiness: () => void;
 }
 
-const worksSubItems = [
+interface NavSubItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+}
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  subItems?: NavSubItem[];
+}
+
+// Service-based sub-items
+const worksSubItems: NavSubItem[] = [
   { id: 'projects', label: 'Projects', icon: FolderKanban, path: '/works/projects' },
   { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks, path: '/works/quick-tasks' },
   { id: 'retainers', label: 'Retainers', icon: Repeat, path: '/works/retainers' },
   { id: 'renewals', label: 'Renewals', icon: Calendar, path: '/works/renewals' },
 ];
 
-const financialsSubItems = [
+const financialsSubItems: NavSubItem[] = [
   { id: 'revenue', label: 'Revenue', icon: TrendingUp, path: '/financials/revenue' },
   { id: 'payments', label: 'Payments', icon: CreditCard, path: '/financials/payments' },
   { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/financials/expenses' },
   { id: 'salaries', label: 'Payroll', icon: Users, path: '/financials/salaries' },
   { id: 'tasks', label: 'Task Payments', icon: ListChecks, path: '/financials/tasks' },
-];
-
-const navigationItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { id: 'works', label: 'Works', icon: Briefcase, path: '/works', subItems: worksSubItems },
-  { id: 'team', label: 'Team', icon: Users, path: '/team' },
-  { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
-  { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials', subItems: financialsSubItems },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({ 
@@ -77,6 +83,50 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     works: location.pathname.startsWith('/works'),
     financials: location.pathname.startsWith('/financials'),
   });
+
+  // Dynamic navigation based on business model
+  const navigationItems = useMemo((): NavItem[] => {
+    const businessModel = currentBusiness?.businessModel || 'service';
+    
+    // Base items for all models
+    const baseItems: NavItem[] = [
+      { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
+    ];
+    
+    // Service-specific items
+    const serviceItems: NavItem[] = [
+      { id: 'works', label: 'Works', icon: Briefcase, path: '/works', subItems: worksSubItems },
+      { id: 'clients', label: 'Clients', icon: UserCheck, path: '/clients' },
+    ];
+    
+    // Product-specific items
+    const productItems: NavItem[] = [
+      { id: 'products', label: 'Products', icon: Package, path: '/products' },
+      { id: 'sales', label: 'Sales', icon: ShoppingCart, path: '/sales' },
+      { id: 'customers', label: 'Customers', icon: Users, path: '/customers' },
+      { id: 'inventory', label: 'Inventory', icon: Warehouse, path: '/inventory' },
+      { id: 'production', label: 'Production', icon: Factory, path: '/production' },
+      { id: 'procurement', label: 'Procurement', icon: Truck, path: '/procurement' },
+    ];
+    
+    // Common items for all models
+    const commonItems: NavItem[] = [
+      { id: 'team', label: 'Team', icon: Users, path: '/team' },
+      { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials', subItems: financialsSubItems },
+      { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
+      { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+    ];
+    
+    // Build navigation based on business model
+    if (businessModel === 'service') {
+      return [...baseItems, ...serviceItems, ...commonItems];
+    } else if (businessModel === 'product') {
+      return [...baseItems, ...productItems, ...commonItems];
+    } else {
+      // Hybrid - show both service and product items
+      return [...baseItems, ...serviceItems, ...productItems, ...commonItems];
+    }
+  }, [currentBusiness?.businessModel]);
 
   const handleBackupDownload = async () => {
     try {
