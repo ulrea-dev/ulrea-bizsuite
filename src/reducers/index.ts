@@ -13,3 +13,5 @@ export { paymentReducer } from './paymentReducer';
 export { salaryReducer } from './salaryReducer';
 export { settingsReducer } from './settingsReducer';
 export { taskReducer } from './taskReducer';
+export { productReducer } from './productReducer';
+export { customerReducer } from './customerReducer';

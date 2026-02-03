@@ -35,6 +35,12 @@ import { PartnersPage as AdminPartnersPage } from "./components/admin/PartnersPa
 import { PartnerAllocationsPage } from "./components/admin/PartnerAllocationsPage";
 import { PayablesPage } from "./components/admin/PayablesPage";
 import { ReceivablesPage } from "./components/admin/ReceivablesPage";
+import ProductsPage from "./pages/ProductsPage";
+import CustomersPage from "./pages/CustomersPage";
+import SalesPage from "./pages/SalesPage";
+import InventoryPage from "./pages/InventoryPage";
+import ProductionPage from "./pages/ProductionPage";
+import ProcurementPage from "./pages/ProcurementPage";
 
 // Component to handle Google Drive modals and overlays
 const GoogleDriveOverlays = () => {
@@ -101,6 +107,14 @@ const App = () => (
               <Route path="/works/retainers" element={<RetainersPage />} />
               <Route path="/works/retainers/:retainerId" element={<RetainerDetailPage />} />
               <Route path="/works/renewals" element={<RenewalsDashboardPage />} />
+              
+              {/* Products Section (for product/hybrid businesses) */}
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/inventory" element={<InventoryPage />} />
+              <Route path="/production" element={<ProductionPage />} />
+              <Route path="/procurement" element={<ProcurementPage />} />
               
               {/* Financials Section */}
               <Route path="/financials" element={<Navigate to="/financials/revenue" replace />} />
