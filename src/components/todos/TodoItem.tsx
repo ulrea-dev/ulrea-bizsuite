@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, MoreHorizontal, CalendarClock, User, Link2, Pencil, Trash2, ArrowRight } from 'lucide-react';
+import { Check, MoreHorizontal, CalendarClock, User, Link2, Pencil, Trash2, ArrowRight, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface TodoItemProps {
   todo: ToDo;
@@ -55,7 +61,11 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) =
   const daysOverdue = isOverdue ? differenceInDays(new Date(), new Date(todo.dueDate)) : 0;
 
   const handleComplete = () => {
-    dispatch({ type: 'COMPLETE_TODO', payload: todo.id });
+    if (todo.isRecurring) {
+      dispatch({ type: 'COMPLETE_RECURRING_TODO', payload: todo.id });
+    } else {
+      dispatch({ type: 'COMPLETE_TODO', payload: todo.id });
+    }
   };
 
   const handleCarryForward = () => {
@@ -114,6 +124,18 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) =
                   {daysOverdue}d overdue
                 </Badge>
               )}
+              {todo.isRecurring && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Repeat className="h-3 w-3 text-primary" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Repeats {todo.recurringPattern}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
           <span className="text-sm">{priorityIcons[todo.priority]}</span>
@@ -150,6 +172,22 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo, compact, showDate }) =
             <Badge variant="outline" className={cn("text-xs", priorityColors[todo.priority])}>
               {todo.priority}
             </Badge>
+            {todo.isRecurring && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <Repeat className="h-3 w-3" />
+                      {todo.recurringPattern}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Repeats {todo.recurringPattern}
+                    {todo.recurringEndDate && ` until ${format(new Date(todo.recurringEndDate), 'MMM d, yyyy')}`}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           
           {todo.description && (

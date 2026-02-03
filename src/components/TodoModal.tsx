@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Repeat } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -49,6 +50,9 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
   const [linkedEntityId, setLinkedEntityId] = useState<string>('');
   const [linkedEntityName, setLinkedEntityName] = useState<string>('');
   const [notes, setNotes] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringPattern, setRecurringPattern] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [recurringEndDate, setRecurringEndDate] = useState<Date | undefined>(undefined);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -66,6 +70,9 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
         setLinkedEntityId(todo.linkedEntityId || '');
         setLinkedEntityName(todo.linkedEntityName || '');
         setNotes(todo.notes || '');
+        setIsRecurring(todo.isRecurring || false);
+        setRecurringPattern(todo.recurringPattern || 'weekly');
+        setRecurringEndDate(todo.recurringEndDate ? new Date(todo.recurringEndDate) : undefined);
       } else {
         setTitle('');
         setDescription('');
@@ -79,6 +86,9 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
         setLinkedEntityId('');
         setLinkedEntityName('');
         setNotes('');
+        setIsRecurring(false);
+        setRecurringPattern('weekly');
+        setRecurringEndDate(undefined);
       }
     }
   }, [open, todo, data.currentBusinessId]);
@@ -122,6 +132,9 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
       linkedEntityId: linkedEntityId || undefined,
       linkedEntityName: linkedEntityName || undefined,
       notes: notes.trim() || undefined,
+      isRecurring,
+      recurringPattern: isRecurring ? recurringPattern : undefined,
+      recurringEndDate: isRecurring && recurringEndDate ? recurringEndDate.toISOString().split('T')[0] : undefined,
       updatedAt: now,
     };
 
@@ -239,6 +252,78 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Recurring Task Options */}
+          <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="recurring" className="cursor-pointer">Recurring Task</Label>
+              </div>
+              <Switch
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={setIsRecurring}
+              />
+            </div>
+            
+            {isRecurring && (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select value={recurringPattern} onValueChange={(v) => setRecurringPattern(v as 'daily' | 'weekly' | 'monthly')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>End Date (Optional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !recurringEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {recurringEndDate ? format(recurringEndDate, "PPP") : "No end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={recurringEndDate}
+                        onSelect={setRecurringEndDate}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                      {recurringEndDate && (
+                        <div className="p-2 border-t">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => setRecurringEndDate(undefined)}
+                          >
+                            Clear End Date
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Assignee Selector */}

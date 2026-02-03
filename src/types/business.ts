@@ -636,6 +636,9 @@ export interface ToDo {
   originalDueDate?: string;    // Tracks if task was carried forward
   isRecurring?: boolean;
   recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  recurringEndDate?: string;   // When to stop recurring
+  parentRecurringId?: string;  // Link to original recurring task
+  lastGeneratedDate?: string;  // Track last auto-generation
   
   // Status
   status: 'pending' | 'done' | 'cancelled';
