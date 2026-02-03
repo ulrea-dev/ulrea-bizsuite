@@ -42,7 +42,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   const teamMembers = useMemo(() => {
     let members = data.teamMembers || [];
     if (businessId) {
-      members = members.filter(m => m.businessIds.includes(businessId));
+      members = members.filter(m => m.businessIds?.includes(businessId));
     }
     return members.map(m => ({
       id: m.id,
@@ -55,7 +55,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   const partners = useMemo(() => {
     let partnerList = data.partners || [];
     if (businessId) {
-      partnerList = partnerList.filter(p => p.businessIds.includes(businessId));
+      partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
     }
     return partnerList.map(p => ({
       id: p.id,

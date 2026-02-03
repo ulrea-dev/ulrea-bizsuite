@@ -239,12 +239,12 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
           {/* Business */}
           <div className="space-y-2">
             <Label>Business</Label>
-            <Select value={businessId} onValueChange={setBusinessId}>
+            <Select value={businessId || "__all__"} onValueChange={(v) => setBusinessId(v === "__all__" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="All businesses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Businesses</SelectItem>
+                <SelectItem value="__all__">All Businesses</SelectItem>
                 {data.businesses.map((business) => (
                   <SelectItem key={business.id} value={business.id}>
                     {business.name}
