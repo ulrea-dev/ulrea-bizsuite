@@ -55,6 +55,9 @@ export class LocalStorageRepository implements IDataRepository {
       customers: [],
       salesOrders: [],
       productionBatches: [],
+      
+      // To-Do system
+      todos: [],
       purchaseOrders: [],
       
       // Access control
@@ -108,6 +111,8 @@ export class LocalStorageRepository implements IDataRepository {
         salesOrders: data.salesOrders || [],
         productionBatches: data.productionBatches || [],
         purchaseOrders: data.purchaseOrders || [],
+        // To-Do system (backward compatibility)
+        todos: data.todos || [],
         // Ensure businesses have businessModel field (backward compatibility - default to 'service')
         businesses: (data.businesses || []).map(business => ({
           ...business,

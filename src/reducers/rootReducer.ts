@@ -11,6 +11,7 @@ import { taskReducer } from './taskReducer';
 import { accountReducer } from './accountReducer';
 import { productReducer } from './productReducer';
 import { customerReducer } from './customerReducer';
+import { todoReducer } from './todoReducer';
 
 /**
  * Root Reducer
@@ -36,6 +37,7 @@ const domainReducers = [
   accountReducer,
   productReducer,
   customerReducer,
+  todoReducer,
 ];
 
 export const rootReducer = (state: AppData, action: BusinessAction): AppData => {

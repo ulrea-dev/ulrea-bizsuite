@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Home, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown, FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt, CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck } from 'lucide-react';
+import { Building2, Home, DollarSign, Settings, LogOut, Moon, Sun, Download, Users, UserCheck, BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown, FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt, CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck, ListTodo } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { BusinessSwitcher } from './BusinessSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -77,6 +77,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { totalDueSoon, overdueCount } = useRenewalReminders();
+
+  // Calculate overdue todo count for badge
+  const overdueTodoCount = useMemo(() => {
+    const todos = data.todos || [];
+    const today = new Date().toISOString().split('T')[0];
+    return todos.filter(t => t.status === 'pending' && t.dueDate < today).length;
+  }, [data.todos]);
 
   // Track open state for collapsible menus
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
@@ -307,6 +314,31 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname.startsWith('/todos')}
+              tooltip="To-Do List"
+            >
+              <Link to="/todos" className="flex items-center justify-between w-full">
+                <span className="flex items-center gap-2">
+                  <ListTodo className="h-4 w-4" />
+                  {sidebarOpen && <span>To-Do</span>}
+                </span>
+                {sidebarOpen && overdueTodoCount > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded-full">
+                      {overdueTodoCount}
+                    </span>
+                    <ExternalLink className="h-3 w-3 opacity-50" />
+                  </span>
+                )}
+                {sidebarOpen && overdueTodoCount === 0 && (
+                  <ExternalLink className="h-3 w-3 opacity-50" />
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild

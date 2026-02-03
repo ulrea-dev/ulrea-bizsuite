@@ -7,6 +7,7 @@ import { GoogleDriveProvider, useGoogleDrive } from "./contexts/GoogleDriveConte
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
+import { TodoLayout } from "./layouts/TodoLayout";
 import { GoogleReconnectModal } from "./components/GoogleReconnectModal";
 import { SyncRequiredOverlay } from "./components/SyncRequiredOverlay";
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,13 @@ import SalesPage from "./pages/SalesPage";
 import InventoryPage from "./pages/InventoryPage";
 import ProductionPage from "./pages/ProductionPage";
 import ProcurementPage from "./pages/ProcurementPage";
+import { TodoOverview } from "./components/todos/TodoOverview";
+import { TodayPage } from "./components/todos/TodayPage";
+import { WeekPage } from "./components/todos/WeekPage";
+import { UpcomingPage } from "./components/todos/UpcomingPage";
+import { OverduePage } from "./components/todos/OverduePage";
+import { AllTodosPage } from "./components/todos/AllTodosPage";
+import { ByAssigneePage } from "./components/todos/ByAssigneePage";
 
 // Component to handle Google Drive modals and overlays
 const GoogleDriveOverlays = () => {
@@ -143,6 +151,15 @@ const App = () => (
               <Route path="/business-management/partner-allocations" element={<PartnerAllocationsPage />} />
               <Route path="/business-management/payables" element={<PayablesPage />} />
               <Route path="/business-management/receivables" element={<ReceivablesPage />} />
+            </Route>
+            <Route element={<TodoLayout />}>
+              <Route path="/todos" element={<TodoOverview />} />
+              <Route path="/todos/today" element={<TodayPage />} />
+              <Route path="/todos/week" element={<WeekPage />} />
+              <Route path="/todos/upcoming" element={<UpcomingPage />} />
+              <Route path="/todos/overdue" element={<OverduePage />} />
+              <Route path="/todos/by-assignee" element={<ByAssigneePage />} />
+              <Route path="/todos/all" element={<AllTodosPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFound />} />
