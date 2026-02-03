@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BusinessSetup } from './BusinessSetup';
 import { MultiBusinessOverview } from './MultiBusinessOverview';
 import { formatCurrency } from '@/utils/storage';
-import { Briefcase, Users, DollarSign, Handshake, FolderKanban, ListChecks, Repeat, ArrowRight, AlertCircle, X } from 'lucide-react';
+import { Briefcase, Users, DollarSign, Handshake, FolderKanban, ListChecks, Repeat, ArrowRight, AlertCircle, X, CheckSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useRenewalReminders } from '@/hooks/useRenewalReminders';
+import { useTodoReminders } from '@/hooks/useTodoReminders';
 
 interface DashboardHomeProps {
   onShowBusinessSetup: () => void;
@@ -33,6 +34,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
     shouldShowReminder, 
     dismissReminder 
   } = useRenewalReminders();
+  
+  const {
+    overdueCount: taskOverdueCount,
+    dueTodayCount: taskDueTodayCount,
+    totalUrgent: taskTotalUrgent,
+    shouldShowReminder: shouldShowTaskReminder,
+    dismissReminder: dismissTaskReminder,
+  } = useTodoReminders();
 
   if (data.businesses.length > 1 && (!currentBusiness || currentBusiness === null)) {
     return (
@@ -160,6 +169,39 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
             size="sm" 
             className="absolute top-2 right-2 h-6 w-6 p-0" 
             onClick={dismissReminder}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </Alert>
+      )}
+
+      {/* Task Reminder Banner */}
+      {shouldShowTaskReminder && (
+        <Alert variant={taskOverdueCount > 0 ? "destructive" : "default"} className="relative">
+          <CheckSquare className="h-4 w-4" />
+          <AlertTitle className="flex items-center gap-2">
+            {taskTotalUrgent} task{taskTotalUrgent !== 1 ? 's' : ''} need attention
+          </AlertTitle>
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              {taskOverdueCount > 0 && `${taskOverdueCount} overdue`}
+              {taskOverdueCount > 0 && taskDueTodayCount > 0 && ', '}
+              {taskDueTodayCount > 0 && `${taskDueTodayCount} due today`}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/todos/today')}
+              className="ml-4"
+            >
+              View To-Do
+            </Button>
+          </AlertDescription>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="absolute top-2 right-2 h-6 w-6 p-0" 
+            onClick={dismissTaskReminder}
           >
             <X className="h-4 w-4" />
           </Button>
