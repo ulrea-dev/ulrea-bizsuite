@@ -15,3 +15,4 @@ export { settingsReducer } from './settingsReducer';
 export { taskReducer } from './taskReducer';
 export { productReducer } from './productReducer';
 export { customerReducer } from './customerReducer';
+export { todoReducer } from './todoReducer';

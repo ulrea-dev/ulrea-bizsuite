@@ -604,6 +604,64 @@ export interface UserBusinessAccess {
   role: UserBusinessRole;   // Role determines permissions
 }
 
+// ============= To-Do System =============
+
+// To-Do Priority Levels
+export type ToDoPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+// What the to-do is linked to
+export type ToDoLinkType = 
+  | 'project' 
+  | 'quick-task' 
+  | 'retainer' 
+  | 'client' 
+  | 'product' 
+  | 'sales-order'
+  | 'expense'
+  | 'renewal'
+  | 'general';
+
+// Who the task is assigned to
+export type ToDoAssigneeType = 'self' | 'team-member' | 'partner' | 'operator';
+
+// Main To-Do Entity
+export interface ToDo {
+  id: string;
+  businessId?: string;         // Optional - can be cross-business or specific
+  title: string;
+  description?: string;
+  
+  // Timing
+  dueDate: string;             // ISO date (the target date)
+  originalDueDate?: string;    // Tracks if task was carried forward
+  isRecurring?: boolean;
+  recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  
+  // Status
+  status: 'pending' | 'done' | 'cancelled';
+  completedAt?: string;
+  
+  // Priority
+  priority: ToDoPriority;
+  
+  // Assignment - supports multiple assignee types
+  assigneeType: ToDoAssigneeType;
+  assigneeId?: string;         // Team member ID, Partner ID, or Operator userId
+  assigneeName?: string;       // Cached name for quick display
+  createdBy: string;           // Who created this task (userId)
+  
+  // Links to other entities
+  linkType: ToDoLinkType;
+  linkedEntityId?: string;     // ID of the linked project/client/etc.
+  linkedEntityName?: string;   // Cached name for quick display
+  
+  // Metadata
+  tags?: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   // Core entities
   businesses: Business[];
@@ -640,6 +698,9 @@ export interface AppData {
   salesOrders: SalesOrder[];
   productionBatches: ProductionBatch[];
   purchaseOrders: PurchaseOrder[];
+  
+  // To-Do system
+  todos: ToDo[];
   
   // Access control
   userBusinessAccess: UserBusinessAccess[];

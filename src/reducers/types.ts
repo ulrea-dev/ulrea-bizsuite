@@ -31,6 +31,7 @@ import {
   UserBusinessAccess,
   Product,
   Customer,
+  ToDo,
 } from '@/types/business';
 
 /**
@@ -161,4 +162,11 @@ export type BusinessAction =
   // Customer actions
   | { type: 'ADD_CUSTOMER'; payload: Customer }
   | { type: 'UPDATE_CUSTOMER'; payload: { id: string; updates: Partial<Customer> } }
-  | { type: 'DELETE_CUSTOMER'; payload: string };
+  | { type: 'DELETE_CUSTOMER'; payload: string }
+  // To-Do actions
+  | { type: 'ADD_TODO'; payload: ToDo }
+  | { type: 'UPDATE_TODO'; payload: { id: string; updates: Partial<ToDo> } }
+  | { type: 'DELETE_TODO'; payload: string }
+  | { type: 'COMPLETE_TODO'; payload: string }
+  | { type: 'CARRY_FORWARD_TODO'; payload: { id: string; newDueDate: string } }
+  | { type: 'BULK_CARRY_FORWARD_TODOS'; payload: { ids: string[]; newDueDate: string } };

@@ -50,6 +50,9 @@ const getInitialData = (): AppData => ({
   productionBatches: [],
   purchaseOrders: [],
   
+  // To-Do system
+  todos: [],
+  
   // Access control
   userBusinessAccess: [],
   currentBusinessId: null,
