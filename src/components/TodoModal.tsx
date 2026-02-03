@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,10 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useRepository } from '@/repositories';
-import { ToDo, ToDoPriority, ToDoLinkType, ToDoAssigneeType } from '@/types/business';
+import { ToDo, ToDoPriority, ToDoLinkType, ToDoAssignee } from '@/types/business';
 import { AssigneeSelector } from '@/components/todos/AssigneeSelector';
 import { EntityLinkSelector } from '@/components/todos/EntityLinkSelector';
+import { migrateTodoAssignees } from '@/utils/todoMigration';
 
 interface TodoModalProps {
   open: boolean;
@@ -43,9 +44,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
   const [dueDate, setDueDate] = useState<Date>(new Date());
   const [priority, setPriority] = useState<ToDoPriority>('medium');
   const [businessId, setBusinessId] = useState<string>('');
-  const [assigneeType, setAssigneeType] = useState<ToDoAssigneeType>('self');
-  const [assigneeId, setAssigneeId] = useState<string>('');
-  const [assigneeName, setAssigneeName] = useState<string>('');
+  const [assignees, setAssignees] = useState<ToDoAssignee[]>([]);
   const [linkType, setLinkType] = useState<ToDoLinkType>('general');
   const [linkedEntityId, setLinkedEntityId] = useState<string>('');
   const [linkedEntityName, setLinkedEntityName] = useState<string>('');
@@ -58,30 +57,29 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
   useEffect(() => {
     if (open) {
       if (todo) {
-        setTitle(todo.title);
-        setDescription(todo.description || '');
-        setDueDate(new Date(todo.dueDate));
-        setPriority(todo.priority);
-        setBusinessId(todo.businessId || '');
-        setAssigneeType(todo.assigneeType);
-        setAssigneeId(todo.assigneeId || '');
-        setAssigneeName(todo.assigneeName || '');
-        setLinkType(todo.linkType);
-        setLinkedEntityId(todo.linkedEntityId || '');
-        setLinkedEntityName(todo.linkedEntityName || '');
-        setNotes(todo.notes || '');
-        setIsRecurring(todo.isRecurring || false);
-        setRecurringPattern(todo.recurringPattern || 'weekly');
-        setRecurringEndDate(todo.recurringEndDate ? new Date(todo.recurringEndDate) : undefined);
+        // Migrate legacy single-assignee to array format
+        const migratedTodo = migrateTodoAssignees(todo);
+        
+        setTitle(migratedTodo.title);
+        setDescription(migratedTodo.description || '');
+        setDueDate(new Date(migratedTodo.dueDate));
+        setPriority(migratedTodo.priority);
+        setBusinessId(migratedTodo.businessId || '');
+        setAssignees(migratedTodo.assignees || []);
+        setLinkType(migratedTodo.linkType);
+        setLinkedEntityId(migratedTodo.linkedEntityId || '');
+        setLinkedEntityName(migratedTodo.linkedEntityName || '');
+        setNotes(migratedTodo.notes || '');
+        setIsRecurring(migratedTodo.isRecurring || false);
+        setRecurringPattern(migratedTodo.recurringPattern || 'weekly');
+        setRecurringEndDate(migratedTodo.recurringEndDate ? new Date(migratedTodo.recurringEndDate) : undefined);
       } else {
         setTitle('');
         setDescription('');
         setDueDate(new Date());
         setPriority('medium');
         setBusinessId(data.currentBusinessId || '');
-        setAssigneeType('self');
-        setAssigneeId('');
-        setAssigneeName('');
+        setAssignees([]);
         setLinkType('general');
         setLinkedEntityId('');
         setLinkedEntityName('');
@@ -92,16 +90,6 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
       }
     }
   }, [open, todo, data.currentBusinessId]);
-
-  const handleAssigneeSelect = (
-    type: ToDoAssigneeType, 
-    id?: string, 
-    name?: string
-  ) => {
-    setAssigneeType(type);
-    setAssigneeId(id || '');
-    setAssigneeName(name || '');
-  };
 
   const handleEntitySelect = (
     type: ToDoLinkType, 
@@ -125,9 +113,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
       dueDate: dueDate.toISOString().split('T')[0],
       priority,
       businessId: businessId || undefined,
-      assigneeType,
-      assigneeId: assigneeId || undefined,
-      assigneeName: assigneeName || undefined,
+      assignees,
       linkType,
       linkedEntityId: linkedEntityId || undefined,
       linkedEntityName: linkedEntityName || undefined,
@@ -326,12 +312,11 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
             )}
           </div>
 
-          {/* Assignee Selector */}
+          {/* Multi-Assignee Selector */}
           <AssigneeSelector
-            assigneeType={assigneeType}
-            assigneeId={assigneeId}
+            assignees={assignees}
             businessId={businessId}
-            onSelect={handleAssigneeSelect}
+            onChange={setAssignees}
           />
 
           {/* Entity Link Selector */}

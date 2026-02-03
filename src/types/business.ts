@@ -624,6 +624,13 @@ export type ToDoLinkType =
 // Who the task is assigned to
 export type ToDoAssigneeType = 'self' | 'team-member' | 'partner' | 'operator';
 
+// Individual assignee in a task (for multi-assignee support)
+export interface ToDoAssignee {
+  type: ToDoAssigneeType;
+  id: string;
+  name: string;
+}
+
 // Main To-Do Entity
 export interface ToDo {
   id: string;
@@ -647,10 +654,14 @@ export interface ToDo {
   // Priority
   priority: ToDoPriority;
   
-  // Assignment - supports multiple assignee types
-  assigneeType: ToDoAssigneeType;
-  assigneeId?: string;         // Team member ID, Partner ID, or Operator userId
-  assigneeName?: string;       // Cached name for quick display
+  // Assignment - NEW: Multiple assignees support
+  assignees: ToDoAssignee[];
+  
+  // DEPRECATED: Legacy single-assignee fields (kept for backward compatibility)
+  assigneeType?: ToDoAssigneeType;
+  assigneeId?: string;
+  assigneeName?: string;
+  
   createdBy: string;           // Who created this task (userId)
   
   // Links to other entities
