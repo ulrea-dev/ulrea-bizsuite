@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { X, Users } from 'lucide-react';
+import { X, Users, Check } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ToDoAssignee, ToDoAssigneeType } from '@/types/business';
 import { cn } from '@/lib/utils';
@@ -91,21 +90,31 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
     onChange(assignees.filter(a => !(a.id === assignee.id && a.type === assignee.type)));
   };
 
-  const renderCheckbox = (option: PersonOption) => (
-    <div
-      key={`${option.type}-${option.id}`}
-      className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
-      onClick={() => toggleAssignee(option)}
-    >
-      <Checkbox checked={isSelected(option)} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{option.name}</p>
-        {option.subtitle && (
-          <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
-        )}
+  const renderCheckbox = (option: PersonOption) => {
+    const selected = isSelected(option);
+    return (
+      <div
+        key={`${option.type}-${option.id}`}
+        className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+        onClick={() => toggleAssignee(option)}
+      >
+        <div
+          className={cn(
+            "h-4 w-4 shrink-0 rounded-sm border border-primary flex items-center justify-center",
+            selected && "bg-primary text-primary-foreground"
+          )}
+        >
+          {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{option.name}</p>
+          {option.subtitle && (
+            <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-3">
