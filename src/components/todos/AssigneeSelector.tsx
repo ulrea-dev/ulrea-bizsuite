@@ -69,37 +69,27 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
     return operatorList;
   }, [data.userBusinessAccess, data.userSettings]);
 
-  // Get team members (filtered by business if provided)
+  // Get all team members (show all regardless of business)
   const teamMembers = useMemo(() => {
-    let members = data.teamMembers || [];
-    console.log('[AssigneeSelector] All team members:', members, 'businessId:', businessId);
-    if (businessId) {
-      members = members.filter(m => m.businessIds?.includes(businessId));
-      console.log('[AssigneeSelector] Filtered team members:', members);
-    }
+    const members = data.teamMembers || [];
     return members.map(m => ({
       id: m.id,
       name: m.name,
       type: 'team-member' as ToDoAssigneeType,
       subtitle: m.role,
     }));
-  }, [data.teamMembers, businessId]);
+  }, [data.teamMembers]);
 
-  // Get partners (filtered by business if provided)
+  // Get all partners (show all regardless of business)
   const partners = useMemo(() => {
-    let partnerList = data.partners || [];
-    console.log('[AssigneeSelector] All partners:', partnerList, 'businessId:', businessId);
-    if (businessId) {
-      partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
-      console.log('[AssigneeSelector] Filtered partners:', partnerList);
-    }
+    const partnerList = data.partners || [];
     return partnerList.map(p => ({
       id: p.id,
       name: p.name,
       type: 'partner' as ToDoAssigneeType,
       subtitle: p.type,
     }));
-  }, [data.partners, businessId]);
+  }, [data.partners]);
 
   const isSelected = (option: PersonOption) => {
     return assignees.some(a => a.id === option.id && a.type === option.type);
