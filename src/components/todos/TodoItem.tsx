@@ -24,12 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { migrateTodoAssignees, getAssigneeDisplayNames } from '@/utils/todoMigration';
 
 interface TodoItemProps {
@@ -130,18 +124,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
                 </Badge>
               )}
               {todo.isRecurring && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex">
-                        <Repeat className="h-3 w-3 text-primary" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Repeats {todo.recurringPattern}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <span 
+                  className="inline-flex"
+                  title={`Repeats ${todo.recurringPattern}`}
+                >
+                  <Repeat className="h-3 w-3 text-primary" />
+                </span>
               )}
             </div>
           </div>
@@ -180,22 +168,14 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
               {todo.priority}
             </Badge>
             {todo.isRecurring && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Badge variant="secondary" className="text-xs gap-1">
-                        <Repeat className="h-3 w-3" />
-                        {todo.recurringPattern}
-                      </Badge>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Repeats {todo.recurringPattern}
-                    {todo.recurringEndDate && ` until ${format(new Date(todo.recurringEndDate), 'MMM d, yyyy')}`}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <span
+                title={`Repeats ${todo.recurringPattern}${todo.recurringEndDate ? ` until ${format(new Date(todo.recurringEndDate), 'MMM d, yyyy')}` : ''}`}
+              >
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Repeat className="h-3 w-3" />
+                  {todo.recurringPattern}
+                </Badge>
+              </span>
             )}
           </div>
           
