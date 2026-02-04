@@ -97,11 +97,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
       className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
       onClick={() => toggleAssignee(option)}
     >
-      <Checkbox
-        checked={isSelected(option)}
-        onCheckedChange={() => toggleAssignee(option)}
-        onClick={(e) => e.stopPropagation()}
-      />
+      <Checkbox checked={isSelected(option)} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{option.name}</p>
         {option.subtitle && (
