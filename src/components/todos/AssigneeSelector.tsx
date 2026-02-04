@@ -72,8 +72,10 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   // Get team members (filtered by business if provided)
   const teamMembers = useMemo(() => {
     let members = data.teamMembers || [];
+    console.log('[AssigneeSelector] All team members:', members, 'businessId:', businessId);
     if (businessId) {
       members = members.filter(m => m.businessIds?.includes(businessId));
+      console.log('[AssigneeSelector] Filtered team members:', members);
     }
     return members.map(m => ({
       id: m.id,
@@ -86,8 +88,10 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   // Get partners (filtered by business if provided)
   const partners = useMemo(() => {
     let partnerList = data.partners || [];
+    console.log('[AssigneeSelector] All partners:', partnerList, 'businessId:', businessId);
     if (businessId) {
       partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
+      console.log('[AssigneeSelector] Filtered partners:', partnerList);
     }
     return partnerList.map(p => ({
       id: p.id,
