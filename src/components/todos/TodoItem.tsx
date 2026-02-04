@@ -205,30 +205,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
           
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             {assignees.length > 0 && (
-              assignees.length > 3 ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="flex items-center gap-1 cursor-default">
-                        <Users className="h-3 w-3" />
-                        {getAssigneeDisplayNames(assignees, 3)}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="space-y-1">
-                        {assignees.map(a => (
-                          <div key={`${a.type}-${a.id}`}>{a.name}</div>
-                        ))}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {getAssigneeDisplayNames(assignees, 3)}
-                </span>
-              )
+              <span 
+                className="flex items-center gap-1"
+                title={assignees.length > 3 ? assignees.map(a => a.name).join(', ') : undefined}
+              >
+                <Users className="h-3 w-3" />
+                {getAssigneeDisplayNames(assignees, 3)}
+              </span>
             )}
             {todo.linkedEntityName && (
               <span className="flex items-center gap-1">
