@@ -132,8 +132,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
               {todo.isRecurring && (
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <Repeat className="h-3 w-3 text-primary" />
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Repeat className="h-3 w-3 text-primary" />
+                      </span>
                     </TooltipTrigger>
                     <TooltipContent>
                       Repeats {todo.recurringPattern}
@@ -180,11 +182,13 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
             {todo.isRecurring && (
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <Badge variant="secondary" className="text-xs gap-1">
-                      <Repeat className="h-3 w-3" />
-                      {todo.recurringPattern}
-                    </Badge>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <Repeat className="h-3 w-3" />
+                        {todo.recurringPattern}
+                      </Badge>
+                    </span>
                   </TooltipTrigger>
                   <TooltipContent>
                     Repeats {todo.recurringPattern}
