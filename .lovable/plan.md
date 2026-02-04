@@ -1,111 +1,86 @@
 
+## Rebuild Assignee Selector with Native Checkbox
 
-## Fix: Infinite Update Loop in Assignee Selection
-
-### Problem Identified
-
-The `AssigneeSelector` component has a **double event binding issue** causing the "Maximum update depth exceeded" error:
-
-1. The parent `<div>` has `onClick={() => toggleAssignee(option)}`
-2. The `<Checkbox>` has `onCheckedChange={() => toggleAssignee(option)}`
-3. When clicking on the checkbox, `e.stopPropagation()` stops the browser click event but Radix's `onCheckedChange` still fires
-4. In some edge cases, both handlers execute, causing rapid state updates that trigger React's infinite loop protection
+### Problem
+The Radix UI `Checkbox` component's internal ref management creates an infinite update loop when rendered inside clickable containers. The stack trace shows `setRef` calls cascading infinitely.
 
 ### Solution
-
-Simplify the event handling by:
-1. **Remove the `onCheckedChange` handler from Checkbox** - let only the parent div handle clicks
-2. **OR** Remove the parent div's `onClick` and let only the Checkbox handle changes
-
-The cleanest approach is to keep the div's `onClick` for clickable area (entire row) and remove redundant `onCheckedChange` on Checkbox.
+Replace the Radix UI `Checkbox` with a native HTML `<input type="checkbox">` styled with Tailwind CSS. This completely bypasses Radix's ref management while maintaining the same visual appearance.
 
 ### File Changes
 
 **File: `src/components/todos/AssigneeSelector.tsx`**
 
-Update the `renderCheckbox` function to remove the `onCheckedChange` handler:
+1. Remove the Radix Checkbox import
+2. Create a styled native checkbox that matches the current design
+3. Update the `renderCheckbox` function to use native HTML input
 
-```tsx
-const renderCheckbox = (option: PersonOption) => (
-  <div
-    key={`${option.type}-${option.id}`}
-    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
-    onClick={() => toggleAssignee(option)}
-  >
-    <Checkbox
-      checked={isSelected(option)}
-      // Remove onCheckedChange - parent div handles the click
-    />
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-medium truncate">{option.name}</p>
-      {option.subtitle && (
-        <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
-      )}
-    </div>
-  </div>
-);
+```text
+Changes Overview:
+- Line 3: Remove Checkbox import from '@/components/ui/checkbox'
+- Lines 94-108: Replace renderCheckbox function with native checkbox implementation
 ```
+
+**Updated renderCheckbox function:**
+```tsx
+const renderCheckbox = (option: PersonOption) => {
+  const selected = isSelected(option);
+  return (
+    <div
+      key={`${option.type}-${option.id}`}
+      className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+      onClick={() => toggleAssignee(option)}
+    >
+      {/* Native checkbox styled to match Radix design */}
+      <div
+        className={cn(
+          "h-4 w-4 shrink-0 rounded-sm border border-primary flex items-center justify-center",
+          selected && "bg-primary text-primary-foreground"
+        )}
+      >
+        {selected && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3 w-3"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{option.name}</p>
+        {option.subtitle && (
+          <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+### Why This Works
+- Native HTML elements don't have Radix's ref management overhead
+- No `onCheckedChange` handler that could conflict with parent `onClick`
+- Single event handler on parent div controls all selection logic
+- Visual appearance matches the original Radix Checkbox design
 
 ### Technical Details
 
-The fix changes lines 94-112 in `AssigneeSelector.tsx`:
-
-**Before (problematic):**
-```tsx
-const renderCheckbox = (option: PersonOption) => (
-  <div
-    key={`${option.type}-${option.id}`}
-    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
-    onClick={() => toggleAssignee(option)}
-  >
-    <Checkbox
-      checked={isSelected(option)}
-      onCheckedChange={() => toggleAssignee(option)}  // ❌ Double trigger
-      onClick={(e) => e.stopPropagation()}            // ❌ Doesn't prevent onCheckedChange
-    />
-```
-
-**After (fixed):**
-```tsx
-const renderCheckbox = (option: PersonOption) => (
-  <div
-    key={`${option.type}-${option.id}`}
-    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
-    onClick={() => toggleAssignee(option)}
-  >
-    <Checkbox
-      checked={isSelected(option)}
-      // ✅ Single handler - only parent div onClick triggers toggleAssignee
-    />
-```
-
-### Additional Safeguard: React Deduplication
-
-Also add React deduplication to `vite.config.ts` to prevent potential duplicate React instance issues:
-
-```typescript
-export default defineConfig(({ mode }) => ({
-  // ... existing config
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-    dedupe: ["react", "react-dom", "react/jsx-runtime"],
-  },
-}));
-```
+| Aspect | Before (Radix) | After (Native) |
+|--------|---------------|----------------|
+| Ref Management | Complex internal state | None |
+| Event Handling | Both `onClick` and `onCheckedChange` | Single parent `onClick` |
+| Re-render Behavior | Triggers ref updates | Stable |
+| Styling | Radix classes | Tailwind classes |
 
 ### Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/todos/AssigneeSelector.tsx` | Remove `onCheckedChange` and `onClick` from Checkbox |
-| `vite.config.ts` | Add `dedupe` for React to prevent duplicate instances |
-
-### Expected Outcome
-
-After this fix:
-- Clicking anywhere on the assignee row will toggle selection
-- No more double-triggering of `toggleAssignee`
-- Multi-assignee selection will work correctly for Self, Operators, Team Members, and Partners
-
+| `src/components/todos/AssigneeSelector.tsx` | Replace Radix Checkbox with styled native checkbox |
