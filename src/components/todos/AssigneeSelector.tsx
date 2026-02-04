@@ -36,15 +36,38 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   // Get operators (users with owner/admin roles)
   const operators = useMemo(() => {
     const accessList = data.userBusinessAccess || [];
-    return accessList
-      .filter(access => access.role === 'owner' || access.role === 'admin')
-      .map(access => ({
-        id: access.userId,
-        name: access.email || `User ${access.userId.slice(0, 8)}`,
+    const operatorList: PersonOption[] = [];
+    
+    // Add current user as operator (always has access)
+    const currentUserId = data.userSettings.userId;
+    const currentUserInList = accessList.find(a => a.userId === currentUserId);
+    
+    if (!currentUserInList || currentUserInList.role === 'owner' || currentUserInList.role === 'admin') {
+      operatorList.push({
+        id: currentUserId || 'current-user',
+        name: data.userSettings.username || 'Me',
         type: 'operator' as ToDoAssigneeType,
-        subtitle: access.role,
-      }));
-  }, [data.userBusinessAccess]);
+        subtitle: currentUserInList?.role || 'owner',
+      });
+    }
+    
+    // Add other operators from access list (exclude current user to avoid duplicates)
+    accessList
+      .filter(access => 
+        (access.role === 'owner' || access.role === 'admin') && 
+        access.userId !== currentUserId
+      )
+      .forEach(access => {
+        operatorList.push({
+          id: access.userId,
+          name: access.email || `User ${access.userId.slice(0, 8)}`,
+          type: 'operator' as ToDoAssigneeType,
+          subtitle: access.role,
+        });
+      });
+    
+    return operatorList;
+  }, [data.userBusinessAccess, data.userSettings]);
 
   // Get team members (filtered by business if provided)
   const teamMembers = useMemo(() => {
