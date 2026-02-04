@@ -1,274 +1,111 @@
 
 
-## Plan: Multi-Assignee Support for To-Do Tasks
+## Fix: Infinite Update Loop in Assignee Selection
 
-### Overview
+### Problem Identified
 
-This plan modifies the To-Do system to allow assigning tasks to multiple people across Operators, Team Members, and Partners. Currently, tasks can only have a single assignee - this change will allow multiple assignees per task.
+The `AssigneeSelector` component has a **double event binding issue** causing the "Maximum update depth exceeded" error:
 
----
+1. The parent `<div>` has `onClick={() => toggleAssignee(option)}`
+2. The `<Checkbox>` has `onCheckedChange={() => toggleAssignee(option)}`
+3. When clicking on the checkbox, `e.stopPropagation()` stops the browser click event but Radix's `onCheckedChange` still fires
+4. In some edge cases, both handlers execute, causing rapid state updates that trigger React's infinite loop protection
 
-### Current vs New Data Model
+### Solution
 
-**Current (Single Assignee):**
-```typescript
-interface ToDo {
-  assigneeType: ToDoAssigneeType;  // 'self' | 'team-member' | 'partner' | 'operator'
-  assigneeId?: string;
-  assigneeName?: string;
-}
+Simplify the event handling by:
+1. **Remove the `onCheckedChange` handler from Checkbox** - let only the parent div handle clicks
+2. **OR** Remove the parent div's `onClick` and let only the Checkbox handle changes
+
+The cleanest approach is to keep the div's `onClick` for clickable area (entire row) and remove redundant `onCheckedChange` on Checkbox.
+
+### File Changes
+
+**File: `src/components/todos/AssigneeSelector.tsx`**
+
+Update the `renderCheckbox` function to remove the `onCheckedChange` handler:
+
+```tsx
+const renderCheckbox = (option: PersonOption) => (
+  <div
+    key={`${option.type}-${option.id}`}
+    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+    onClick={() => toggleAssignee(option)}
+  >
+    <Checkbox
+      checked={isSelected(option)}
+      // Remove onCheckedChange - parent div handles the click
+    />
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium truncate">{option.name}</p>
+      {option.subtitle && (
+        <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
+      )}
+    </div>
+  </div>
+);
 ```
 
-**New (Multiple Assignees):**
-```typescript
-interface ToDoAssignee {
-  type: ToDoAssigneeType;
-  id: string;
-  name: string;
-}
+### Technical Details
 
-interface ToDo {
-  assignees: ToDoAssignee[];  // Array of assignees
-  // Keep legacy fields for backward compatibility during migration
-  assigneeType?: ToDoAssigneeType;
-  assigneeId?: string;
-  assigneeName?: string;
-}
+The fix changes lines 94-112 in `AssigneeSelector.tsx`:
+
+**Before (problematic):**
+```tsx
+const renderCheckbox = (option: PersonOption) => (
+  <div
+    key={`${option.type}-${option.id}`}
+    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+    onClick={() => toggleAssignee(option)}
+  >
+    <Checkbox
+      checked={isSelected(option)}
+      onCheckedChange={() => toggleAssignee(option)}  // ❌ Double trigger
+      onClick={(e) => e.stopPropagation()}            // ❌ Doesn't prevent onCheckedChange
+    />
 ```
 
----
-
-### Part 1: Data Type Updates
-
-**File: `src/types/business.ts`**
-
-Add new interface and update ToDo:
-
-```typescript
-// New interface for individual assignee
-export interface ToDoAssignee {
-  type: ToDoAssigneeType;
-  id: string;
-  name: string;
-}
-
-export interface ToDo {
-  // ... existing fields
-  
-  // NEW: Multiple assignees support
-  assignees: ToDoAssignee[];
-  
-  // DEPRECATED: Keep for backward compatibility
-  assigneeType?: ToDoAssigneeType;
-  assigneeId?: string;
-  assigneeName?: string;
-}
+**After (fixed):**
+```tsx
+const renderCheckbox = (option: PersonOption) => (
+  <div
+    key={`${option.type}-${option.id}`}
+    className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
+    onClick={() => toggleAssignee(option)}
+  >
+    <Checkbox
+      checked={isSelected(option)}
+      // ✅ Single handler - only parent div onClick triggers toggleAssignee
+    />
 ```
 
----
+### Additional Safeguard: React Deduplication
 
-### Part 2: Multi-Select Assignee Component
-
-**File: `src/components/todos/AssigneeSelector.tsx`** (MODIFY)
-
-Transform from radio/single-select to checkbox/multi-select:
-
-- Replace RadioGroup with Checkbox list
-- Group by category: Self, Operators, Team Members, Partners
-- Show selected count badge
-- Display selected assignees as chips/badges
-- Allow removing individual assignees
-
-Visual structure:
-```text
-+------------------------------------------+
-| Assignees (3 selected)                    |
-+------------------------------------------+
-| ☑ Self                                    |
-+------------------------------------------+
-| OPERATORS                                 |
-|   ☐ John Owner (owner)                    |
-|   ☑ Jane Admin (admin)                    |
-+------------------------------------------+
-| TEAM MEMBERS                              |
-|   ☑ Mike Developer                        |
-|   ☐ Sarah Designer                        |
-+------------------------------------------+
-| PARTNERS                                  |
-|   ☐ Alex Sales Partner                    |
-|   ☐ Chris Managing Partner                |
-+------------------------------------------+
-| Selected:                                 |
-| [Self ×] [Jane Admin ×] [Mike ×]         |
-+------------------------------------------+
-```
-
----
-
-### Part 3: Update Todo Modal
-
-**File: `src/components/TodoModal.tsx`** (MODIFY)
-
-- Change state from single assignee to array:
-  ```typescript
-  const [assignees, setAssignees] = useState<ToDoAssignee[]>([]);
-  ```
-- Update AssigneeSelector props and callbacks
-- Save `assignees` array to todo data
-- Initialize from existing todo's assignees array
-
----
-
-### Part 4: Update Todo Item Display
-
-**File: `src/components/todos/TodoItem.tsx`** (MODIFY)
-
-Display multiple assignees:
-- Show avatar stack or comma-separated names
-- Tooltip showing full list if many assignees
-- Handle both old `assigneeName` and new `assignees` array for backward compatibility
-
-```text
-Before: 👤 John Owner (operator)
-After:  👤 Self, Jane Admin, Mike  (+2 more)
-```
-
----
-
-### Part 5: Update Filtering Logic
-
-**File: `src/components/todos/ByAssigneePage.tsx`** (MODIFY)
-
-- Update filter logic to check if assignee exists in `assignees` array
-- Count tasks per assignee correctly when task has multiple assignees
-
-**File: `src/components/todos/AllTodosPage.tsx`** (MODIFY)
-
-- Add assignee filter dropdown
-- Search should check all assignee names
-
----
-
-### Part 6: Backward Compatibility Migration
-
-**File: `src/utils/todoMigration.ts`** (NEW)
-
-Create a migration utility that converts old single-assignee format to new array format:
+Also add React deduplication to `vite.config.ts` to prevent potential duplicate React instance issues:
 
 ```typescript
-export const migrateTodoAssignees = (todo: ToDo): ToDo => {
-  // If already has assignees array, return as-is
-  if (todo.assignees && todo.assignees.length > 0) {
-    return todo;
-  }
-  
-  // Migrate from legacy single assignee
-  if (todo.assigneeType && todo.assigneeId) {
-    return {
-      ...todo,
-      assignees: [{
-        type: todo.assigneeType,
-        id: todo.assigneeId,
-        name: todo.assigneeName || 'Unknown',
-      }],
-    };
-  }
-  
-  // Default to self
-  return {
-    ...todo,
-    assignees: [],
-  };
-};
+export default defineConfig(({ mode }) => ({
+  // ... existing config
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
+}));
 ```
-
----
 
 ### Files Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/types/business.ts` | Modify | Add ToDoAssignee interface, update ToDo |
-| `src/components/todos/AssigneeSelector.tsx` | Modify | Convert to multi-select checkbox UI |
-| `src/components/TodoModal.tsx` | Modify | Handle assignees array state |
-| `src/components/todos/TodoItem.tsx` | Modify | Display multiple assignees |
-| `src/components/todos/ByAssigneePage.tsx` | Modify | Update filter logic for arrays |
-| `src/components/todos/AllTodosPage.tsx` | Modify | Add assignee filter (already has status filter) |
-| `src/utils/todoMigration.ts` | Create | Migration utility for backward compatibility |
+| File | Change |
+|------|--------|
+| `src/components/todos/AssigneeSelector.tsx` | Remove `onCheckedChange` and `onClick` from Checkbox |
+| `vite.config.ts` | Add `dedupe` for React to prevent duplicate instances |
 
----
+### Expected Outcome
 
-### Visual: Multi-Assignee in Todo Modal
-
-```text
-+----------------------------------------------------------+
-| New Task                                      [Save]      |
-+----------------------------------------------------------+
-| Title: Review Q4 financial reports                        |
-| Due: Feb 5, 2025          Priority: [High ▼]             |
-+----------------------------------------------------------+
-| ASSIGNEES                                                 |
-+----------------------------------------------------------+
-| ☑ Self                                                    |
-|                                                          |
-| OPERATORS                                                 |
-| ☐ John Owner (owner)                                      |
-| ☑ Jane Admin (admin)                                      |
-|                                                          |
-| TEAM MEMBERS                                              |
-| ☑ Mike Developer                                          |
-| ☐ Sarah Designer                                          |
-|                                                          |
-| PARTNERS                                                  |
-| ☐ Alex Sales Partner                                      |
-|                                                          |
-| Selected: [Self ×] [Jane Admin ×] [Mike Developer ×]     |
-+----------------------------------------------------------+
-```
-
----
-
-### Visual: Multi-Assignee Display in Task Item
-
-```text
-+----------------------------------------------------------------+
-| [ ] Review Q4 financial reports              🟠 HIGH            |
-|     👤 Self, Jane Admin, Mike Developer                        |
-|     🔗 Project: Website Redesign                               |
-|     📅 Feb 5, 2025                                             |
-+----------------------------------------------------------------+
-
-With overflow (more than 3 assignees):
-+----------------------------------------------------------------+
-| [ ] Large team task                          🟡 MEDIUM          |
-|     👤 Self, Jane Admin, Mike... (+2 more)                     |
-|     📅 Feb 6, 2025                                             |
-+----------------------------------------------------------------+
-```
-
----
-
-### Note on Status Filter
-
-The status filter (pending/done/cancelled) already exists in `AllTodosPage.tsx` at lines 89-98. It's fully functional with the current implementation. No changes needed for status filtering.
-
----
-
-### Implementation Order
-
-**Phase 1: Data Model**
-1. Add `ToDoAssignee` interface to `business.ts`
-2. Update `ToDo` interface with `assignees` array
-3. Create migration utility
-
-**Phase 2: Selector Component**
-1. Rewrite `AssigneeSelector.tsx` for multi-select
-
-**Phase 3: Modal & Display**
-1. Update `TodoModal.tsx` state management
-2. Update `TodoItem.tsx` display logic
-
-**Phase 4: Filtering**
-1. Update `ByAssigneePage.tsx` filter logic
-2. Add assignee filter to `AllTodosPage.tsx` if needed
+After this fix:
+- Clicking anywhere on the assignee row will toggle selection
+- No more double-triggering of `toggleAssignee`
+- Multi-assignee selection will work correctly for Self, Operators, Team Members, and Partners
 
