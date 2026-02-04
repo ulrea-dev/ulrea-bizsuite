@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Users, Check } from 'lucide-react';
+import { X, Users, Check, Filter } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { ToDoAssignee, ToDoAssigneeType } from '@/types/business';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AssigneeSelectorProps {
   assignees: ToDoAssignee[];
@@ -24,6 +25,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   businessId,
   onChange,
 }) => {
+  const [filterByBusiness, setFilterByBusiness] = useState(false);
   const { data } = useBusiness();
 
   // Build Self option
@@ -69,27 +71,33 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
     return operatorList;
   }, [data.userBusinessAccess, data.userSettings]);
 
-  // Get all team members (show all regardless of business)
+  // Get team members (optionally filtered by business)
   const teamMembers = useMemo(() => {
-    const members = data.teamMembers || [];
+    let members = data.teamMembers || [];
+    if (filterByBusiness && businessId) {
+      members = members.filter(m => m.businessIds?.includes(businessId));
+    }
     return members.map(m => ({
       id: m.id,
       name: m.name,
       type: 'team-member' as ToDoAssigneeType,
       subtitle: m.role,
     }));
-  }, [data.teamMembers]);
+  }, [data.teamMembers, filterByBusiness, businessId]);
 
-  // Get all partners (show all regardless of business)
+  // Get partners (optionally filtered by business)
   const partners = useMemo(() => {
-    const partnerList = data.partners || [];
+    let partnerList = data.partners || [];
+    if (filterByBusiness && businessId) {
+      partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
+    }
     return partnerList.map(p => ({
       id: p.id,
       name: p.name,
       type: 'partner' as ToDoAssigneeType,
       subtitle: p.type,
     }));
-  }, [data.partners]);
+  }, [data.partners, filterByBusiness, businessId]);
 
   const isSelected = (option: PersonOption) => {
     return assignees.some(a => a.id === option.id && a.type === option.type);
@@ -140,11 +148,24 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
           <Users className="h-4 w-4" />
           Assign To
         </Label>
-        {assignees.length > 0 && (
-          <Badge variant="secondary" className="text-xs">
-            {assignees.length} selected
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {businessId && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+              <Checkbox
+                checked={filterByBusiness}
+                onCheckedChange={(checked) => setFilterByBusiness(checked === true)}
+                className="h-3.5 w-3.5"
+              />
+              <Filter className="h-3 w-3" />
+              <span>Filter by business</span>
+            </label>
+          )}
+          {assignees.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {assignees.length} selected
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Selected Assignees Chips */}
