@@ -1,86 +1,153 @@
 
-## Rebuild Assignee Selector with Native Checkbox
 
-### Problem
-The Radix UI `Checkbox` component's internal ref management creates an infinite update loop when rendered inside clickable containers. The stack trace shows `setRef` calls cascading infinitely.
+## Fix Assignee Selector Data Synchronization
+
+### Current Issue
+The AssigneeSelector component has the correct structure but the data retrieval logic has gaps:
+
+1. **Operators**: The workspace owner (current user) isn't in `userBusinessAccess` by default - they're only added when they explicitly share access with others
+2. **Team Members/Partners**: When `businessId` is undefined (e.g., cross-business todos), the filtering logic doesn't show all members
 
 ### Solution
-Replace the Radix UI `Checkbox` with a native HTML `<input type="checkbox">` styled with Tailwind CSS. This completely bypasses Radix's ref management while maintaining the same visual appearance.
+Update the data retrieval logic in `AssigneeSelector.tsx` to:
+
+1. **Always include the current user as an operator** (they're always at minimum an owner/admin of their workspace)
+2. **Show all team members and partners when no business is selected** (remove the restrictive filtering)
+3. **Include all users from `userBusinessAccess` with owner/admin roles**
 
 ### File Changes
 
 **File: `src/components/todos/AssigneeSelector.tsx`**
 
-1. Remove the Radix Checkbox import
-2. Create a styled native checkbox that matches the current design
-3. Update the `renderCheckbox` function to use native HTML input
+1. Update operators logic to include current user
+2. Fix team members/partners filtering to show all when no businessId
+
+### Code Changes
 
 ```text
-Changes Overview:
-- Line 3: Remove Checkbox import from '@/components/ui/checkbox'
-- Lines 94-108: Replace renderCheckbox function with native checkbox implementation
+Lines 36-47: Update operators logic
 ```
 
-**Updated renderCheckbox function:**
+**Current:**
 ```tsx
-const renderCheckbox = (option: PersonOption) => {
-  const selected = isSelected(option);
-  return (
-    <div
-      key={`${option.type}-${option.id}`}
-      className="flex items-center gap-3 py-2 px-2 rounded hover:bg-muted/50 cursor-pointer"
-      onClick={() => toggleAssignee(option)}
-    >
-      {/* Native checkbox styled to match Radix design */}
-      <div
-        className={cn(
-          "h-4 w-4 shrink-0 rounded-sm border border-primary flex items-center justify-center",
-          selected && "bg-primary text-primary-foreground"
-        )}
-      >
-        {selected && (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-3 w-3"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{option.name}</p>
-        {option.subtitle && (
-          <p className="text-xs text-muted-foreground truncate">{option.subtitle}</p>
-        )}
-      </div>
-    </div>
-  );
-};
+const operators = useMemo(() => {
+  const accessList = data.userBusinessAccess || [];
+  return accessList
+    .filter(access => access.role === 'owner' || access.role === 'admin')
+    .map(access => ({
+      id: access.userId,
+      name: access.email || `User ${access.userId.slice(0, 8)}`,
+      type: 'operator' as ToDoAssigneeType,
+      subtitle: access.role,
+    }));
+}, [data.userBusinessAccess]);
 ```
 
-### Why This Works
-- Native HTML elements don't have Radix's ref management overhead
-- No `onCheckedChange` handler that could conflict with parent `onClick`
-- Single event handler on parent div controls all selection logic
-- Visual appearance matches the original Radix Checkbox design
+**Updated:**
+```tsx
+const operators = useMemo(() => {
+  const accessList = data.userBusinessAccess || [];
+  const operatorList: PersonOption[] = [];
+  
+  // Add current user as operator (always has access)
+  const currentUserId = data.userSettings.userId;
+  const currentUserInList = accessList.find(a => a.userId === currentUserId);
+  
+  if (!currentUserInList || currentUserInList.role === 'owner' || currentUserInList.role === 'admin') {
+    operatorList.push({
+      id: currentUserId || 'current-user',
+      name: data.userSettings.username || 'Me',
+      type: 'operator' as ToDoAssigneeType,
+      subtitle: currentUserInList?.role || 'owner',
+    });
+  }
+  
+  // Add other operators from access list (exclude current user to avoid duplicates)
+  accessList
+    .filter(access => 
+      (access.role === 'owner' || access.role === 'admin') && 
+      access.userId !== currentUserId
+    )
+    .forEach(access => {
+      operatorList.push({
+        id: access.userId,
+        name: access.email || `User ${access.userId.slice(0, 8)}`,
+        type: 'operator' as ToDoAssigneeType,
+        subtitle: access.role,
+      });
+    });
+  
+  return operatorList;
+}, [data.userBusinessAccess, data.userSettings]);
+```
 
-### Technical Details
+```text
+Lines 49-61: Update team members logic
+```
 
-| Aspect | Before (Radix) | After (Native) |
-|--------|---------------|----------------|
-| Ref Management | Complex internal state | None |
-| Event Handling | Both `onClick` and `onCheckedChange` | Single parent `onClick` |
-| Re-render Behavior | Triggers ref updates | Stable |
-| Styling | Radix classes | Tailwind classes |
+**Current:**
+```tsx
+const teamMembers = useMemo(() => {
+  let members = data.teamMembers || [];
+  if (businessId) {
+    members = members.filter(m => m.businessIds?.includes(businessId));
+  }
+  return members.map(m => ({...}));
+}, [data.teamMembers, businessId]);
+```
 
-### Files Summary
+**Updated:**
+```tsx
+const teamMembers = useMemo(() => {
+  let members = data.teamMembers || [];
+  // Only filter by business if a specific business is selected
+  // When businessId is undefined, show all team members
+  if (businessId) {
+    members = members.filter(m => m.businessIds?.includes(businessId));
+  }
+  return members.map(m => ({
+    id: m.id,
+    name: m.name,
+    type: 'team-member' as ToDoAssigneeType,
+    subtitle: m.role,
+  }));
+}, [data.teamMembers, businessId]);
+```
 
-| File | Change |
-|------|--------|
-| `src/components/todos/AssigneeSelector.tsx` | Replace Radix Checkbox with styled native checkbox |
+```text
+Lines 63-75: Update partners logic (same pattern)
+```
+
+**Updated:**
+```tsx
+const partners = useMemo(() => {
+  let partnerList = data.partners || [];
+  // Only filter by business if a specific business is selected
+  if (businessId) {
+    partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
+  }
+  return partnerList.map(p => ({
+    id: p.id,
+    name: p.name,
+    type: 'partner' as ToDoAssigneeType,
+    subtitle: p.type,
+  }));
+}, [data.partners, businessId]);
+```
+
+### Data Sources Summary
+
+| Category | Source Location | Filter Condition |
+|----------|-----------------|------------------|
+| **Self** | `userSettings.username/userId` | Always shown |
+| **Operators** | Current user + `userBusinessAccess` (role = owner/admin) | Always shown |
+| **Team Members** | `data.teamMembers` (Admin Console) | By `businessId` if provided |
+| **Partners** | `data.partners` (Admin Console) | By `businessId` if provided |
+
+### Expected Outcome
+After this fix:
+- Current user always appears under "Operators"
+- All team members from Admin Console appear
+- All partners from Admin Console appear
+- When a specific business is selected, team members and partners filter accordingly
+
