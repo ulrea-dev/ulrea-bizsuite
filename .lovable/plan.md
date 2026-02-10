@@ -1,153 +1,95 @@
 
 
-## Fix Assignee Selector Data Synchronization
+## Turn BizSuite into a Work OS with Simplified Navigation
 
-### Current Issue
-The AssigneeSelector component has the correct structure but the data retrieval logic has gaps:
+### Overview
+Restructure the app so that when users log in, they land on a clean hub that gives instant access to three distinct areas: **Operations** (the main business app), **Back Office** (admin/management), and **To-Do** (productivity). Each area lets you quickly switch to the others.
 
-1. **Operators**: The workspace owner (current user) isn't in `userBusinessAccess` by default - they're only added when they explicitly share access with others
-2. **Team Members/Partners**: When `businessId` is undefined (e.g., cross-business todos), the filtering logic doesn't show all members
+### Naming Changes
 
-### Solution
-Update the data retrieval logic in `AssigneeSelector.tsx` to:
+| Current Name | New Name |
+|---|---|
+| BizSuite | **Operations** |
+| Business Management / Admin Console | **Back Office** |
+| To-Do | To-Do (unchanged) |
 
-1. **Always include the current user as an operator** (they're always at minimum an owner/admin of their workspace)
-2. **Show all team members and partners when no business is selected** (remove the restrictive filtering)
-3. **Include all users from `userBusinessAccess` with owner/admin roles**
+### What Changes
 
-### File Changes
+#### 1. New Hub Landing Page (replaces current Dashboard)
+When you log in, instead of going straight into a business dashboard, you see a clean **Work OS Hub** with three cards/sections:
 
-**File: `src/components/todos/AssigneeSelector.tsx`**
+- **Operations** -- "Manage your projects, clients, finances" with a summary (active projects count, pending payments, etc.)
+- **Back Office** -- "Team members, partners, bank accounts, business settings" with a quick summary
+- **To-Do** -- "Your tasks and reminders" with overdue/today counts
 
-1. Update operators logic to include current user
-2. Fix team members/partners filtering to show all when no businessId
+Each card is clickable and takes you into that area. This is the `/dashboard` route.
 
-### Code Changes
+#### 2. Cross-Navigation Between Areas
+In every area, the sidebar footer provides quick links to the other two areas:
 
-```text
-Lines 36-47: Update operators logic
-```
+- **Operations sidebar** (already has To-Do and Business Management links) -- rename labels to "Back Office" and keep "To-Do"
+- **Back Office sidebar** -- add a "To-Do" link alongside the existing "Back to Operations" link (renamed from "Back to BizSuite")
+- **To-Do sidebar** -- add a "Back Office" link alongside the existing "Back to Operations" link
 
-**Current:**
-```tsx
-const operators = useMemo(() => {
-  const accessList = data.userBusinessAccess || [];
-  return accessList
-    .filter(access => access.role === 'owner' || access.role === 'admin')
-    .map(access => ({
-      id: access.userId,
-      name: access.email || `User ${access.userId.slice(0, 8)}`,
-      type: 'operator' as ToDoAssigneeType,
-      subtitle: access.role,
-    }));
-}, [data.userBusinessAccess]);
-```
+Additionally, each sidebar's "back" button goes to the hub (`/dashboard`), and there are direct links to the other two areas.
 
-**Updated:**
-```tsx
-const operators = useMemo(() => {
-  const accessList = data.userBusinessAccess || [];
-  const operatorList: PersonOption[] = [];
-  
-  // Add current user as operator (always has access)
-  const currentUserId = data.userSettings.userId;
-  const currentUserInList = accessList.find(a => a.userId === currentUserId);
-  
-  if (!currentUserInList || currentUserInList.role === 'owner' || currentUserInList.role === 'admin') {
-    operatorList.push({
-      id: currentUserId || 'current-user',
-      name: data.userSettings.username || 'Me',
-      type: 'operator' as ToDoAssigneeType,
-      subtitle: currentUserInList?.role || 'owner',
-    });
-  }
-  
-  // Add other operators from access list (exclude current user to avoid duplicates)
-  accessList
-    .filter(access => 
-      (access.role === 'owner' || access.role === 'admin') && 
-      access.userId !== currentUserId
-    )
-    .forEach(access => {
-      operatorList.push({
-        id: access.userId,
-        name: access.email || `User ${access.userId.slice(0, 8)}`,
-        type: 'operator' as ToDoAssigneeType,
-        subtitle: access.role,
-      });
-    });
-  
-  return operatorList;
-}, [data.userBusinessAccess, data.userSettings]);
-```
+#### 3. Rename References Throughout
+
+### Technical Details
+
+**Files to modify:**
+
+1. **`src/components/DashboardHome.tsx`** -- Replace current dashboard with a Work OS hub showing three area cards. When a business is selected, show the current dashboard content below the hub navigation cards (or redirect into Operations).
+
+2. **`src/components/AppSidebar.tsx`** -- 
+   - Rename "BizSuite" to "Operations" in the header (line 202-203)
+   - Rename "Business Management" to "Back Office" in the footer link (line 351)
+   - Keep the hub accessible via logo/home click
+
+3. **`src/components/AdminSidebar.tsx`** -- 
+   - Rename "Admin Console / Business Management" to "Back Office" in the header (line 101-102)
+   - Rename "Back to BizSuite" to "Back to Hub" or "Operations" (line 141)
+   - Add a "To-Do" quick link in the footer
+
+4. **`src/components/TodoSidebar.tsx`** -- 
+   - Add a "Back Office" quick link in the footer alongside the existing "Back to app" link
+   - Rename back link to "Operations" or "Back to Hub"
+
+5. **`src/pages/DashboardPage.tsx`** -- Update to support the hub view
+
+6. **`src/layouts/BusinessManagementLayout.tsx`** -- Update any references
+
+7. **`src/components/MobileHeader.tsx`** -- No structural changes needed, titles come from context
+
+### Hub Design
+
+The hub page will have a clean layout:
 
 ```text
-Lines 49-61: Update team members logic
++------------------------------------------+
+|            Welcome, [User]               |
+|         Your Work OS                      |
++------------------------------------------+
+|                                          |
+|  +----------+  +----------+  +--------+  |
+|  |          |  |          |  |        |  |
+|  |Operations|  |Back      |  | To-Do  |  |
+|  |          |  |Office    |  |        |  |
+|  | 5 active |  | 3 team   |  | 2 over |  |
+|  | projects |  | members  |  | due    |  |
+|  +----------+  +----------+  +--------+  |
+|                                          |
+|  [Recent Activity / Quick Summary below] |
++------------------------------------------+
 ```
 
-**Current:**
-```tsx
-const teamMembers = useMemo(() => {
-  let members = data.teamMembers || [];
-  if (businessId) {
-    members = members.filter(m => m.businessIds?.includes(businessId));
-  }
-  return members.map(m => ({...}));
-}, [data.teamMembers, businessId]);
-```
+When a user clicks "Operations," they navigate to `/works/projects` (or the current dashboard with business context). "Back Office" goes to `/business-management`, and "To-Do" goes to `/todos`.
 
-**Updated:**
-```tsx
-const teamMembers = useMemo(() => {
-  let members = data.teamMembers || [];
-  // Only filter by business if a specific business is selected
-  // When businessId is undefined, show all team members
-  if (businessId) {
-    members = members.filter(m => m.businessIds?.includes(businessId));
-  }
-  return members.map(m => ({
-    id: m.id,
-    name: m.name,
-    type: 'team-member' as ToDoAssigneeType,
-    subtitle: m.role,
-  }));
-}, [data.teamMembers, businessId]);
-```
+### Navigation Flow Summary
 
-```text
-Lines 63-75: Update partners logic (same pattern)
-```
-
-**Updated:**
-```tsx
-const partners = useMemo(() => {
-  let partnerList = data.partners || [];
-  // Only filter by business if a specific business is selected
-  if (businessId) {
-    partnerList = partnerList.filter(p => p.businessIds?.includes(businessId));
-  }
-  return partnerList.map(p => ({
-    id: p.id,
-    name: p.name,
-    type: 'partner' as ToDoAssigneeType,
-    subtitle: p.type,
-  }));
-}, [data.partners, businessId]);
-```
-
-### Data Sources Summary
-
-| Category | Source Location | Filter Condition |
-|----------|-----------------|------------------|
-| **Self** | `userSettings.username/userId` | Always shown |
-| **Operators** | Current user + `userBusinessAccess` (role = owner/admin) | Always shown |
-| **Team Members** | `data.teamMembers` (Admin Console) | By `businessId` if provided |
-| **Partners** | `data.partners` (Admin Console) | By `businessId` if provided |
-
-### Expected Outcome
-After this fix:
-- Current user always appears under "Operators"
-- All team members from Admin Console appear
-- All partners from Admin Console appear
-- When a specific business is selected, team members and partners filter accordingly
+- Login --> Hub (`/dashboard`) -- three cards
+- Hub --> Operations --> sidebar has links to Back Office + To-Do
+- Hub --> Back Office --> sidebar has links to Operations + To-Do  
+- Hub --> To-Do --> sidebar has links to Operations + Back Office
+- Any sidebar "Home" or logo click --> back to Hub
 
