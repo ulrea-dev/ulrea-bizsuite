@@ -10,7 +10,8 @@ import {
   ListTodo, 
   ArrowLeft,
   Moon,
-  Sun
+  Sun,
+  Briefcase
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -166,9 +167,17 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = ({ onBackToApp }) => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={onBackToApp} tooltip="Back to BizSuite">
+            <SidebarMenuButton onClick={onBackToApp} tooltip="Back to Hub">
               <ArrowLeft className="h-4 w-4" />
-              {sidebarOpen && <span>Back to BizSuite</span>}
+              {sidebarOpen && <span>Back to Hub</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Back Office">
+              <Link to="/business-management">
+                <Briefcase className="h-4 w-4" />
+                {sidebarOpen && <span>Back Office</span>}
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
