@@ -20,7 +20,7 @@ const LayoutContent: React.FC = () => {
       <div className="flex min-h-screen w-full bg-background">
         <AdminSidebar onBackToApp={handleBackToApp} />
         <SidebarInset>
-          <MobileHeader title="Admin Console" />
+          <MobileHeader title="Back Office" />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto">
             <Outlet />
           </div>

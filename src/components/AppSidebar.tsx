@@ -199,8 +199,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Building2 className="h-6 w-6 dashboard-text-primary" />
               </div>
               <div className="flex-1">
-                <h1 className="text-base font-bold dashboard-text-primary">BizSuite</h1>
-                <p className="text-xs dashboard-text-secondary">Management Tool</p>
+                <h1 className="text-base font-bold dashboard-text-primary">Operations</h1>
+                <p className="text-xs dashboard-text-secondary">Work OS</p>
               </div>
             </>
           )}
@@ -348,7 +348,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <Link to="/business-management" className="flex items-center justify-between w-full">
                 <span className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4" />
-                  {sidebarOpen && <span>Business Management</span>}
+                  {sidebarOpen && <span>Back Office</span>}
                 </span>
                 {sidebarOpen && <ExternalLink className="h-3 w-3 opacity-50" />}
               </Link>

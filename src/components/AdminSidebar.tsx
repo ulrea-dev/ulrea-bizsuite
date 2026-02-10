@@ -13,8 +13,10 @@ import {
   Download,
   Users,
   Layers,
-  UserCog
+  UserCog,
+  ListTodo
 } from 'lucide-react';
+
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { exportData } from '@/utils/storage';
@@ -98,8 +100,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
                 <Briefcase className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h1 className="text-base font-bold dashboard-text-primary">Admin Console</h1>
-                <p className="text-xs dashboard-text-secondary">Business Management</p>
+                <h1 className="text-base font-bold dashboard-text-primary">Back Office</h1>
+                <p className="text-xs dashboard-text-secondary">Administration</p>
               </div>
             </>
           )}
@@ -138,9 +140,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={onBackToApp} tooltip="Back to BizSuite">
+            <SidebarMenuButton onClick={onBackToApp} tooltip="Back to Hub">
               <ArrowLeft className="h-4 w-4" />
-              {sidebarOpen && <span>Back to BizSuite</span>}
+              {sidebarOpen && <span>Back to Hub</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="To-Do">
+              <Link to="/todos">
+                <ListTodo className="h-4 w-4" />
+                {sidebarOpen && <span>To-Do</span>}
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
