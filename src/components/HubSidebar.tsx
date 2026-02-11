@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Settings2, ListTodo, Moon, Sun, Download, LogOut, Cloud, RefreshCw, ExternalLink, Home } from 'lucide-react';
+import { Briefcase, Settings2, ListTodo, Moon, Sun, Download, LogOut, Cloud, RefreshCw, Home } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { exportData } from '@/utils/storage';
-import { BusinessSwitcher } from './BusinessSwitcher';
 import {
   Sidebar,
   SidebarContent,
@@ -21,16 +20,15 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 
 interface HubSidebarProps {
   onLogout: () => void;
-  onCreateBusiness: () => void;
 }
 
-export const HubSidebar: React.FC<HubSidebarProps> = ({ onLogout, onCreateBusiness }) => {
+export const HubSidebar: React.FC<HubSidebarProps> = ({ onLogout }) => {
   const { theme, toggleTheme } = useTheme();
   const { data } = useBusiness();
   const { isConnected, isSyncing, syncNow, settings } = useGoogleDrive();
@@ -81,9 +79,7 @@ export const HubSidebar: React.FC<HubSidebarProps> = ({ onLogout, onCreateBusine
     ? `Last synced ${formatDistanceToNow(new Date(settings.lastSyncTime), { addSuffix: true })}`
     : 'Not synced yet';
 
-  const handleManageBusinesses = () => {
-    navigate('/settings');
-  };
+  // removed handleManageBusinesses - no longer needed
 
   const areas = [
     {
@@ -116,26 +112,17 @@ export const HubSidebar: React.FC<HubSidebarProps> = ({ onLogout, onCreateBusine
         <div className="flex items-center gap-2 px-2 py-2">
           {sidebarOpen && (
             <>
-              <div className="p-2 dashboard-surface-elevated rounded-lg border dashboard-border">
-                <Home className="h-6 w-6 dashboard-text-primary" />
+              <div className="p-2 rounded-lg border border-border bg-muted">
+                <Home className="h-5 w-5 text-foreground" />
               </div>
               <div className="flex-1">
-                <h1 className="text-base font-bold dashboard-text-primary">Work OS</h1>
-                <p className="text-xs dashboard-text-secondary">Hub</p>
+                <h1 className="text-base font-bold text-foreground">Work OS</h1>
+                <p className="text-xs text-muted-foreground">Hub</p>
               </div>
             </>
           )}
           <SidebarTrigger className={sidebarOpen ? '' : 'mx-auto'} />
         </div>
-        
-        {sidebarOpen && (
-          <div className="px-4">
-            <BusinessSwitcher 
-              onCreateBusiness={onCreateBusiness}
-              onManageBusinesses={handleManageBusinesses}
-            />
-          </div>
-        )}
       </SidebarHeader>
 
       <SidebarContent>

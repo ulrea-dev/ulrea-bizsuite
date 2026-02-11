@@ -23,7 +23,7 @@ const LayoutContent: React.FC = () => {
   };
 
   const handleCreateBusiness = () => {
-    console.log('Create business triggered');
+    // handled elsewhere now
   };
 
   return (
@@ -31,7 +31,6 @@ const LayoutContent: React.FC = () => {
       <div className="flex min-h-screen w-full bg-background">
         <HubSidebar 
           onLogout={handleLogout}
-          onCreateBusiness={handleCreateBusiness}
         />
         <SidebarInset>
           <MobileHeader title="Work OS" />
