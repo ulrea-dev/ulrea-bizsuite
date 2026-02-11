@@ -96,9 +96,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     const businessModel = currentBusiness?.businessModel || 'service';
     
     // Base items for all models
-    const baseItems: NavItem[] = [
-      { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-    ];
+    const baseItems: NavItem[] = [];
     
     // Service-specific items
     const serviceItems: NavItem[] = [
@@ -116,11 +114,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       { id: 'procurement', label: 'Procurement', icon: Truck, path: '/procurement' },
     ];
     
-    // Common items for all models (Team moved to Admin Console)
+    // Common items for all models
     const commonItems: NavItem[] = [
       { id: 'financials', label: 'Financials', icon: DollarSign, path: '/financials', subItems: financialsSubItems },
       { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
-      { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
     ];
     
     // Build navigation based on business model
@@ -315,6 +312,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Back to Hub">
+              <Link to="/dashboard">
+                <Home className="h-4 w-4" />
+                {sidebarOpen && <span>Back to Hub</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={location.pathname.startsWith('/todos')}
@@ -351,6 +356,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   {sidebarOpen && <span>Back Office</span>}
                 </span>
                 {sidebarOpen && <ExternalLink className="h-3 w-3 opacity-50" />}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Settings">
+              <Link to="/settings">
+                <Settings className="h-4 w-4" />
+                {sidebarOpen && <span>Settings</span>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -14,7 +14,8 @@ import {
   Users,
   Layers,
   UserCog,
-  ListTodo
+  ListTodo,
+  Settings
 } from 'lucide-react';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -150,6 +151,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
               <Link to="/todos">
                 <ListTodo className="h-4 w-4" />
                 {sidebarOpen && <span>To-Do</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Settings">
+              <Link to="/settings">
+                <Settings className="h-4 w-4" />
+                {sidebarOpen && <span>Settings</span>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

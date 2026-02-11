@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Briefcase, Settings2, ListTodo, Moon, Sun, Download, LogOut, Cloud, RefreshCw, Home } from 'lucide-react';
+import { Briefcase, Settings2, ListTodo, Moon, Sun, Download, LogOut, Cloud, RefreshCw, Home, Settings } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
@@ -160,6 +160,18 @@ export const HubSidebar: React.FC<HubSidebarProps> = ({ onLogout }) => {
 
       <SidebarFooter>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === '/settings'}
+              tooltip="Settings"
+            >
+              <Link to="/settings">
+                <Settings className="h-4 w-4" />
+                {sidebarOpen && <span>Settings</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <TooltipProvider>
               <Tooltip>
