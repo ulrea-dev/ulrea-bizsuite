@@ -93,7 +93,11 @@ export const WorkOSHub: React.FC = () => {
       {/* Greeting */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          {currentBusiness ? currentBusiness.name : 'Welcome'}
+          {data.userSettings.username
+            ? `Welcome back, ${data.userSettings.username}`
+            : currentBusiness
+              ? `Welcome to ${currentBusiness.name}`
+              : 'Welcome'}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}

@@ -107,6 +107,7 @@ const App = () => (
             <Route element={<HubLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route element={<DashboardLayout />}>
               
@@ -142,7 +143,6 @@ const App = () => (
               <Route path="/team" element={<Navigate to="/business-management/team-members" replace />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route element={<BusinessManagementLayout />}>
               <Route path="/business-management" element={<AdminOverview />} />
