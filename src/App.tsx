@@ -6,6 +6,7 @@ import { BusinessProvider, useBusiness, setRestoringData } from "./contexts/Busi
 import { GoogleDriveProvider, useGoogleDrive } from "./contexts/GoogleDriveContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { DashboardLayout } from "./layouts/DashboardLayout";
+import { HubLayout } from "./layouts/HubLayout";
 import { BusinessManagementLayout } from "./layouts/BusinessManagementLayout";
 import { TodoLayout } from "./layouts/TodoLayout";
 import { GoogleReconnectModal } from "./components/GoogleReconnectModal";
@@ -103,9 +104,11 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route element={<DashboardLayout />}>
+            <Route element={<HubLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+            </Route>
+            <Route element={<DashboardLayout />}>
               
               {/* Works Section */}
               <Route path="/works" element={<Navigate to="/works/projects" replace />} />
