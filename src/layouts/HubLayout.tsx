@@ -7,6 +7,7 @@ import { useAppearance } from '@/hooks/useAppearance';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
+import { BottomTabBar } from '@/components/BottomTabBar';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
@@ -22,10 +23,6 @@ const LayoutContent: React.FC = () => {
     navigate('/login');
   };
 
-  const handleCreateBusiness = () => {
-    // handled elsewhere now
-  };
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -34,11 +31,12 @@ const LayoutContent: React.FC = () => {
         />
         <SidebarInset>
           <MobileHeader title="Work OS" />
-          <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto">
+          <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>
         </SidebarInset>
       </div>
+      <BottomTabBar />
     </SidebarProvider>
   );
 };
