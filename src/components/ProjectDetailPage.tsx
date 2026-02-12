@@ -161,29 +161,29 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <Button variant="outline" size="sm" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Projects
         </Button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold dashboard-text-primary">{project.name}</h1>
-          <p className="dashboard-text-secondary">{project.description}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold dashboard-text-primary break-words">{project.name}</h1>
+          <p className="dashboard-text-secondary text-sm">{project.description}</p>
         </div>
-        <Button variant="outline" onClick={() => setEditModalOpen(true)}>
+        <Button variant="outline" onClick={() => setEditModalOpen(true)} className="shrink-0">
           <Edit className="h-4 w-4 mr-2" />
           Edit Project
         </Button>
       </div>
 
-      {/* Project Overview - Updated to include expenses */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+      {/* Project Overview */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm dashboard-text-secondary">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dashboard-text-primary">
+            <div className="text-xl sm:text-2xl font-bold dashboard-text-primary">
               {formatCurrency(totalProjectValue, currentBusiness.currency)}
             </div>
           </CardContent>
@@ -194,7 +194,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <CardTitle className="text-sm dashboard-text-secondary">Allocated</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold dashboard-text-primary">
+            <div className="text-xl sm:text-2xl font-bold dashboard-text-primary">
               {formatCurrency(totalAllocated, currentBusiness.currency)}
             </div>
             <Progress value={(totalAllocated / totalProjectValue) * 100} className="mt-2" />
@@ -206,7 +206,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <CardTitle className="text-sm dashboard-text-secondary">Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-xl sm:text-2xl font-bold text-red-600">
               {formatCurrency(totalExpenses, currentBusiness.currency)}
             </div>
             <Progress value={(totalExpenses / totalProjectValue) * 100} className="mt-2" />
@@ -218,7 +218,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <CardTitle className="text-sm dashboard-text-secondary">Paid Out</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-xl sm:text-2xl font-bold text-green-600">
               {formatCurrency(totalPaid, currentBusiness.currency)}
             </div>
             <Progress value={totalAllocated > 0 ? (totalPaid / totalAllocated) * 100 : 0} className="mt-2" />
@@ -230,7 +230,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <CardTitle className="text-sm dashboard-text-secondary">Client Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-xl sm:text-2xl font-bold text-blue-600">
               {formatCurrency(clientPaymentsReceived, currentBusiness.currency)}
             </div>
             <Progress value={(clientPaymentsReceived / totalProjectValue) * 100} className="mt-2" />
@@ -242,7 +242,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
             <CardTitle className="text-sm dashboard-text-secondary">Net Profit</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-xl sm:text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(netProfit, currentBusiness.currency)}
             </div>
           </CardContent>
@@ -633,7 +633,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           </div>
 
           {/* Expense Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm dashboard-text-secondary">Total Expenses</CardTitle>
