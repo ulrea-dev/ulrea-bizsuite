@@ -5,8 +5,8 @@ import { useTodoReminders } from '@/hooks/useTodoReminders';
 
 const tabs = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard', match: ['/dashboard', '/settings'] },
-  { id: 'operations', label: 'Operations', icon: Briefcase, path: '/works', match: ['/works'] },
-  { id: 'backoffice', label: 'Back Office', icon: Building2, path: '/admin', match: ['/admin'] },
+  { id: 'operations', label: 'Operations', icon: Briefcase, path: '/works', match: ['/works', '/financials', '/clients', '/analytics', '/products', '/sales', '/customers', '/inventory', '/production', '/procurement'] },
+  { id: 'backoffice', label: 'Back Office', icon: Building2, path: '/business-management', match: ['/business-management'] },
   { id: 'todo', label: 'To-Do', icon: CheckSquare, path: '/todos', match: ['/todos'] },
 ];
 
