@@ -36,7 +36,7 @@ const LayoutContent: React.FC = () => {
           onCreateBusiness={handleCreateBusiness}
         />
         <SidebarInset className="overflow-x-hidden">
-          <MobileHeader title="Operations" />
+          <MobileHeader title="Operations" onLogout={handleLogout} />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>

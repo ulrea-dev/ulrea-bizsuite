@@ -16,12 +16,16 @@ const LayoutContent: React.FC = () => {
     navigate('/dashboard');
   };
 
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
         <TodoSidebar onBackToApp={handleBackToApp} />
         <SidebarInset className="overflow-x-hidden">
-          <MobileHeader title="To-Do" />
+          <MobileHeader title="To-Do" onLogout={handleLogout} />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>

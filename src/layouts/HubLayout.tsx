@@ -30,7 +30,7 @@ const LayoutContent: React.FC = () => {
           onLogout={handleLogout}
         />
         <SidebarInset>
-          <MobileHeader title="Work OS" />
+          <MobileHeader title="Work OS" onLogout={handleLogout} />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>
