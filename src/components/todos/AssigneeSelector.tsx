@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { X, Users, Check, Filter } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
+import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { ToDoAssignee, ToDoAssigneeType } from '@/types/business';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SharedUser } from '@/types/googleDrive';
 
 interface AssigneeSelectorProps {
   assignees: ToDoAssignee[];
@@ -27,49 +29,43 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
 }) => {
   const [filterByBusiness, setFilterByBusiness] = useState(false);
   const { data } = useBusiness();
+  const { isConnected, getSharedUsers, settings } = useGoogleDrive();
+  const [driveUsers, setDriveUsers] = useState<SharedUser[]>([]);
 
-  // Build Self option
-  const selfOption: PersonOption = useMemo(() => ({
-    id: data.userSettings.userId || 'self',
-    name: data.userSettings.username || 'Self',
-    type: 'self',
-  }), [data.userSettings]);
-
-  // Get operators (users with owner/admin roles)
-  const operators = useMemo(() => {
-    const accessList = data.userBusinessAccess || [];
-    const operatorList: PersonOption[] = [];
-    
-    // Add current user as operator (always has access)
-    const currentUserId = data.userSettings.userId;
-    const currentUserInList = accessList.find(a => a.userId === currentUserId);
-    
-    if (!currentUserInList || currentUserInList.role === 'owner' || currentUserInList.role === 'admin') {
-      operatorList.push({
-        id: currentUserId || 'current-user',
-        name: data.userSettings.username || 'Me',
-        type: 'operator' as ToDoAssigneeType,
-        subtitle: currentUserInList?.role || 'owner',
-      });
+  // Fetch Google Drive shared users
+  useEffect(() => {
+    if (isConnected) {
+      getSharedUsers().then(users => setDriveUsers(users)).catch(() => {});
     }
-    
-    // Add other operators from access list (exclude current user to avoid duplicates)
-    accessList
-      .filter(access => 
-        (access.role === 'owner' || access.role === 'admin') && 
-        access.userId !== currentUserId
-      )
-      .forEach(access => {
+  }, [isConnected, getSharedUsers]);
+
+  // Build operators from Google Drive shared users (writers/owners)
+  const operators = useMemo(() => {
+    const operatorList: PersonOption[] = [];
+    const currentEmail = settings.connectedEmail;
+
+    // Add current user (self) as first operator using their Google account name
+    operatorList.push({
+      id: data.userSettings.userId || 'current-user',
+      name: data.userSettings.username || currentEmail || 'Me',
+      type: 'operator' as ToDoAssigneeType,
+      subtitle: currentEmail ? `${currentEmail} · Owner` : 'Owner',
+    });
+
+    // Add Google Drive shared users (writers/owners only, exclude current user)
+    driveUsers
+      .filter(u => (u.role === 'writer' || u.role === 'owner') && u.email !== currentEmail)
+      .forEach(user => {
         operatorList.push({
-          id: access.userId,
-          name: access.email || `User ${access.userId.slice(0, 8)}`,
+          id: user.email, // Use email as stable ID
+          name: user.displayName || user.email,
           type: 'operator' as ToDoAssigneeType,
-          subtitle: access.role,
+          subtitle: `${user.email} · ${user.role === 'owner' ? 'Owner' : 'Editor'}`,
         });
       });
-    
+
     return operatorList;
-  }, [data.userBusinessAccess, data.userSettings]);
+  }, [driveUsers, settings.connectedEmail, data.userSettings]);
 
   // Get team members (optionally filtered by business)
   const teamMembers = useMemo(() => {
@@ -192,12 +188,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
 
       {/* Assignee Options */}
       <div className="border rounded-lg divide-y max-h-[280px] overflow-y-auto">
-        {/* Self */}
-        <div className="p-2">
-          {renderCheckbox(selfOption)}
-        </div>
-
-        {/* Operators */}
+        {/* Operators (includes current user) */}
         {operators.length > 0 && (
           <div className="p-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
