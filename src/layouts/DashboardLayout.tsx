@@ -9,21 +9,6 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
-import { MobileSubNav } from '@/components/MobileSubNav';
-
-const operationsSubNav = [
-  { label: 'Projects', path: '/works/projects' },
-  { label: 'Quick Tasks', path: '/works/quick-tasks' },
-  { label: 'Retainers', path: '/works/retainers' },
-  { label: 'Renewals', path: '/works/renewals' },
-  { label: 'Revenue', path: '/financials/revenue' },
-  { label: 'Payments', path: '/financials/payments' },
-  { label: 'Expenses', path: '/financials/expenses' },
-  { label: 'Payroll', path: '/financials/salaries' },
-  { label: 'Task Payments', path: '/financials/tasks' },
-  { label: 'Clients', path: '/clients' },
-  { label: 'Analytics', path: '/analytics' },
-];
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
@@ -52,7 +37,6 @@ const LayoutContent: React.FC = () => {
         />
         <SidebarInset className="overflow-x-hidden">
           <MobileHeader title="Operations" />
-          <MobileSubNav items={operationsSubNav} />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>

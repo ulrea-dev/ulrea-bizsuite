@@ -6,19 +6,6 @@ import { ThemeProvider } from '@/hooks/useTheme';
 import { useAppearance } from '@/hooks/useAppearance';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
-import { MobileSubNav } from '@/components/MobileSubNav';
-
-const backOfficeSubNav = [
-  { label: 'Overview', path: '/business-management' },
-  { label: 'Businesses', path: '/business-management/businesses' },
-  { label: 'Access', path: '/business-management/business-access' },
-  { label: 'Team', path: '/business-management/team-members' },
-  { label: 'Bank Accounts', path: '/business-management/bank-accounts' },
-  { label: 'Partners', path: '/business-management/partners' },
-  { label: 'Allocations', path: '/business-management/partner-allocations' },
-  { label: 'Payables', path: '/business-management/payables' },
-  { label: 'Receivables', path: '/business-management/receivables' },
-];
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
@@ -35,7 +22,6 @@ const LayoutContent: React.FC = () => {
         <AdminSidebar onBackToApp={handleBackToApp} />
         <SidebarInset className="overflow-x-hidden">
           <MobileHeader title="Back Office" />
-          <MobileSubNav items={backOfficeSubNav} />
           <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-y-auto pb-20 md:pb-6">
             <Outlet />
           </div>
