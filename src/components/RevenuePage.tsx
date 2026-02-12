@@ -90,8 +90,8 @@ export const RevenuePage: React.FC = () => {
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Revenue</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Track income from all sources</p>
@@ -99,14 +99,14 @@ export const RevenuePage: React.FC = () => {
       </div>
 
       <Tabs value={timePeriod} onValueChange={(value) => setTimePeriod(value as any)} className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="month">Month</TabsTrigger>
             <TabsTrigger value="quarter">Quarter</TabsTrigger>
             <TabsTrigger value="year">Year</TabsTrigger>
           </TabsList>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {timePeriod === 'month' && (
               <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
                 <SelectTrigger className="w-[160px]">
@@ -138,7 +138,7 @@ export const RevenuePage: React.FC = () => {
         </div>
 
         <TabsContent value={timePeriod} className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -205,14 +205,15 @@ export const RevenuePage: React.FC = () => {
               <CardTitle>Revenue Details</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Description</TableHead>
+                    <TableHead className="hidden sm:table-cell">Source</TableHead>
+                    <TableHead className="hidden sm:table-cell">Description</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -226,14 +227,14 @@ export const RevenuePage: React.FC = () => {
                     periodRevenue.map(payment => (
                       <TableRow key={payment.id}>
                         <TableCell>{format(new Date(payment.date), 'PP')}</TableCell>
-                        <TableCell className="capitalize">
+                        <TableCell className="hidden sm:table-cell capitalize">
                           <Badge variant="outline">{payment.paymentSource || 'project'}</Badge>
                         </TableCell>
-                        <TableCell>{payment.description || '-'}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{payment.description || '-'}</TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(payment.amount, currentBusiness.currency)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'}>
                             {payment.status}
                           </Badge>
@@ -243,6 +244,7 @@ export const RevenuePage: React.FC = () => {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -121,17 +121,17 @@ export const PayablesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Payables</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Payables</h1>
+          <p className="text-muted-foreground text-sm">
             Track money owed to vendors across all businesses
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Select value={businessFilter} onValueChange={setBusinessFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by business" />
             </SelectTrigger>
             <SelectContent>
@@ -143,7 +143,7 @@ export const PayablesPage: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => { setSelectedPayable(null); setPayableModalOpen(true); }}>
+          <Button onClick={() => { setSelectedPayable(null); setPayableModalOpen(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Payable
           </Button>
@@ -203,15 +203,16 @@ export const PayablesPage: React.FC = () => {
               </Select>
             </div>
           </CardHeader>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Vendor</TableHead>
-                <TableHead>Business</TableHead>
+                <TableHead className="hidden sm:table-cell">Business</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Paid</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead className="hidden sm:table-cell">Currency</TableHead>
+                <TableHead className="hidden md:table-cell">Paid</TableHead>
+                <TableHead className="hidden md:table-cell">Due Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -225,17 +226,17 @@ export const PayablesPage: React.FC = () => {
                       <span className="text-xs text-muted-foreground ml-2">({payable.invoiceRef})</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="secondary" className="text-xs font-normal">
                       {getBusinessName(payable.businessId)}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatCurrencyAmount(payable.amount, payable.currency, data.customCurrencies || [])}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge variant="outline" className="text-xs">{payable.currency}</Badge>
                   </TableCell>
-                  <TableCell>{formatCurrencyAmount(payable.paidAmount, payable.currency, data.customCurrencies || [])}</TableCell>
-                  <TableCell>{format(new Date(payable.dueDate), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="hidden md:table-cell">{formatCurrencyAmount(payable.paidAmount, payable.currency, data.customCurrencies || [])}</TableCell>
+                  <TableCell className="hidden md:table-cell">{format(new Date(payable.dueDate), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_STYLES[payable.status]?.variant} className="gap-1">
                       {STATUS_STYLES[payable.status]?.icon}
@@ -261,6 +262,7 @@ export const PayablesPage: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </Card>
       )}
 
