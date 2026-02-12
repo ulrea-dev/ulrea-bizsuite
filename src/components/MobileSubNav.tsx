@@ -39,7 +39,8 @@ export const MobileSubNav: React.FC<MobileSubNavProps> = ({ items }) => {
   return (
     <div
       ref={scrollRef}
-      className="sticky top-12 z-30 flex gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 md:hidden"
+      className="sticky top-12 z-30 flex gap-1 px-3 py-2 overflow-x-auto scrollbar-hide border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 md:hidden"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {items.map((item) => {
         const active = isActive(item.path);
@@ -49,10 +50,10 @@ export const MobileSubNav: React.FC<MobileSubNavProps> = ({ items }) => {
             to={item.path}
             ref={active ? activeRef : undefined}
             className={cn(
-              'whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors shrink-0',
+              'whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-medium transition-colors shrink-0',
               active
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground hover:bg-accent'
+                : 'text-muted-foreground hover:bg-accent'
             )}
           >
             {item.label}
