@@ -1,90 +1,109 @@
 
 
-## Native Mobile App Experience for Work OS
+## Mobile Submenu Navigation and Full Responsiveness
 
-### Goal
-Transform the app so it looks and feels like a native iOS/Android application on mobile devices, with a polished desktop experience to match. The key elements: a sticky bottom tab bar for primary navigation, smooth transitions, safe area handling, and touch-optimized interactions.
+### Problem
+On mobile, the bottom tab bar navigates to each area (Operations, Back Office, To-Do), but once inside, there is no way to access sub-pages. The desktop sidebar (with all the submenu links) is completely hidden on mobile. Users are stuck on whatever default page loads.
 
-### What Changes
+Additionally, many content pages (tables, stat cards, filter bars) are not optimized for mobile viewports.
 
-#### 1. Bottom Tab Bar (Mobile) -- The Core Native Feel
-On mobile (below 768px), replace the hamburger menu + sidebar pattern with a **fixed bottom tab bar** -- the hallmark of native apps. The tab bar will have 4 tabs:
+### Solution
 
-- **Home** (Hub landing page)
-- **Operations** (projects, finances)
-- **Back Office** (team, admin)
-- **To-Do** (tasks)
+#### 1. Context-Aware Mobile Sub-Navigation Bar
 
-This appears on ALL screens so users can switch areas instantly, just like iOS/Android apps. The active tab is highlighted. The To-Do tab shows a badge dot when there are overdue tasks.
+Add a **horizontal scrollable pill/tab strip** below the mobile header on each section. This is a common native pattern (think iOS segmented controls or Android's scrollable tab bar at the top).
 
-#### 2. Mobile Header Becomes a Native-Style Top Bar
-The current mobile header gets refined:
-- Cleaner, thinner design with just the page title centered (iOS style)
-- Back arrow on sub-pages (e.g., project detail) instead of hamburger
-- Context actions (like "+" button) on the right side
-- No hamburger menu needed -- bottom tabs handle navigation
+- **Operations pages**: Show a scrollable strip with "Projects | Quick Tasks | Retainers | Renewals | Revenue | Payments | Expenses | Payroll | Clients | Analytics"
+- **Back Office pages**: Show "Overview | Businesses | Access | Team | Bank Accounts | Partners | Allocations | Payables | Receivables"
+- **To-Do pages**: Show "Overview | Today | Week | Upcoming | Overdue | By Assignee | All"
 
-#### 3. Sidebar Stays Desktop-Only
-The existing sidebar system remains for desktop (768px+). On mobile, the sidebar is completely hidden and replaced by the bottom tab bar. No more sheet/drawer sidebar on mobile.
+The active sub-page is highlighted. The strip scrolls horizontally so it doesn't overflow. This is created as a reusable `MobileSubNav` component.
 
-#### 4. Safe Area and PWA Optimizations
-- Add `env(safe-area-inset-bottom)` padding so the tab bar doesn't overlap iPhone home indicators
-- Add `viewport-fit=cover` meta tag for edge-to-edge display
-- Ensure touch targets are at least 44px (Apple HIG standard)
-- Add `-webkit-tap-highlight-color: transparent` for clean taps
-- Prevent pull-to-refresh interference with `overscroll-behavior: none`
+#### 2. Integrate Sub-Navigation into Each Layout
 
-#### 5. Content Area Adjustments
-- On mobile, content gets bottom padding to account for the tab bar height (~64px + safe area)
-- Scroll areas respect the bottom tab bar
-- Smooth page transitions using CSS animations
+Each layout (`DashboardLayout`, `BusinessManagementLayout`, `TodoLayout`) will render the `MobileSubNav` component below the `MobileHeader`, passing in the appropriate sub-page items for that section. It only renders on mobile (hidden on `md+`).
 
-### Technical Implementation
+#### 3. Global Mobile Responsiveness Pass
 
-**New file: `src/components/BottomTabBar.tsx`**
-A fixed-bottom navigation component that:
-- Renders only on mobile (hidden on md+ via CSS)
-- Uses react-router-dom's `useLocation` to highlight the active tab
-- Shows a notification dot on To-Do when overdue tasks exist
-- Has haptic-style visual feedback on tap (scale animation)
-- Uses `safe-area-inset-bottom` for iPhone X+ support
+Audit and fix common responsive issues across content pages:
 
-**Modified files:**
+- **Stat card grids**: Change from fixed `grid-cols-4` to `grid-cols-2` on mobile, `grid-cols-4` on desktop
+- **Tables**: Wrap in horizontal scroll containers, hide less-important columns on mobile using `hidden sm:table-cell`
+- **Filter/action bars**: Stack vertically on mobile instead of horizontal row
+- **Modals/dialogs**: Full-screen on mobile (`max-w-full h-full` on small screens)
+- **Tab lists**: Make scrollable horizontally on mobile with `overflow-x-auto`
+- **Button groups**: Stack or reduce to icon-only on mobile
+- **Text truncation**: Apply `truncate` to long names/descriptions on mobile
 
-1. **`src/layouts/HubLayout.tsx`** -- Add `BottomTabBar`, remove `MobileHeader` hamburger trigger, add bottom padding on mobile
-2. **`src/layouts/DashboardLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
-3. **`src/layouts/BusinessManagementLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
-4. **`src/layouts/TodoLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
-5. **`src/components/MobileHeader.tsx`** -- Remove hamburger button, make it a clean title bar with optional back arrow and action buttons
-6. **`src/components/ui/sidebar.tsx`** -- On mobile, don't render the Sheet/drawer at all (the bottom tabs replace it)
-7. **`index.html`** -- Add `viewport-fit=cover` to the viewport meta tag
-8. **`src/index.css`** -- Add global mobile-native styles:
-   - `-webkit-tap-highlight-color: transparent`
-   - `overscroll-behavior: none` on body
-   - Safe area CSS variables
-   - Bottom tab bar styles
-   - Smooth page transition keyframes
+### Technical Details
 
-### Visual Design
+**New file: `src/components/MobileSubNav.tsx`**
+A reusable horizontal scrollable navigation strip that:
+- Accepts an array of `{ label, path, icon? }` items
+- Uses `useLocation` to highlight the active item
+- Renders as `Link` components in a horizontally scrollable container
+- Only visible on mobile (`md:hidden`)
+- Has a subtle bottom border and frosted glass background matching the header
+- Auto-scrolls the active item into view on mount
 
-On mobile, the bottom tab bar will look like this:
+**Modified layouts:**
+- `src/layouts/DashboardLayout.tsx` -- Import and render `MobileSubNav` with Operations sub-items
+- `src/layouts/BusinessManagementLayout.tsx` -- Render `MobileSubNav` with Back Office sub-items
+- `src/layouts/TodoLayout.tsx` -- Render `MobileSubNav` with To-Do sub-items
+
+**Responsive fixes across content pages (sampling the most impactful ones):**
+- `src/components/ExpensesPage.tsx` -- Responsive stat cards, scrollable table
+- `src/components/PaymentsPage.tsx` -- Same pattern
+- `src/components/RevenuePage.tsx` -- Same pattern
+- `src/components/SalariesPage.tsx` -- Responsive grid
+- `src/components/ClientsPage.tsx` -- Card layout on mobile instead of table
+- `src/components/ProjectCard.tsx` -- Already responsive (per memory)
+- `src/components/AnalyticsPage.tsx` -- Stack charts vertically on mobile
+- `src/components/WorkOSHub.tsx` -- Already responsive
+- `src/components/admin/*.tsx` -- Responsive tables in Back Office pages
+- `src/components/todos/*.tsx` -- Ensure todo lists are touch-friendly
+
+**CSS additions to `src/index.css`:**
+- Utility class for horizontal scroll navigation strip
+- Hide scrollbar on the sub-nav strip (`scrollbar-width: none`, `-webkit-scrollbar: none`)
+
+### Visual Design (Mobile)
 
 ```text
 +----------------------------------------------+
-|                 Page Content                  |
+|  < Back    Page Title          [⋮ More]       |  <- Mobile Header
++----------------------------------------------+
+| [Projects] [Tasks] [Retainers] [Revenue] ... |  <- Scrollable Sub-Nav
++----------------------------------------------+
 |                                               |
+|              Page Content                     |
+|         (responsive cards/tables)             |
 |                                               |
 +----------------------------------------------+
-|  [Home]   [Operations]  [Back Office] [To-Do] |
-|   icon       icon          icon        icon*  |
+| [Home] [Operations] [Back Office] [To-Do]     |  <- Bottom Tab Bar
 +----------------------------------------------+
-        * = red dot badge when overdue
 ```
 
-Each tab: icon on top, label below, 44px+ touch target. Active tab uses the primary color. Inactive tabs are muted. The bar has a subtle top border and frosted glass background (`backdrop-blur`).
+### Files to Create
+- `src/components/MobileSubNav.tsx`
 
-### Desktop Enhancements
-- Sidebar transitions become smoother (already mostly handled)
-- Hover states on cards get subtle lift effect
-- Content areas use proper max-widths for readability on ultrawide screens
-
+### Files to Modify
+- `src/layouts/DashboardLayout.tsx`
+- `src/layouts/BusinessManagementLayout.tsx`
+- `src/layouts/TodoLayout.tsx`
+- `src/index.css`
+- `src/components/ExpensesPage.tsx`
+- `src/components/PaymentsPage.tsx`
+- `src/components/RevenuePage.tsx`
+- `src/components/SalariesPage.tsx`
+- `src/components/ClientsPage.tsx`
+- `src/components/AnalyticsPage.tsx`
+- `src/components/admin/AdminOverview.tsx`
+- `src/components/admin/TeamMembersPage.tsx`
+- `src/components/admin/BankAccountsPage.tsx`
+- `src/components/admin/PartnersPage.tsx`
+- `src/components/admin/PayablesPage.tsx`
+- `src/components/admin/ReceivablesPage.tsx`
+- `src/components/todos/TodayPage.tsx`
+- `src/components/todos/WeekPage.tsx`
+- `src/components/todos/TodoOverview.tsx`
