@@ -244,17 +244,17 @@ export const ReceivablesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Receivables</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Track money owed to you across all businesses. Project receivables sync automatically with client payments.
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Receivables</h1>
+          <p className="text-muted-foreground text-sm">
+            Track money owed to you across all businesses.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Select value={businessFilter} onValueChange={setBusinessFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by business" />
             </SelectTrigger>
             <SelectContent>
@@ -266,7 +266,7 @@ export const ReceivablesPage: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={() => { setSelectedReceivable(null); setReceivableModalOpen(true); }}>
+          <Button onClick={() => { setSelectedReceivable(null); setReceivableModalOpen(true); }} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Add Receivable
           </Button>
@@ -338,11 +338,11 @@ export const ReceivablesPage: React.FC = () => {
                 <TableRow>
                   <TableHead className="w-[40px]"></TableHead>
                   <TableHead>Source</TableHead>
-                  <TableHead>Business</TableHead>
+                  <TableHead className="hidden sm:table-cell">Business</TableHead>
                   <TableHead>Expected</TableHead>
-                  <TableHead>Received</TableHead>
-                  <TableHead>Outstanding</TableHead>
-                  <TableHead>Due Date</TableHead>
+                  <TableHead className="hidden md:table-cell">Received</TableHead>
+                  <TableHead className="hidden md:table-cell">Outstanding</TableHead>
+                  <TableHead className="hidden sm:table-cell">Due Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -386,19 +386,19 @@ export const ReceivablesPage: React.FC = () => {
                             <span className="text-xs text-muted-foreground ml-2">({receivable.invoiceRef})</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           <Badge variant="secondary" className="text-xs font-normal">
                             {getBusinessName(receivable.businessId)}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatCurrencyAmount(receivable.amount, receivable.currency, data.customCurrencies || [])}</TableCell>
-                        <TableCell className="text-green-600 font-medium">
+                        <TableCell className="hidden md:table-cell text-green-600 font-medium">
                           {formatCurrencyAmount(receivable.receivedAmount, receivable.currency, data.customCurrencies || [])}
                         </TableCell>
-                        <TableCell className={outstanding > 0 ? 'text-orange-600 font-medium' : ''}>
+                        <TableCell className={`hidden md:table-cell ${outstanding > 0 ? 'text-orange-600 font-medium' : ''}`}>
                           {formatCurrencyAmount(outstanding, receivable.currency, data.customCurrencies || [])}
                         </TableCell>
-                        <TableCell>{format(new Date(receivable.dueDate), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{format(new Date(receivable.dueDate), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           <Badge variant={STATUS_STYLES[receivable.status]?.variant} className="gap-1">
                             {STATUS_STYLES[receivable.status]?.icon}

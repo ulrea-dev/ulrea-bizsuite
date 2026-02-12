@@ -103,14 +103,15 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Client</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Projects</TableHead>
+                  <TableHead className="hidden sm:table-cell">Company</TableHead>
+                  <TableHead className="hidden md:table-cell">Projects</TableHead>
                   <TableHead>Total Value</TableHead>
-                  <TableHead>Net Profit</TableHead>
+                  <TableHead className="hidden md:table-cell">Net Profit</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -129,37 +130,24 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1">
                           <Building className="h-3 w-3" />
                           {client.company || 'N/A'}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Badge variant="outline">{metrics.totalProjects} projects</Badge>
-                          <div className="text-xs dashboard-text-secondary">
-                            {metrics.activeProjects} active
-                          </div>
-                        </div>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline">{metrics.totalProjects} projects</Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">
-                            {currentBusiness ? formatCurrency(metrics.totalValue, currentBusiness.currency) : '-'}
-                          </div>
-                          <div className="text-xs dashboard-text-secondary">
-                            {metrics.paymentProgress.toFixed(1)}% paid
-                          </div>
+                        <div className="font-medium truncate">
+                          {currentBusiness ? formatCurrency(metrics.totalValue, currentBusiness.currency) : '-'}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className={`h-3 w-3 ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                          <span className={`font-medium ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {currentBusiness ? formatCurrency(metrics.netProfit, currentBusiness.currency) : '-'}
-                          </span>
-                        </div>
+                      <TableCell className="hidden md:table-cell">
+                        <span className={`font-medium ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currentBusiness ? formatCurrency(metrics.netProfit, currentBusiness.currency) : '-'}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -192,6 +180,7 @@ export const ClientsPage: React.FC<ClientsPageProps> = ({ onNavigateToPage }) =>
                 })}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

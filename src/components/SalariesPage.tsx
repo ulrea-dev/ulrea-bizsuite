@@ -260,8 +260,8 @@ export const SalariesPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
           <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight">Payroll</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Manage salaries and payments for {currentBusiness.name}
@@ -270,8 +270,8 @@ export const SalariesPage: React.FC = () => {
             Default Currency: {data.userSettings.defaultCurrency.name} ({data.userSettings.defaultCurrency.symbol})
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleCreateSalary}>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={handleCreateSalary} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Salary Record
           </Button>
@@ -314,7 +314,7 @@ export const SalariesPage: React.FC = () => {
         <TabsContent value="management" className="space-y-6">
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
