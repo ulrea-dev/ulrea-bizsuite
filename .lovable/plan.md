@@ -1,95 +1,90 @@
 
 
-## Turn BizSuite into a Work OS with Simplified Navigation
+## Native Mobile App Experience for Work OS
 
-### Overview
-Restructure the app so that when users log in, they land on a clean hub that gives instant access to three distinct areas: **Operations** (the main business app), **Back Office** (admin/management), and **To-Do** (productivity). Each area lets you quickly switch to the others.
-
-### Naming Changes
-
-| Current Name | New Name |
-|---|---|
-| BizSuite | **Operations** |
-| Business Management / Admin Console | **Back Office** |
-| To-Do | To-Do (unchanged) |
+### Goal
+Transform the app so it looks and feels like a native iOS/Android application on mobile devices, with a polished desktop experience to match. The key elements: a sticky bottom tab bar for primary navigation, smooth transitions, safe area handling, and touch-optimized interactions.
 
 ### What Changes
 
-#### 1. New Hub Landing Page (replaces current Dashboard)
-When you log in, instead of going straight into a business dashboard, you see a clean **Work OS Hub** with three cards/sections:
+#### 1. Bottom Tab Bar (Mobile) -- The Core Native Feel
+On mobile (below 768px), replace the hamburger menu + sidebar pattern with a **fixed bottom tab bar** -- the hallmark of native apps. The tab bar will have 4 tabs:
 
-- **Operations** -- "Manage your projects, clients, finances" with a summary (active projects count, pending payments, etc.)
-- **Back Office** -- "Team members, partners, bank accounts, business settings" with a quick summary
-- **To-Do** -- "Your tasks and reminders" with overdue/today counts
+- **Home** (Hub landing page)
+- **Operations** (projects, finances)
+- **Back Office** (team, admin)
+- **To-Do** (tasks)
 
-Each card is clickable and takes you into that area. This is the `/dashboard` route.
+This appears on ALL screens so users can switch areas instantly, just like iOS/Android apps. The active tab is highlighted. The To-Do tab shows a badge dot when there are overdue tasks.
 
-#### 2. Cross-Navigation Between Areas
-In every area, the sidebar footer provides quick links to the other two areas:
+#### 2. Mobile Header Becomes a Native-Style Top Bar
+The current mobile header gets refined:
+- Cleaner, thinner design with just the page title centered (iOS style)
+- Back arrow on sub-pages (e.g., project detail) instead of hamburger
+- Context actions (like "+" button) on the right side
+- No hamburger menu needed -- bottom tabs handle navigation
 
-- **Operations sidebar** (already has To-Do and Business Management links) -- rename labels to "Back Office" and keep "To-Do"
-- **Back Office sidebar** -- add a "To-Do" link alongside the existing "Back to Operations" link (renamed from "Back to BizSuite")
-- **To-Do sidebar** -- add a "Back Office" link alongside the existing "Back to Operations" link
+#### 3. Sidebar Stays Desktop-Only
+The existing sidebar system remains for desktop (768px+). On mobile, the sidebar is completely hidden and replaced by the bottom tab bar. No more sheet/drawer sidebar on mobile.
 
-Additionally, each sidebar's "back" button goes to the hub (`/dashboard`), and there are direct links to the other two areas.
+#### 4. Safe Area and PWA Optimizations
+- Add `env(safe-area-inset-bottom)` padding so the tab bar doesn't overlap iPhone home indicators
+- Add `viewport-fit=cover` meta tag for edge-to-edge display
+- Ensure touch targets are at least 44px (Apple HIG standard)
+- Add `-webkit-tap-highlight-color: transparent` for clean taps
+- Prevent pull-to-refresh interference with `overscroll-behavior: none`
 
-#### 3. Rename References Throughout
+#### 5. Content Area Adjustments
+- On mobile, content gets bottom padding to account for the tab bar height (~64px + safe area)
+- Scroll areas respect the bottom tab bar
+- Smooth page transitions using CSS animations
 
-### Technical Details
+### Technical Implementation
 
-**Files to modify:**
+**New file: `src/components/BottomTabBar.tsx`**
+A fixed-bottom navigation component that:
+- Renders only on mobile (hidden on md+ via CSS)
+- Uses react-router-dom's `useLocation` to highlight the active tab
+- Shows a notification dot on To-Do when overdue tasks exist
+- Has haptic-style visual feedback on tap (scale animation)
+- Uses `safe-area-inset-bottom` for iPhone X+ support
 
-1. **`src/components/DashboardHome.tsx`** -- Replace current dashboard with a Work OS hub showing three area cards. When a business is selected, show the current dashboard content below the hub navigation cards (or redirect into Operations).
+**Modified files:**
 
-2. **`src/components/AppSidebar.tsx`** -- 
-   - Rename "BizSuite" to "Operations" in the header (line 202-203)
-   - Rename "Business Management" to "Back Office" in the footer link (line 351)
-   - Keep the hub accessible via logo/home click
+1. **`src/layouts/HubLayout.tsx`** -- Add `BottomTabBar`, remove `MobileHeader` hamburger trigger, add bottom padding on mobile
+2. **`src/layouts/DashboardLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
+3. **`src/layouts/BusinessManagementLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
+4. **`src/layouts/TodoLayout.tsx`** -- Add `BottomTabBar`, adjust mobile content padding
+5. **`src/components/MobileHeader.tsx`** -- Remove hamburger button, make it a clean title bar with optional back arrow and action buttons
+6. **`src/components/ui/sidebar.tsx`** -- On mobile, don't render the Sheet/drawer at all (the bottom tabs replace it)
+7. **`index.html`** -- Add `viewport-fit=cover` to the viewport meta tag
+8. **`src/index.css`** -- Add global mobile-native styles:
+   - `-webkit-tap-highlight-color: transparent`
+   - `overscroll-behavior: none` on body
+   - Safe area CSS variables
+   - Bottom tab bar styles
+   - Smooth page transition keyframes
 
-3. **`src/components/AdminSidebar.tsx`** -- 
-   - Rename "Admin Console / Business Management" to "Back Office" in the header (line 101-102)
-   - Rename "Back to BizSuite" to "Back to Hub" or "Operations" (line 141)
-   - Add a "To-Do" quick link in the footer
+### Visual Design
 
-4. **`src/components/TodoSidebar.tsx`** -- 
-   - Add a "Back Office" quick link in the footer alongside the existing "Back to app" link
-   - Rename back link to "Operations" or "Back to Hub"
-
-5. **`src/pages/DashboardPage.tsx`** -- Update to support the hub view
-
-6. **`src/layouts/BusinessManagementLayout.tsx`** -- Update any references
-
-7. **`src/components/MobileHeader.tsx`** -- No structural changes needed, titles come from context
-
-### Hub Design
-
-The hub page will have a clean layout:
+On mobile, the bottom tab bar will look like this:
 
 ```text
-+------------------------------------------+
-|            Welcome, [User]               |
-|         Your Work OS                      |
-+------------------------------------------+
-|                                          |
-|  +----------+  +----------+  +--------+  |
-|  |          |  |          |  |        |  |
-|  |Operations|  |Back      |  | To-Do  |  |
-|  |          |  |Office    |  |        |  |
-|  | 5 active |  | 3 team   |  | 2 over |  |
-|  | projects |  | members  |  | due    |  |
-|  +----------+  +----------+  +--------+  |
-|                                          |
-|  [Recent Activity / Quick Summary below] |
-+------------------------------------------+
++----------------------------------------------+
+|                 Page Content                  |
+|                                               |
+|                                               |
++----------------------------------------------+
+|  [Home]   [Operations]  [Back Office] [To-Do] |
+|   icon       icon          icon        icon*  |
++----------------------------------------------+
+        * = red dot badge when overdue
 ```
 
-When a user clicks "Operations," they navigate to `/works/projects` (or the current dashboard with business context). "Back Office" goes to `/business-management`, and "To-Do" goes to `/todos`.
+Each tab: icon on top, label below, 44px+ touch target. Active tab uses the primary color. Inactive tabs are muted. The bar has a subtle top border and frosted glass background (`backdrop-blur`).
 
-### Navigation Flow Summary
-
-- Login --> Hub (`/dashboard`) -- three cards
-- Hub --> Operations --> sidebar has links to Back Office + To-Do
-- Hub --> Back Office --> sidebar has links to Operations + To-Do  
-- Hub --> To-Do --> sidebar has links to Operations + Back Office
-- Any sidebar "Home" or logo click --> back to Hub
+### Desktop Enhancements
+- Sidebar transitions become smoother (already mostly handled)
+- Hover states on cards get subtle lift effect
+- Content areas use proper max-widths for readability on ultrawide screens
 
