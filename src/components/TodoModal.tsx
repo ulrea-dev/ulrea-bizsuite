@@ -135,6 +135,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
         ...todoData,
         status: 'pending',
         createdBy: data.userSettings.userId,
+        createdByName: data.userSettings.username || 'Unknown',
         createdAt: now,
         updatedAt: now,
       } as ToDo;

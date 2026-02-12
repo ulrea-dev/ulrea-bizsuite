@@ -650,6 +650,8 @@ export interface ToDo {
   // Status
   status: 'pending' | 'done' | 'cancelled';
   completedAt?: string;
+  completedBy?: string;          // userId of who completed
+  completedByName?: string;      // Display name of who completed
   
   // Priority
   priority: ToDoPriority;
@@ -663,6 +665,7 @@ export interface ToDo {
   assigneeName?: string;
   
   createdBy: string;           // Who created this task (userId)
+  createdByName?: string;      // Display name of who created this task
   
   // Links to other entities
   linkType: ToDoLinkType;
