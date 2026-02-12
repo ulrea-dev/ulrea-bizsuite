@@ -321,13 +321,15 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
 
       {/* Project Management */}
       <Tabs defaultValue="allocations" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="allocations">Project Allocations</TabsTrigger>
-          <TabsTrigger value="team-payments">Team Payments</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
-          <TabsTrigger value="payments">Payment History</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
+          <TabsList className="w-max">
+            <TabsTrigger value="allocations">Project Allocations</TabsTrigger>
+            <TabsTrigger value="team-payments">Team Payments</TabsTrigger>
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="client-payments">Client Payments</TabsTrigger>
+            <TabsTrigger value="payments">Payment History</TabsTrigger>
+          </TabsList>
+        </div>
 
 
         <TabsContent value="allocations" className="space-y-4">
