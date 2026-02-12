@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, MoreVertical, Settings, Download, Moon, Sun, Cloud, RefreshCw } from 'lucide-react';
+import { ChevronLeft, MoreVertical, Settings, Download, Moon, Sun, Cloud, RefreshCw, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/hooks/useTheme';
@@ -13,9 +13,10 @@ interface MobileHeaderProps {
   actions?: React.ReactNode;
   showBack?: boolean;
   backTo?: string;
+  onLogout?: () => void;
 }
 
-export const MobileHeader: React.FC<MobileHeaderProps> = ({ title, actions, showBack, backTo }) => {
+export const MobileHeader: React.FC<MobileHeaderProps> = ({ title, actions, showBack, backTo, onLogout }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { data } = useBusiness();
@@ -98,6 +99,15 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title, actions, show
               {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
             </button>
+            {onLogout && (
+              <button
+                onClick={() => { setMenuOpen(false); onLogout(); }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-accent active:bg-accent/80 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Log Out
+              </button>
+            )}
           </div>
         </>
       )}
