@@ -167,7 +167,8 @@ export type BusinessAction =
   | { type: 'ADD_TODO'; payload: ToDo }
   | { type: 'UPDATE_TODO'; payload: { id: string; updates: Partial<ToDo> } }
   | { type: 'DELETE_TODO'; payload: string }
-  | { type: 'COMPLETE_TODO'; payload: string }
-  | { type: 'COMPLETE_RECURRING_TODO'; payload: string }
+  | { type: 'COMPLETE_TODO'; payload: { id: string; completedBy: string; completedByName: string } }
+  | { type: 'UNCOMPLETE_TODO'; payload: string }
+  | { type: 'COMPLETE_RECURRING_TODO'; payload: { id: string; completedBy: string; completedByName: string } }
   | { type: 'CARRY_FORWARD_TODO'; payload: { id: string; newDueDate: string } }
   | { type: 'BULK_CARRY_FORWARD_TODOS'; payload: { ids: string[]; newDueDate: string } };

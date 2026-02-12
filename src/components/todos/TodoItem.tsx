@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Check, MoreHorizontal, CalendarClock, Users, Link2, Pencil, Trash2, ArrowRight, Repeat } from 'lucide-react';
+import { Check, MoreHorizontal, CalendarClock, Users, Link2, Pencil, Trash2, ArrowRight, Repeat, Undo2, UserPlus, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -47,11 +47,10 @@ const priorityIcons: Record<ToDoPriority, string> = {
 };
 
 export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, showDate }) => {
-  const { dispatch } = useBusiness();
+  const { data, dispatch } = useBusiness();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Migrate legacy single-assignee to array format
   const todo = useMemo(() => migrateTodoAssignees(rawTodo), [rawTodo]);
   const assignees = todo.assignees || [];
 
@@ -59,20 +58,25 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
   const isOverdue = todo.dueDate < today && todo.status === 'pending';
   const daysOverdue = isOverdue ? differenceInDays(new Date(), new Date(todo.dueDate)) : 0;
 
+  const currentUserName = data.userSettings.username || 'Me';
+  const currentUserId = data.userSettings.userId || 'self';
+
   const handleComplete = () => {
+    if (todo.status === 'done') {
+      dispatch({ type: 'UNCOMPLETE_TODO', payload: todo.id });
+      return;
+    }
+    const payload = { id: todo.id, completedBy: currentUserId, completedByName: currentUserName };
     if (todo.isRecurring) {
-      dispatch({ type: 'COMPLETE_RECURRING_TODO', payload: todo.id });
+      dispatch({ type: 'COMPLETE_RECURRING_TODO', payload });
     } else {
-      dispatch({ type: 'COMPLETE_TODO', payload: todo.id });
+      dispatch({ type: 'COMPLETE_TODO', payload });
     }
   };
 
   const handleCarryForward = () => {
     const tomorrow = addDays(new Date(), 1).toISOString().split('T')[0];
-    dispatch({
-      type: 'CARRY_FORWARD_TODO',
-      payload: { id: todo.id, newDueDate: tomorrow },
-    });
+    dispatch({ type: 'CARRY_FORWARD_TODO', payload: { id: todo.id, newDueDate: tomorrow } });
   };
 
   const handleDelete = () => {
@@ -93,7 +97,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
           <Checkbox
             checked={todo.status === 'done'}
             onCheckedChange={handleComplete}
-            disabled={todo.status === 'done'}
           />
           <div className="flex-1 min-w-0">
             <p className={cn(
@@ -115,19 +118,14 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
                   {todo.linkedEntityName}
                 </span>
               )}
-              {showDate && (
-                <span>{format(new Date(todo.dueDate), 'MMM d')}</span>
-              )}
+              {showDate && <span>{format(new Date(todo.dueDate), 'MMM d')}</span>}
               {isOverdue && (
                 <Badge variant="destructive" className="text-xs px-1 py-0">
                   {daysOverdue}d overdue
                 </Badge>
               )}
               {todo.isRecurring && (
-                <span 
-                  className="inline-flex"
-                  title={`Repeats ${todo.recurringPattern}`}
-                >
+                <span className="inline-flex" title={`Repeats ${todo.recurringPattern}`}>
                   <Repeat className="h-3 w-3 text-primary" />
                 </span>
               )}
@@ -152,7 +150,6 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
         <Checkbox
           checked={todo.status === 'done'}
           onCheckedChange={handleComplete}
-          disabled={todo.status === 'done'}
           className="mt-1"
         />
         
@@ -214,6 +211,22 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
               </Badge>
             )}
           </div>
+
+          {/* Audit trail: created by / completed by */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-0.5">
+            {todo.createdByName && (
+              <span className="flex items-center gap-1" title={`Created by ${todo.createdByName}`}>
+                <UserPlus className="h-3 w-3" />
+                Added by {todo.createdByName}
+              </span>
+            )}
+            {todo.status === 'done' && todo.completedByName && (
+              <span className="flex items-center gap-1" title={`Completed by ${todo.completedByName}`}>
+                <UserCheck className="h-3 w-3" />
+                Done by {todo.completedByName}
+              </span>
+            )}
+          </div>
         </div>
 
         <DropdownMenu>
@@ -234,6 +247,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
                   Move to Tomorrow
                 </DropdownMenuItem>
               </>
+            )}
+            {todo.status === 'done' && (
+              <DropdownMenuItem onClick={handleComplete}>
+                <Undo2 className="h-4 w-4 mr-2" />
+                Mark as Undone
+              </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
               <Pencil className="h-4 w-4 mr-2" />
