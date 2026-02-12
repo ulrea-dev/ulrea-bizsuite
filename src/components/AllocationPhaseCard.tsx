@@ -121,7 +121,7 @@ export const AllocationPhaseCard: React.FC<AllocationPhaseCardProps> = ({ alloca
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex space-x-4 text-xs text-muted-foreground">
             {allocationTeamAllocations.length > 0 && (
               <div className="flex items-center">
