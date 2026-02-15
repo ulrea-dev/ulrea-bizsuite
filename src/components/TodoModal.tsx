@@ -148,7 +148,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{todo ? 'Edit Task' : 'New Task'}</DialogTitle>
         </DialogHeader>
@@ -178,8 +178,8 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
             />
           </div>
 
-          {/* Due Date and Priority */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Due Date, Priority, Business - compact row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Due Date</Label>
               <Popover>
@@ -192,7 +192,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                    {dueDate ? format(dueDate, "PP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -221,24 +221,23 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Business */}
-          <div className="space-y-2">
-            <Label>Business</Label>
-            <Select value={businessId || "__all__"} onValueChange={(v) => setBusinessId(v === "__all__" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All businesses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Businesses</SelectItem>
-                {data.businesses.map((business) => (
-                  <SelectItem key={business.id} value={business.id}>
-                    {business.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Business</Label>
+              <Select value={businessId || "__all__"} onValueChange={(v) => setBusinessId(v === "__all__" ? "" : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All businesses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Businesses</SelectItem>
+                  {data.businesses.map((business) => (
+                    <SelectItem key={business.id} value={business.id}>
+                      {business.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Recurring Task Options */}
@@ -313,31 +312,32 @@ export const TodoModal: React.FC<TodoModalProps> = ({ open, onClose, todo }) => 
             )}
           </div>
 
-          {/* Multi-Assignee Selector */}
-          <AssigneeSelector
-            assignees={assignees}
-            businessId={businessId}
-            onChange={setAssignees}
-          />
-
-          {/* Entity Link Selector */}
-          <EntityLinkSelector
-            linkType={linkType}
-            linkedEntityId={linkedEntityId}
-            businessId={businessId}
-            onSelect={handleEntitySelect}
-          />
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes..."
-              rows={2}
+          {/* Assignees and Link To - side by side on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <AssigneeSelector
+              assignees={assignees}
+              businessId={businessId}
+              onChange={setAssignees}
             />
+            <div className="space-y-3">
+              <EntityLinkSelector
+                linkType={linkType}
+                linkedEntityId={linkedEntityId}
+                businessId={businessId}
+                onSelect={handleEntitySelect}
+              />
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Additional notes..."
+                  rows={2}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Actions */}
