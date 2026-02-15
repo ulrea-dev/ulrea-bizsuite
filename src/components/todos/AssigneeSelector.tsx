@@ -138,31 +138,16 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label className="flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Assign To
-        </Label>
-        <div className="flex items-center gap-2">
-          {businessId && (
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-              <Checkbox
-                checked={filterByBusiness}
-                onCheckedChange={(checked) => setFilterByBusiness(checked === true)}
-                className="h-3.5 w-3.5"
-              />
-              <Filter className="h-3 w-3" />
-              <span>Filter by business</span>
-            </label>
-          )}
-          {assignees.length > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {assignees.length} selected
-            </Badge>
-          )}
-        </div>
-      </div>
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2">
+        <Users className="h-4 w-4" />
+        Assign To
+        {assignees.length > 0 && (
+          <Badge variant="secondary" className="text-xs ml-1">
+            {assignees.length}
+          </Badge>
+        )}
+      </Label>
 
       {/* Selected Assignees Chips */}
       {assignees.length > 0 && (
@@ -187,8 +172,23 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
       )}
 
       {/* Assignee Options */}
-      <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-        {/* Operators (includes current user) */}
+      <div className="border rounded-lg max-h-[200px] overflow-y-auto">
+        {/* Filter toggle inside the list */}
+        {businessId && (
+          <div className="sticky top-0 z-10 bg-background border-b px-3 py-1.5 flex items-center gap-1.5">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+              <Checkbox
+                checked={filterByBusiness}
+                onCheckedChange={(checked) => setFilterByBusiness(checked === true)}
+                className="h-3 w-3"
+              />
+              <Filter className="h-3 w-3" />
+              <span>Show only this business</span>
+            </label>
+          </div>
+        )}
+
+        {/* Operators */}
         {operators.length > 0 && (
           <div className="p-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
@@ -200,7 +200,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
 
         {/* Team Members */}
         {teamMembers.length > 0 && (
-          <div className="p-2">
+          <div className="p-2 border-t">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
               Team Members
             </p>
@@ -210,7 +210,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
 
         {/* Partners */}
         {partners.length > 0 && (
-          <div className="p-2">
+          <div className="p-2 border-t">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 pb-1">
               Partners
             </p>
