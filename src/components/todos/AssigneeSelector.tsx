@@ -187,7 +187,7 @@ export const AssigneeSelector: React.FC<AssigneeSelectorProps> = ({
       )}
 
       {/* Assignee Options */}
-      <div className="border rounded-lg divide-y max-h-[280px] overflow-y-auto">
+      <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
         {/* Operators (includes current user) */}
         {operators.length > 0 && (
           <div className="p-2">
