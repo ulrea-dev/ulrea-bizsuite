@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
+import { BulkTodoModal } from './BulkTodoModal';
 import { TodoItem } from './TodoItem';
 import { ToDoAssigneeType, ToDo } from '@/types/business';
 import { migrateTodoAssignees } from '@/utils/todoMigration';
@@ -12,6 +13,7 @@ import { migrateTodoAssignees } from '@/utils/todoMigration';
 export const ByAssigneePage: React.FC = () => {
   const { data } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ToDoAssigneeType | 'all'>('all');
 
   const today = new Date().toISOString().split('T')[0];
@@ -93,10 +95,16 @@ export const ByAssigneePage: React.FC = () => {
             View workload distribution
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBulkModalOpen(true)}>
+            <ListPlus className="h-4 w-4 mr-2" />
+            Bulk Add
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -194,6 +202,7 @@ export const ByAssigneePage: React.FC = () => {
       </Tabs>
 
       <TodoModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <BulkTodoModal open={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} />
     </div>
   );
 };

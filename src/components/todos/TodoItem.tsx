@@ -89,7 +89,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
       <>
         <div
           className={cn(
-            "flex items-center gap-3 p-2 rounded-lg border transition-colors hover:bg-muted/50",
+            "flex items-center gap-3 p-2 rounded-lg border transition-colors hover:bg-muted/50 group cursor-pointer",
             isOverdue && "border-destructive/50 bg-destructive/5",
             todo.status === 'done' && "opacity-60"
           )}
@@ -97,8 +97,12 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
           <Checkbox
             checked={todo.status === 'done'}
             onCheckedChange={handleComplete}
+            onClick={(e) => e.stopPropagation()}
           />
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0"
+            onClick={() => setIsEditModalOpen(true)}
+          >
             <p className={cn(
               "text-sm font-medium truncate",
               todo.status === 'done' && "line-through text-muted-foreground"
@@ -132,6 +136,10 @@ export const TodoItem: React.FC<TodoItemProps> = ({ todo: rawTodo, compact, show
             </div>
           </div>
           <span className="text-sm">{priorityIcons[todo.priority]}</span>
+          <Pencil
+            className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
+            onClick={() => setIsEditModalOpen(true)}
+          />
         </div>
         <TodoModal open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} todo={todo} />
       </>
