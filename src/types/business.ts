@@ -726,6 +726,7 @@ export interface AppData {
   // User preferences
   userSettings: {
     username: string;
+    accountName: string;
     userId: string;
     theme: 'light' | 'dark';
     defaultCurrency: Currency;

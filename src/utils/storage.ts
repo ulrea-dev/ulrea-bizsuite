@@ -60,6 +60,7 @@ const getInitialData = (): AppData => ({
   // User preferences
   userSettings: {
     username: '',
+    accountName: '',
     userId: '',
     theme: 'light',
     defaultCurrency: SUPPORTED_CURRENCIES[0], // USD
