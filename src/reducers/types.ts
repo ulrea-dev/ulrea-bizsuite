@@ -84,6 +84,7 @@ export type BusinessAction =
   | { type: 'DELETE_EXCHANGE_RATE'; payload: string }
   // User Settings actions
   | { type: 'SET_USERNAME'; payload: string }
+  | { type: 'SET_ACCOUNT_NAME'; payload: string }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
   | { type: 'SET_FONT'; payload: any }
   | { type: 'SET_COLOR_PALETTE'; payload: any }

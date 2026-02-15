@@ -67,6 +67,7 @@ export class LocalStorageRepository implements IDataRepository {
       // User preferences
       userSettings: {
         username: '',
+        accountName: '',
         userId: '',
         theme: 'light',
         defaultCurrency: SUPPORTED_CURRENCIES[0], // USD

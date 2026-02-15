@@ -36,6 +36,7 @@ export const SettingsPage: React.FC = () => {
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [username, setUsername] = useState(data.userSettings.username);
+  const [accountName, setAccountName] = useState(data.userSettings.accountName || '');
   const [selectedFont, setSelectedFont] = useState<FontOption>(
     data.userSettings.fontFamily || getDefaultFont()
   );
@@ -47,10 +48,12 @@ export const SettingsPage: React.FC = () => {
 
   const handleUsernameChange = () => {
     dispatch({ type: 'SET_USERNAME', payload: username });
-    toast({
-      title: "Success",
-      description: "Username updated successfully.",
-    });
+    toast({ title: "Success", description: "Display name updated." });
+  };
+
+  const handleAccountNameChange = () => {
+    dispatch({ type: 'SET_ACCOUNT_NAME', payload: accountName });
+    toast({ title: "Success", description: "Account name updated." });
   };
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
@@ -143,7 +146,21 @@ export const SettingsPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="accountName">Account Name</Label>
+                <p className="text-xs text-muted-foreground">The name of this workspace/account, visible to all users.</p>
+                <div className="flex space-x-2">
+                  <Input
+                    id="accountName"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="e.g. My Company"
+                  />
+                  <Button onClick={handleAccountNameChange}>Save</Button>
+                </div>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="username">Display Name</Label>
+                <p className="text-xs text-muted-foreground">Your personal name shown to other users in this workspace.</p>
                 <div className="flex space-x-2">
                   <Input
                     id="username"

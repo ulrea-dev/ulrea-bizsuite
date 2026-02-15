@@ -16,6 +16,12 @@ export const settingsReducer = (state: AppData, action: BusinessAction): AppData
         userSettings: { ...state.userSettings, username: action.payload },
       };
 
+    case 'SET_ACCOUNT_NAME':
+      return {
+        ...state,
+        userSettings: { ...state.userSettings, accountName: action.payload },
+      };
+
     case 'SET_THEME':
       return {
         ...state,
