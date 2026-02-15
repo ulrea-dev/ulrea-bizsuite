@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
+import { BulkTodoModal } from './BulkTodoModal';
 import { TodoItem } from './TodoItem';
 import { format, addDays, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 
 export const UpcomingPage: React.FC = () => {
   const { data } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -51,10 +53,16 @@ export const UpcomingPage: React.FC = () => {
             {totalUpcoming} upcoming task{totalUpcoming !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBulkModalOpen(true)}>
+            <ListPlus className="h-4 w-4 mr-2" />
+            Bulk Add
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {totalUpcoming === 0 ? (
@@ -117,6 +125,7 @@ export const UpcomingPage: React.FC = () => {
       )}
 
       <TodoModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <BulkTodoModal open={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} />
     </div>
   );
 };

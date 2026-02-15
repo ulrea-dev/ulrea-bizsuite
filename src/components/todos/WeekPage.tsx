@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
+import { BulkTodoModal } from './BulkTodoModal';
 import { TodoItem } from './TodoItem';
 import { DraggableTodoItem } from './DraggableTodoItem';
 import { DroppableDay } from './DroppableDay';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 export const WeekPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -109,10 +111,16 @@ export const WeekPage: React.FC = () => {
             <Button variant="outline" size="icon" onClick={goToNextWeek}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Task
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsBulkModalOpen(true)}>
+                <ListPlus className="h-4 w-4 mr-2" />
+                Bulk Add
+              </Button>
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -151,6 +159,7 @@ export const WeekPage: React.FC = () => {
         </div>
 
         <TodoModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        <BulkTodoModal open={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} />
       </div>
 
       {/* Drag Overlay */}

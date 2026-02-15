@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
+import { BulkTodoModal } from './BulkTodoModal';
 import { TodoItem } from './TodoItem';
 import { ToDo } from '@/types/business';
 import { migrateTodoAssignees } from '@/utils/todoMigration';
@@ -18,6 +19,7 @@ import { migrateTodoAssignees } from '@/utils/todoMigration';
 export const AllTodosPage: React.FC = () => {
   const { data } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -71,10 +73,16 @@ export const AllTodosPage: React.FC = () => {
             {filteredTodos.length} task{filteredTodos.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBulkModalOpen(true)}>
+            <ListPlus className="h-4 w-4 mr-2" />
+            Bulk Add
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -146,6 +154,7 @@ export const AllTodosPage: React.FC = () => {
       )}
 
       <TodoModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <BulkTodoModal open={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} />
     </div>
   );
 };

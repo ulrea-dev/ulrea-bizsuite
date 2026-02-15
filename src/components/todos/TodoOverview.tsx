@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, CheckCircle2, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, AlertTriangle, TrendingUp, ListPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { TodoModal } from '@/components/TodoModal';
+import { BulkTodoModal } from './BulkTodoModal';
 import { TodoItem } from './TodoItem';
 import { format, startOfWeek, endOfWeek, isToday } from 'date-fns';
 
 export const TodoOverview: React.FC = () => {
   const { data } = useBusiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   const stats = useMemo(() => {
     const todos = data.todos || [];
@@ -55,10 +57,16 @@ export const TodoOverview: React.FC = () => {
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsBulkModalOpen(true)}>
+            <ListPlus className="h-4 w-4 mr-2" />
+            Bulk Add
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -154,6 +162,7 @@ export const TodoOverview: React.FC = () => {
       </div>
 
       <TodoModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <BulkTodoModal open={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} />
     </div>
   );
 };
