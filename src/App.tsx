@@ -1,5 +1,12 @@
 // Main application entry with routing and providers
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { LandingPage } from "./pages/LandingPage";
+import { AboutPage } from "./pages/AboutPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { TermsPage } from "./pages/TermsPage";
+import { FeaturesOperationsPage } from "./pages/FeaturesOperationsPage";
+import { FeaturesBackOfficePage } from "./pages/FeaturesBackOfficePage";
+import { FeaturesTodoPage } from "./pages/FeaturesTodoPage";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { BusinessProvider, useBusiness, setRestoringData } from "./contexts/BusinessContext";
