@@ -70,24 +70,33 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = ({ onBackToApp }) => {
   };
 
   // Core navigation: Today, Week, Overdue, All (slimmed from 7 → 4 primary + 2 grouped)
-  const primaryItems = [
+  type NavItemDef = {
+    id: string;
+    label: string;
+    icon: React.ForwardRefExoticComponent<React.RefAttributes<SVGSVGElement> & { className?: string }>;
+    path: string;
+    badge?: number;
+    badgeVariant?: 'destructive' | 'secondary';
+  };
+
+  const primaryItems: NavItemDef[] = [
     {
       id: 'today', label: 'Today', icon: CalendarCheck, path: '/todos/today',
       badge: todayCount > 0 ? todayCount : undefined,
-      badgeVariant: (overdueCount > 0 ? 'destructive' : 'secondary') as 'destructive' | 'secondary',
+      badgeVariant: overdueCount > 0 ? 'destructive' : 'secondary',
     },
     {
       id: 'overdue', label: 'Overdue', icon: AlertCircle, path: '/todos/overdue',
       badge: overdueCount > 0 ? overdueCount : undefined,
-      badgeVariant: 'destructive' as const,
+      badgeVariant: 'destructive',
     },
   ];
 
-  const scheduleItems = [
+  const scheduleItems: NavItemDef[] = [
     {
       id: 'week', label: 'This Week', icon: Calendar, path: '/todos/week',
       badge: weekCount > 0 ? weekCount : undefined,
-      badgeVariant: 'secondary' as const,
+      badgeVariant: 'secondary',
     },
     { id: 'upcoming', label: 'Upcoming', icon: CalendarDays, path: '/todos/upcoming' },
   ];
