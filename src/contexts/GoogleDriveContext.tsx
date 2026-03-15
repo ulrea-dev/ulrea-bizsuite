@@ -129,10 +129,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     return DEFAULT_GOOGLE_DRIVE_SETTINGS;
   });
 
-  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const sheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const partnerSheetSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const changePollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const partnerSheetSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const changePollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
   const isPollingRef = useRef(false);
   const lastUserSyncTimeRef = useRef<string | null>(null);
