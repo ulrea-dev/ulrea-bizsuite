@@ -109,6 +109,14 @@ const App = () => (
     <BusinessProvider>
       <GoogleDriveProvider>
         <Routes>
+          {/* Public pages */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/features/operations" element={<FeaturesOperationsPage />} />
+          <Route path="/features/back-office" element={<FeaturesBackOfficePage />} />
+          <Route path="/features/todo" element={<FeaturesTodoPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<HubLayout />}>
