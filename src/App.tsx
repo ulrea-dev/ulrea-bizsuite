@@ -1,5 +1,12 @@
 // Main application entry with routing and providers
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { LandingPage } from "./pages/LandingPage";
+import { AboutPage } from "./pages/AboutPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { TermsPage } from "./pages/TermsPage";
+import { FeaturesOperationsPage } from "./pages/FeaturesOperationsPage";
+import { FeaturesBackOfficePage } from "./pages/FeaturesBackOfficePage";
+import { FeaturesTodoPage } from "./pages/FeaturesTodoPage";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { BusinessProvider, useBusiness, setRestoringData } from "./contexts/BusinessContext";
@@ -102,10 +109,17 @@ const App = () => (
     <BusinessProvider>
       <GoogleDriveProvider>
         <Routes>
+          {/* Public pages */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/features/operations" element={<FeaturesOperationsPage />} />
+          <Route path="/features/back-office" element={<FeaturesBackOfficePage />} />
+          <Route path="/features/todo" element={<FeaturesTodoPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<HubLayout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

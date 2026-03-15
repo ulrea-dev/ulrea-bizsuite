@@ -1,39 +1,21 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Briefcase, 
-  LayoutDashboard, 
-  Building2, 
-  Wallet, 
-  ArrowUpRight, 
-  ArrowDownLeft,
-  ArrowLeft,
-  Moon,
-  Sun,
-  Download,
-  Users,
-  Layers,
-  UserCog,
-  ListTodo,
-  Settings
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Briefcase, LayoutDashboard, Building2, Wallet, ArrowUpRight, ArrowDownLeft,
+  ArrowLeft, Moon, Sun, Download, Users, Layers, UserCog, ListTodo, Settings,
+  MoreHorizontal, LogOut,
 } from 'lucide-react';
 
 import { useTheme } from '@/hooks/useTheme';
-import { useBusiness } from '@/contexts/BusinessContext';
 import { exportData } from '@/utils/storage';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarTrigger,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
+  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 
 interface AdminSidebarProps {
@@ -57,6 +39,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
   const { toast } = useToast();
   const { open: sidebarOpen } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleBackupDownload = () => {
     try {
@@ -70,24 +53,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Data Exported",
-        description: "Your data has been successfully exported and downloaded.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting your data. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Data Exported", description: "Your data has been successfully exported." });
+    } catch {
+      toast({ title: "Export Failed", description: "There was an error exporting your data.", variant: "destructive" });
     }
   };
 
+  const handleLogout = () => navigate('/login');
+
   const isActive = (path: string) => {
-    if (path === '/business-management') {
-      return location.pathname === '/business-management';
-    }
+    if (path === '/business-management') return location.pathname === '/business-management';
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
@@ -116,15 +91,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
             <SidebarMenu>
               {navigationItems.map((item) => {
                 const Icon = item.icon;
-                const active = isActive(item.path);
-                
                 return (
                   <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.label}
-                    >
+                    <SidebarMenuButton asChild isActive={isActive(item.path)} tooltip={item.label}>
                       <Link to={item.path}>
                         <Icon className="h-4 w-4" />
                         {sidebarOpen && <span>{item.label}</span>}
@@ -140,12 +109,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
 
       <SidebarFooter>
         <SidebarMenu>
+          {/* Back to Hub */}
           <SidebarMenuItem>
             <SidebarMenuButton onClick={onBackToApp} tooltip="Back to Hub">
               <ArrowLeft className="h-4 w-4" />
               {sidebarOpen && <span>Back to Hub</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* To-Do shortcut */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="To-Do">
               <Link to="/todos">
@@ -154,25 +126,38 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onBackToApp }) => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* More menu */}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings">
-              <Link to="/settings">
-                <Settings className="h-4 w-4" />
-                {sidebarOpen && <span>Settings</span>}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleBackupDownload} tooltip="Export Data">
-              <Download className="h-4 w-4" />
-              {sidebarOpen && <span>Export Data</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}>
-              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              {sidebarOpen && <span>{theme === 'light' ? 'Dark' : 'Light'}</span>}
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton tooltip="More options">
+                  <MoreHorizontal className="h-4 w-4" />
+                  {sidebarOpen && <span>More</span>}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleBackupDownload} className="flex items-center gap-2 cursor-pointer">
+                  <Download className="h-4 w-4" />
+                  Export Data
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleTheme} className="flex items-center gap-2 cursor-pointer">
+                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Log Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

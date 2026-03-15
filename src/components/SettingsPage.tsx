@@ -6,11 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useBusiness } from '@/contexts/BusinessContext';
@@ -25,8 +21,8 @@ import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { ShareAccessModal } from '@/components/ShareAccessModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw, Users } from 'lucide-react';
-import { PartnersPage } from './PartnersPage';
+import { Plus, RotateCcw, Users, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -48,73 +44,50 @@ export const SettingsPage: React.FC = () => {
 
   const handleUsernameChange = () => {
     dispatch({ type: 'SET_USERNAME', payload: username });
-    toast({ title: "Success", description: "Display name updated." });
+    toast({ title: "Saved", description: "Display name updated." });
   };
 
   const handleAccountNameChange = () => {
     dispatch({ type: 'SET_ACCOUNT_NAME', payload: accountName });
-    toast({ title: "Success", description: "Account name updated." });
+    toast({ title: "Saved", description: "Account name updated." });
   };
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
     dispatch({ type: 'SET_THEME', payload: theme });
     document.documentElement.className = theme;
-    toast({
-      title: "Success",
-      description: `Theme changed to ${theme}.`,
-    });
+    toast({ title: "Saved", description: `Theme changed to ${theme}.` });
   };
 
   const handleDefaultCurrencyChange = (currencyCode: string) => {
     const currency = allCurrencies.find(c => c.code === currencyCode);
     if (currency) {
       dispatch({ type: 'SET_DEFAULT_CURRENCY', payload: currency });
-      toast({
-        title: "Success",
-        description: `Default currency changed to ${currency.name}.`,
-      });
+      toast({ title: "Saved", description: `Default currency changed to ${currency.name}.` });
     }
   };
 
   const handleDeleteCustomCurrency = (currencyCode: string) => {
     if (data.userSettings.defaultCurrency.code === currencyCode) {
-      toast({
-        title: "Error",
-        description: "Cannot delete the default currency. Please change your default currency first.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Cannot delete the default currency.", variant: "destructive" });
       return;
     }
-
     dispatch({ type: 'DELETE_CUSTOM_CURRENCY', payload: currencyCode });
-    toast({
-      title: "Success",
-      description: "Custom currency deleted successfully.",
-    });
+    toast({ title: "Deleted", description: "Custom currency removed." });
   };
 
   const handleFontChange = (font: FontOption) => {
     setSelectedFont(font);
     dispatch({ type: 'SET_FONT', payload: font });
-    toast({
-      title: "Success",
-      description: `Font changed to ${font.name}.`,
-    });
+    toast({ title: "Saved", description: `Font changed to ${font.name}.` });
   };
 
   const handlePaletteChange = (palette: ColorPalette) => {
     setSelectedPalette(palette);
     dispatch({ type: 'SET_COLOR_PALETTE', payload: palette });
-    toast({
-      title: "Success",
-      description: `Color palette changed to ${palette.name}.`,
-    });
+    toast({ title: "Saved", description: `Color palette changed to ${palette.name}.` });
   };
 
-  const handleCurrencyAdded = (currency: Currency) => {
-    // The dispatch is already handled in the modal
-  };
-
+  const handleCurrencyAdded = (_currency: Currency) => {};
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -136,25 +109,18 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         <TabsContent value="account" className="space-y-4">
-          {/* General Settings */}
+          {/* Profile */}
           <Card>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
-              <CardDescription>
-                Manage your account information.
-              </CardDescription>
+              <CardDescription>Manage your account information.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="accountName">Account Name</Label>
-                <p className="text-xs text-muted-foreground">The name of this workspace/account, visible to all users.</p>
+                <p className="text-xs text-muted-foreground">The name of this workspace, visible to all users.</p>
                 <div className="flex space-x-2">
-                  <Input
-                    id="accountName"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    placeholder="e.g. My Company"
-                  />
+                  <Input id="accountName" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="e.g. My Company" />
                   <Button onClick={handleAccountNameChange}>Save</Button>
                 </div>
               </div>
@@ -162,25 +128,18 @@ export const SettingsPage: React.FC = () => {
                 <Label htmlFor="username">Display Name</Label>
                 <p className="text-xs text-muted-foreground">Your personal name shown to other users in this workspace.</p>
                 <div className="flex space-x-2">
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter your name"
-                  />
+                  <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your name" />
                   <Button onClick={handleUsernameChange}>Save</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Appearance Settings */}
+          {/* Appearance */}
           <Card>
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
-              <CardDescription>
-                Customize how BizSuite looks.
-              </CardDescription>
+              <CardDescription>Customize how WorkOS looks.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
@@ -194,36 +153,31 @@ export const SettingsPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <FontSelector
-            selectedFont={selectedFont}
-            onFontChange={handleFontChange}
-          />
-          <ColorPaletteSelector
-            selectedPalette={selectedPalette}
-            onPaletteChange={handlePaletteChange}
-          />
+          <FontSelector selectedFont={selectedFont} onFontChange={handleFontChange} />
+          <ColorPaletteSelector selectedPalette={selectedPalette} onPaletteChange={handlePaletteChange} />
 
-          {/* Partners Section */}
+          {/* Partners — link to Back Office */}
           <Card>
             <CardHeader>
               <CardTitle>Partners</CardTitle>
               <CardDescription>
-                Manage your sales and managing partners across businesses.
+                Partner management has moved to Back Office for better organisation.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PartnersPage />
+              <Button variant="outline" asChild>
+                <Link to="/business-management/partners" className="flex items-center gap-2">
+                  Manage Partners in Back Office
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="backup" className="space-y-4">
           <GoogleDriveBackupCard />
-          
-          {/* Google Sheets Connection Card */}
           <GoogleSheetsConnectionCard />
-          
-          {/* Sharing & Collaboration Card */}
           {isConnected && (
             <Card>
               <CardHeader>
@@ -231,9 +185,7 @@ export const SettingsPage: React.FC = () => {
                   <Users className="h-5 w-5" />
                   Sharing & Collaboration
                 </CardTitle>
-                <CardDescription>
-                  Share your BizSuite data with team members via Google Drive and Sheets.
-                </CardDescription>
+                <CardDescription>Share your data with team members via Google Drive and Sheets.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button onClick={() => setShowShareModal(true)}>
@@ -243,21 +195,14 @@ export const SettingsPage: React.FC = () => {
               </CardContent>
             </Card>
           )}
-          
-          {/* Restore Card */}
           {isConnected && (
             <Card>
               <CardHeader>
                 <CardTitle>Restore from Google Drive</CardTitle>
-                <CardDescription>
-                  Restore your data from a previous backup stored in Google Drive.
-                </CardDescription>
+                <CardDescription>Restore your data from a previous backup stored in Google Drive.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowRestoreModal(true)}
-                >
+                <Button variant="outline" onClick={() => setShowRestoreModal(true)}>
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Browse Backups
                 </Button>
@@ -270,25 +215,17 @@ export const SettingsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Default Currency</CardTitle>
-              <CardDescription>
-                Choose your default currency for all financial calculations.
-              </CardDescription>
+              <CardDescription>Choose your default currency for all financial calculations.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <Label htmlFor="default-currency">Default Currency</Label>
-                <Select
-                  value={data.userSettings.defaultCurrency.code}
-                  onValueChange={handleDefaultCurrencyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={data.userSettings.defaultCurrency.code} onValueChange={handleDefaultCurrencyChange}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {allCurrencies.map((currency) => (
                       <SelectItem key={currency.code} value={currency.code}>
-                        {currency.symbol} {currency.code} - {currency.name}
-                        {currency.isCustom && ' (Custom)'}
+                        {currency.symbol} {currency.code} - {currency.name}{currency.isCustom && ' (Custom)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -296,33 +233,23 @@ export const SettingsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Custom Currencies</CardTitle>
-              <CardDescription>
-                Add custom currencies that are not in our supported list.
-              </CardDescription>
+              <CardDescription>Add currencies not in our supported list.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button onClick={() => setShowCustomCurrencyModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Custom Currency
               </Button>
-
               {data.customCurrencies && data.customCurrencies.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-medium">Your Custom Currencies</h4>
                   {data.customCurrencies.map((currency) => (
                     <div key={currency.code} className="flex items-center justify-between p-2 border rounded">
                       <span>{currency.symbol} {currency.code} - {currency.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteCustomCurrency(currency.code)}
-                      >
-                        Delete
-                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteCustomCurrency(currency.code)}>Delete</Button>
                     </div>
                   ))}
                 </div>
@@ -336,21 +263,9 @@ export const SettingsPage: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      <CustomCurrencyModal
-        isOpen={showCustomCurrencyModal}
-        onClose={() => setShowCustomCurrencyModal(false)}
-        onCurrencyAdded={handleCurrencyAdded}
-      />
-
-      <RestoreFromDriveModal
-        isOpen={showRestoreModal}
-        onClose={() => setShowRestoreModal(false)}
-      />
-
-      <ShareAccessModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-      />
+      <CustomCurrencyModal isOpen={showCustomCurrencyModal} onClose={() => setShowCustomCurrencyModal(false)} onCurrencyAdded={handleCurrencyAdded} />
+      <RestoreFromDriveModal isOpen={showRestoreModal} onClose={() => setShowRestoreModal(false)} />
+      <ShareAccessModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} />
     </div>
   );
 };
