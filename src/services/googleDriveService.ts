@@ -302,7 +302,7 @@ class GoogleDriveService {
     }));
   }
 
-  async moveSpreadsheetToFolder(spreadsheetId: string, storedSheetsFolderId?: string | null): Promise<void> {
+  async moveSpreadsheetToFolder(spreadsheetId: string, storedSheetsFolderId?: string | null): Promise<string> {
     const folderId = await this.getOrCreateSheetsFolder(storedSheetsFolderId);
 
     // Get current parents
@@ -317,6 +317,7 @@ class GoogleDriveService {
       `${DRIVE_API_BASE}/files/${spreadsheetId}?addParents=${folderId}&removeParents=${currentParents}`,
       { method: 'PATCH' }
     );
+    return folderId;
   }
 
   async getSpreadsheetInfo(spreadsheetId: string): Promise<SpreadsheetInfo> {
