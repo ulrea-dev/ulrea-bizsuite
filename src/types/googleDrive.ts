@@ -97,6 +97,7 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   connectedSheet: null,
   sheetAutoSyncEnabled: false,
   backupFolderId: null,
+  sheetsFolderId: null,
   partnerSheets: [],
   lastKnownBackupId: null,
   lastKnownBackupTime: null,
