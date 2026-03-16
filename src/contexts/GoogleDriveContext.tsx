@@ -553,7 +553,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
         businessIds,
         data
       );
-      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+      const usedSheetsFolderId = await googleDriveService.moveSpreadsheetToFolder(spreadsheetId, settings.sheetsFolderId);
+      if (usedSheetsFolderId !== settings.sheetsFolderId) {
+        updateSettings({ sheetsFolderId: usedSheetsFolderId });
+      }
 
       const newPartnerSheet: PartnerSheet = {
         partnerId,
