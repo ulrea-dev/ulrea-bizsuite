@@ -184,7 +184,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     script.onload = () => {
       tokenClientRef.current = google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
-        scope: 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets',
         callback: async (tokenResponse) => {
           if (tokenResponse.error) {
             toast({ title: 'Connection Failed', description: 'Could not connect to Google Drive.', variant: 'destructive' });
