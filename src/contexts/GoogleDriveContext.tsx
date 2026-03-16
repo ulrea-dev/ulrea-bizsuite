@@ -274,45 +274,52 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     toast({ title: 'Disconnected', description: 'Google Drive has been disconnected.' });
   }, [settings.accessToken, updateSettings, toast]);
 
-  // Account discovery
+  // Account discovery — under drive.file scope we cannot search Drive by name.
+  // Instead we rely on the locally stored account data (backupFolderId, currentAccountId).
+  // If a stored account exists, verify it is still accessible; otherwise show creation flow.
   const discoverAccounts = useCallback(async () => {
     if (!isConnected) return;
-    
+
     setIsDiscoveringAccounts(true);
     try {
-      const [accounts, legacy] = await Promise.all([
-        googleDriveService.listBizSuiteAccounts(),
-        googleDriveService.findLegacyFolders(),
-      ]);
-      
-      setAvailableAccounts(accounts);
-      setLegacyFolders(legacy);
-      
-      // If only one account and no legacy folders, auto-select it
-      if (accounts.length === 1 && legacy.length === 0) {
-        selectAccount(accounts[0]);
-      } else if (accounts.length === 0 && legacy.length === 0) {
-        // No accounts, show creation flow
-        setShowAccountSelection(true);
-      } else {
-        // Multiple options, show selection
-        setShowAccountSelection(true);
+      const storedFolderId = settings.backupFolderId;
+      const storedAccountId = settings.currentAccountId;
+      const storedAccountName = settings.currentAccountName;
+
+      if (storedFolderId && storedAccountId) {
+        // Verify the stored folder is still accessible
+        const { accessible, canWrite } = await googleDriveService.verifyAccountFolder(storedFolderId);
+        if (accessible) {
+          const account: BizSuiteAccount = {
+            id: storedAccountId,
+            name: storedAccountName || 'Workspace',
+            folderId: storedFolderId,
+            ownedByMe: canWrite,
+          };
+          setAvailableAccounts([account]);
+          setLegacyFolders([]);
+          // Auto-select the known account
+          selectAccount(account);
+          return;
+        }
+        // Stored folder is gone — fall through to creation flow
       }
+
+      // No stored account — prompt user to create one
+      setAvailableAccounts([]);
+      setLegacyFolders([]);
+      setShowAccountSelection(true);
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         handleTokenExpiry({ type: 'discoverAccounts' });
       } else {
         console.error('Failed to discover accounts:', error);
-        toast({ 
-          title: 'Failed to Load Workspaces', 
-          description: error instanceof Error ? error.message : 'Could not load workspaces.',
-          variant: 'destructive' 
-        });
+        setShowAccountSelection(true);
       }
     } finally {
       setIsDiscoveringAccounts(false);
     }
-  }, [isConnected, handleTokenExpiry, toast]);
+  }, [isConnected, settings.backupFolderId, settings.currentAccountId, settings.currentAccountName, handleTokenExpiry]);
 
   const selectAccount = useCallback((account: BizSuiteAccount) => {
     setCurrentAccount(account);
