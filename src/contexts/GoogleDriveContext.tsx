@@ -510,7 +510,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     setIsExporting(true);
     try {
       const { spreadsheetId, spreadsheetUrl } = await googleSheetsService.exportAppData(data);
-      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+      const usedSheetsFolderId = await googleDriveService.moveSpreadsheetToFolder(spreadsheetId, settings.sheetsFolderId);
+      if (usedSheetsFolderId !== settings.sheetsFolderId) {
+        updateSettings({ sheetsFolderId: usedSheetsFolderId });
+      }
       const sheetInfo = await googleDriveService.getSpreadsheetInfo(spreadsheetId);
       const connectedSheet: ConnectedSheet = { spreadsheetId, spreadsheetUrl, name: sheetInfo.name, connectedAt: new Date().toISOString(), lastSyncedAt: new Date().toISOString() };
       updateSettings({ connectedSheet, sheetAutoSyncEnabled: true });
