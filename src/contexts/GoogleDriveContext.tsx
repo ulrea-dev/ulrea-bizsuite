@@ -459,7 +459,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     setIsExporting(true);
     try {
       const { spreadsheetId, spreadsheetUrl } = await googleSheetsService.exportAppData(data);
-      await googleDriveService.moveSpreadsheetToFolder(spreadsheetId);
+      const newSheetsFolderId = await googleDriveService.moveSpreadsheetToFolder(spreadsheetId, settings.sheetsFolderId);
+      if (newSheetsFolderId && newSheetsFolderId !== settings.sheetsFolderId) {
+        updateSettings({ sheetsFolderId: newSheetsFolderId });
+      }
       toast({ title: 'Export Complete', description: 'Data exported to Google Sheets.' });
       return spreadsheetUrl;
     } catch (error) {
