@@ -14,6 +14,7 @@ function generateAccountId(): string {
 class GoogleDriveService {
   private accessToken: string | null = null;
   private currentAccountFolderId: string | null = null;
+  private sheetsFolderId: string | null = null;
 
   setAccessToken(token: string | null) {
     this.accessToken = token;
@@ -21,6 +22,10 @@ class GoogleDriveService {
 
   setCurrentAccountFolder(folderId: string | null) {
     this.currentAccountFolderId = folderId;
+  }
+
+  setSheetsFolder(folderId: string | null) {
+    this.sheetsFolderId = folderId;
   }
 
   private async request(url: string, options: RequestInit = {}) {
@@ -55,60 +60,30 @@ class GoogleDriveService {
   // ============ ACCOUNT/WORKSPACE MANAGEMENT ============
 
   /**
-   * List all BizSuite accounts (workspaces) the user has access to.
-   * Searches for folders with appProperties.bizsuiteAccountId
+   * List BizSuite accounts using stored folder IDs (drive.file scope compatible).
+   * Under drive.file scope we cannot search Drive — we rely on the caller passing
+   * known account data from localStorage. This method verifies a known folder still
+   * exists and is accessible by fetching it directly.
    */
-  async listBizSuiteAccounts(): Promise<BizSuiteAccount[]> {
-    // Search for folders that match BizSuite naming pattern, then filter by appProperties
-    // Note: Google Drive API doesn't support "appProperties has { key='x' }" without a value
-    // So we search by folder name pattern and filter client-side
-    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and trashed=false and name contains '${FOLDER_NAME_PREFIX}'`);
-    const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,appProperties,owners(emailAddress),capabilities/canAddChildren,createdTime)`
-    );
-    const searchData = await searchResponse.json();
-
-    if (!searchData.files || searchData.files.length === 0) {
-      return [];
+  async verifyAccountFolder(folderId: string): Promise<{ accessible: boolean; canWrite: boolean }> {
+    try {
+      const response = await this.request(
+        `${DRIVE_API_BASE}/files/${folderId}?fields=id,name,ownedByMe,capabilities/canAddChildren,trashed`
+      );
+      const data = await response.json();
+      if (data.trashed) return { accessible: false, canWrite: false };
+      return {
+        accessible: true,
+        canWrite: data.ownedByMe || data.capabilities?.canAddChildren === true,
+      };
+    } catch {
+      return { accessible: false, canWrite: false };
     }
-
-    // Filter to only folders with bizsuiteAccountId in appProperties
-    return searchData.files
-      .filter((f: any) => f.appProperties?.bizsuiteAccountId && f.appProperties?.bizsuiteAccountName)
-      .map((f: any) => ({
-        id: f.appProperties.bizsuiteAccountId,
-        name: f.appProperties.bizsuiteAccountName,
-        folderId: f.id,
-        ownedByMe: f.ownedByMe,
-        sharedBy: !f.ownedByMe && f.owners?.[0]?.emailAddress ? f.owners[0].emailAddress : undefined,
-        createdAt: f.createdTime,
-      }));
   }
 
   /**
-   * Search for legacy folders (without appProperties) that might need migration
-   */
-  async findLegacyFolders(): Promise<Array<{ id: string; name: string; ownedByMe: boolean }>> {
-    const query = encodeURIComponent(`name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-    const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,appProperties)`
-    );
-    const searchData = await searchResponse.json();
-
-    if (!searchData.files) return [];
-
-    // Return folders that don't have bizsuiteAccountId yet
-    return searchData.files
-      .filter((f: any) => !f.appProperties?.bizsuiteAccountId)
-      .map((f: any) => ({
-        id: f.id,
-        name: f.name,
-        ownedByMe: f.ownedByMe,
-      }));
-  }
-
-  /**
-   * Create a new BizSuite account folder with metadata
+   * Create a new BizSuite account folder with metadata.
+   * Works with drive.file scope since we are creating the folder.
    */
   async createAccountFolder(accountName: string): Promise<BizSuiteAccount> {
     const accountId = generateAccountId();
@@ -141,60 +116,9 @@ class GoogleDriveService {
   }
 
   /**
-   * Migrate a legacy folder to the new account system
+   * Update account name. Works with drive.file scope since the folder was created by the app.
    */
-  async migrateLegacyFolder(folderId: string, accountName: string): Promise<BizSuiteAccount> {
-    const accountId = generateAccountId();
-    const folderName = `${FOLDER_NAME_PREFIX} - ${accountName}`;
-
-    await this.request(`${DRIVE_API_BASE}/files/${folderId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: folderName,
-        appProperties: {
-          bizsuiteAccountId: accountId,
-          bizsuiteAccountName: accountName,
-        },
-      }),
-    });
-
-    return {
-      id: accountId,
-      name: accountName,
-      folderId: folderId,
-      ownedByMe: true,
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Get folder ID for a specific account
-   */
-  async getAccountFolder(accountId: string): Promise<string | null> {
-    // Search by folder name pattern, then filter by appProperties
-    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and trashed=false and name contains '${FOLDER_NAME_PREFIX}'`);
-    const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,appProperties)`
-    );
-    const searchData = await searchResponse.json();
-
-    if (searchData.files && searchData.files.length > 0) {
-      const folder = searchData.files.find((f: any) => f.appProperties?.bizsuiteAccountId === accountId);
-      return folder?.id || null;
-    }
-    return null;
-  }
-
-  /**
-   * Update account name
-   */
-  async updateAccountName(accountId: string, newName: string): Promise<void> {
-    const folderId = await this.getAccountFolder(accountId);
-    if (!folderId) throw new Error('Account folder not found');
-
+  async updateAccountName(folderId: string, accountId: string, newName: string): Promise<void> {
     const folderName = `${FOLDER_NAME_PREFIX} - ${newName}`;
     
     await this.request(`${DRIVE_API_BASE}/files/${folderId}`, {
@@ -212,44 +136,15 @@ class GoogleDriveService {
     });
   }
 
-  // ============ BACKUP OPERATIONS (now use currentAccountFolderId) ============
+  // ============ BACKUP OPERATIONS ============
 
   private async getOrCreateFolder(): Promise<string> {
-    // If we have a current account folder, use it
+    // Always use the stored current account folder — no Drive search needed
     if (this.currentAccountFolderId) {
       return this.currentAccountFolderId;
     }
 
-    // Fallback: search for any writable folder (for backwards compatibility)
-    const query = encodeURIComponent(
-      `name contains '${FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-    );
-    const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=${query}&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
-    );
-    const searchData = await searchResponse.json();
-
-    if (searchData.files && searchData.files.length > 0) {
-      // Priority 1: Folder we own
-      const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
-      if (ownedFolder) {
-        return ownedFolder.id;
-      }
-      
-      // Priority 2: Shared folder with write access
-      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren === true);
-      if (writableFolder) {
-        return writableFolder.id;
-      }
-      
-      // Folders exist but none are writable - provide clear error
-      throw new Error(
-        'You have access to a BizSuite folder but cannot write to it. ' +
-        'Please ask the folder owner to give you Editor access, or select a different workspace.'
-      );
-    }
-
-    // No folder found and no account set - this shouldn't happen in normal flow
+    // No workspace selected — caller should have set one up
     throw new Error('No workspace selected. Please select or create a workspace first.');
   }
 
@@ -355,30 +250,26 @@ class GoogleDriveService {
     return toDelete.length;
   }
 
-  async getOrCreateSheetsFolder(): Promise<string> {
-    // Search for existing folders - include 'ownedByMe' to prioritize user's own folder
-    const searchResponse = await this.request(
-      `${DRIVE_API_BASE}/files?q=name contains '${SHEETS_FOLDER_NAME_PREFIX}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,ownedByMe,capabilities/canAddChildren)`
-    );
-    const searchData = await searchResponse.json();
+  // ============ SHEETS FOLDER MANAGEMENT ============
 
-    if (searchData.files && searchData.files.length > 0) {
-      // First, try to find a folder we own
-      const ownedFolder = searchData.files.find((f: any) => f.ownedByMe);
-      if (ownedFolder) {
-        return ownedFolder.id;
+  /**
+   * Get or create the sheets folder.
+   * Under drive.file scope: if we have a stored sheets folder ID, verify it;
+   * otherwise create a new one.
+   */
+  async getOrCreateSheetsFolder(storedFolderId?: string | null): Promise<string> {
+    // Try stored ID first — avoids any Drive search
+    if (storedFolderId || this.sheetsFolderId) {
+      const idToCheck = storedFolderId || this.sheetsFolderId!;
+      const { accessible, canWrite } = await this.verifyAccountFolder(idToCheck);
+      if (accessible && canWrite) {
+        this.sheetsFolderId = idToCheck;
+        return idToCheck;
       }
-      
-      // If no owned folder, check if any shared folder allows us to add files
-      const writableFolder = searchData.files.find((f: any) => f.capabilities?.canAddChildren);
-      if (writableFolder) {
-        return writableFolder.id;
-      }
-      
-      // Folders exist but we can't write to them - create our own
+      // Stored folder is gone or inaccessible — fall through to create
     }
 
-    // Create folder if it doesn't exist or we don't have write access to existing ones
+    // Create a new sheets folder
     const createResponse = await this.request(`${DRIVE_API_BASE}/files`, {
       method: 'POST',
       headers: {
@@ -391,11 +282,12 @@ class GoogleDriveService {
     });
 
     const createData = await createResponse.json();
+    this.sheetsFolderId = createData.id;
     return createData.id;
   }
 
-  async listSpreadsheets(): Promise<SpreadsheetInfo[]> {
-    const folderId = await this.getOrCreateSheetsFolder();
+  async listSpreadsheets(storedSheetsFolderId?: string | null): Promise<SpreadsheetInfo[]> {
+    const folderId = await this.getOrCreateSheetsFolder(storedSheetsFolderId);
 
     const response = await this.request(
       `${DRIVE_API_BASE}/files?q='${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false&fields=files(id,name,createdTime,webViewLink)&orderBy=createdTime desc`
@@ -410,8 +302,8 @@ class GoogleDriveService {
     }));
   }
 
-  async moveSpreadsheetToFolder(spreadsheetId: string): Promise<void> {
-    const folderId = await this.getOrCreateSheetsFolder();
+  async moveSpreadsheetToFolder(spreadsheetId: string, storedSheetsFolderId?: string | null): Promise<string> {
+    const folderId = await this.getOrCreateSheetsFolder(storedSheetsFolderId);
 
     // Get current parents
     const fileResponse = await this.request(
@@ -425,6 +317,7 @@ class GoogleDriveService {
       `${DRIVE_API_BASE}/files/${spreadsheetId}?addParents=${folderId}&removeParents=${currentParents}`,
       { method: 'PATCH' }
     );
+    return folderId;
   }
 
   async getSpreadsheetInfo(spreadsheetId: string): Promise<SpreadsheetInfo> {
@@ -440,14 +333,14 @@ class GoogleDriveService {
     };
   }
 
-  // Get the backup folder ID (creates if doesn't exist)
+  // Get the backup folder ID (uses stored ID — no search)
   async getBackupFolderId(): Promise<string> {
     return await this.getOrCreateFolder();
   }
 
-  // Get the sheets folder ID (creates if doesn't exist)
-  async getSheetsFolderId(): Promise<string> {
-    return await this.getOrCreateSheetsFolder();
+  // Get the sheets folder ID (uses stored ID or creates new)
+  async getSheetsFolderId(storedSheetsFolderId?: string | null): Promise<string> {
+    return await this.getOrCreateSheetsFolder(storedSheetsFolderId);
   }
 
   // Share a file/folder with a user

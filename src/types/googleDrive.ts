@@ -79,6 +79,7 @@ export interface GoogleDriveSettings {
   connectedSheet: ConnectedSheet | null;
   sheetAutoSyncEnabled: boolean;
   backupFolderId: string | null;
+  sheetsFolderId: string | null;
   partnerSheets: PartnerSheet[];
   // Change detection
   lastKnownBackupId: string | null;
@@ -96,6 +97,7 @@ export const DEFAULT_GOOGLE_DRIVE_SETTINGS: GoogleDriveSettings = {
   connectedSheet: null,
   sheetAutoSyncEnabled: false,
   backupFolderId: null,
+  sheetsFolderId: null,
   partnerSheets: [],
   lastKnownBackupId: null,
   lastKnownBackupTime: null,
