@@ -342,11 +342,12 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     return account;
   }, [selectAccount]);
 
-  const migrateAccount = useCallback(async (folderId: string, name: string): Promise<BizSuiteAccount> => {
-    const account = await googleDriveService.migrateLegacyFolder(folderId, name);
-    selectAccount(account);
-    return account;
-  }, [selectAccount]);
+  // Legacy migration is no longer supported under drive.file scope (no Drive search).
+  // This stub keeps the interface intact while gracefully handling any residual calls.
+  const migrateAccount = useCallback(async (_folderId: string, name: string): Promise<BizSuiteAccount> => {
+    // Under drive.file scope we can't patch arbitrary folders — create a fresh one instead.
+    return createAccount(name);
+  }, [createAccount]);
 
   const closeAccountSelection = useCallback(() => {
     setShowAccountSelection(false);
