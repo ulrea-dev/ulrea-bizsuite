@@ -8,7 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Payment } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -39,8 +43,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     description: payment?.description || '',
     allocationId: payment?.allocationId ? payment.allocationId : (presetAllocationId || 'none')
   });
-  const [paymentDate, setPaymentDate] = useState(
-    payment?.date || new Date().toISOString().split('T')[0]
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(
+    payment?.date ? new Date(payment.date + 'T00:00:00') : new Date()
   );
 
   const project = data.projects.find(p => p.id === projectId);
@@ -63,7 +67,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const newPayment: Payment = {
         id: `payment_${Date.now()}`,
         amount: parseFloat(formData.amount),
-        date: paymentDate || new Date().toISOString().split('T')[0],
+        date: paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         projectId,
         recipientType,
         type: 'outgoing',
@@ -80,11 +84,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     } else if (mode === 'edit' && payment) {
         dispatch({
           type: 'UPDATE_PAYMENT',
-          payload: { 
-            id: payment.id, 
+          payload: {
+            id: payment.id,
             updates: {
               amount: parseFloat(formData.amount),
-              date: paymentDate || new Date().toISOString().split('T')[0],
+              date: paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
               description: formData.description,
               allocationId: formData.allocationId !== 'none' ? formData.allocationId : undefined
             }
@@ -140,15 +144,31 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="date">Payment Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                disabled={isReadOnly}
-                required
-              />
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={isReadOnly}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(d) => d && setPaymentDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

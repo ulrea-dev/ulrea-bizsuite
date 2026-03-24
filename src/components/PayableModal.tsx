@@ -8,7 +8,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Payable, PayableStatus, SUPPORTED_CURRENCIES, EXPENSE_CATEGORIES } from '@/types/business';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface PayableModalProps {
   isOpen: boolean;
@@ -26,7 +30,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
   const [amount, setAmount] = useState('0');
   const [paidAmount, setPaidAmount] = useState('0');
   const [currency, setCurrency] = useState(currentBusiness?.currency.code || 'USD');
-  const [dueDate, setDueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dueDate, setDueDate] = useState<Date | undefined>(new Date());
   const [status, setStatus] = useState<PayableStatus>('pending');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +48,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
       setAmount(payable.amount.toString());
       setPaidAmount(payable.paidAmount.toString());
       setCurrency(payable.currency);
-      setDueDate(payable.dueDate);
+      setDueDate(new Date(payable.dueDate + 'T00:00:00'));
       setStatus(payable.status);
       setCategory(payable.category || '');
       setDescription(payable.description || '');
@@ -55,7 +59,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
       setAmount('0');
       setPaidAmount('0');
       setCurrency(currentBusiness?.currency.code || 'USD');
-      setDueDate(format(new Date(), 'yyyy-MM-dd'));
+      setDueDate(new Date());
       setStatus('pending');
       setCategory('');
       setDescription('');
@@ -71,6 +75,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
     const now = new Date().toISOString();
     const amountNum = parseFloat(amount) || 0;
     const paidAmountNum = parseFloat(paidAmount) || 0;
+    const dueDateStr = dueDate ? dueDate.toISOString().split('T')[0] : format(new Date(), 'yyyy-MM-dd');
 
     // Auto-determine status based on amounts
     let finalStatus: PayableStatus = status;
@@ -78,7 +83,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
       finalStatus = 'paid';
     } else if (paidAmountNum > 0) {
       finalStatus = 'partial';
-    } else if (new Date(dueDate) < new Date() && finalStatus !== 'paid') {
+    } else if (dueDate && dueDate < new Date() && finalStatus !== 'paid') {
       finalStatus = 'overdue';
     }
 
@@ -92,7 +97,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
             amount: amountNum,
             paidAmount: paidAmountNum,
             currency,
-            dueDate,
+            dueDate: dueDateStr,
             status: finalStatus,
             category: category || undefined,
             description: description.trim() || undefined,
@@ -109,7 +114,7 @@ export const PayableModal: React.FC<PayableModalProps> = ({
         amount: amountNum,
         paidAmount: paidAmountNum,
         currency,
-        dueDate,
+        dueDate: dueDateStr,
         status: finalStatus,
         category: category || undefined,
         description: description.trim() || undefined,
@@ -180,13 +185,30 @@ export const PayableModal: React.FC<PayableModalProps> = ({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+              <Label>Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={(d) => d && setDueDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

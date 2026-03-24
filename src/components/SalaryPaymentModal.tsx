@@ -10,6 +10,11 @@ import { generateId, formatCurrency } from '@/utils/storage';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { useToast } from '@/hooks/use-toast';
 import { SUPPORTED_CURRENCIES, SalaryPayment } from '@/types/business';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface SalaryPaymentModalProps {
   isOpen: boolean;
@@ -26,7 +31,7 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
   const { toast } = useToast();
 
   const [amount, setAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
   const [paymentMethod, setPaymentMethod] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -83,7 +88,7 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
     if (isOpen && salaryRecord) {
       // Set default amount to combined salary
       setAmount(combinedSalary.toString());
-      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentDate(new Date());
       setPaymentMethod('');
       setNotes('');
     }
@@ -98,6 +103,8 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
       });
       return;
     }
+
+    const paymentDateStr = paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
     if (!amount || !paymentDate) {
       toast({
@@ -134,8 +141,8 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
         id: generateId(),
         salaryRecordId: recordId,
         amount: paymentAmount,
-        paymentDate: paymentDate || new Date().toISOString().split('T')[0],
-        period: `${new Date(paymentDate).toLocaleDateString()} Payment`,
+        paymentDate: paymentDateStr,
+        period: `${paymentDate ? paymentDate.toLocaleDateString() : new Date().toLocaleDateString()} Payment`,
         method: paymentMethod || undefined,
         description: notes || undefined,
         status: 'paid',
@@ -232,14 +239,30 @@ export const SalaryPaymentModal: React.FC<SalaryPaymentModalProps> = ({
 
           {/* Payment Date */}
           <div className="space-y-2">
-            <Label htmlFor="paymentDate">Payment Date *</Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              required
-            />
+            <Label>Payment Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !paymentDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={paymentDate}
+                  onSelect={(d) => d && setPaymentDate(d)}
+                  initialFocus
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Payment Method */}

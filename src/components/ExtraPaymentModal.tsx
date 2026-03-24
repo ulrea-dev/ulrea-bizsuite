@@ -9,6 +9,11 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { generateId } from '@/utils/storage';
 import { useToast } from '@/hooks/use-toast';
 import { ExtraPayment, ExtraPaymentType, SUPPORTED_CURRENCIES } from '@/types/business';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface ExtraPaymentModalProps {
   isOpen: boolean;
@@ -44,12 +49,12 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
     amount: '',
     currency: currentBusiness?.currency.code || 'USD',
     period: currentPeriod,
-    paymentDate: new Date().toISOString().split('T')[0],
     type: 'bonus' as ExtraPaymentType,
     name: '',
     description: '',
     status: 'paid' as 'pending' | 'paid',
   });
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
     if (existingPayment) {
@@ -58,24 +63,24 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
         amount: existingPayment.amount.toString(),
         currency: existingPayment.currency,
         period: existingPayment.period,
-        paymentDate: existingPayment.paymentDate,
         type: existingPayment.type,
         name: existingPayment.name,
         description: existingPayment.description || '',
         status: existingPayment.status,
       });
+      setPaymentDate(new Date(existingPayment.paymentDate + 'T00:00:00'));
     } else {
       setFormData({
         teamMemberId: defaultTeamMemberId || '',
         amount: '',
         currency: currentBusiness?.currency.code || 'USD',
         period: currentPeriod,
-        paymentDate: new Date().toISOString().split('T')[0],
         type: 'bonus',
         name: '',
         description: '',
         status: 'paid',
       });
+      setPaymentDate(new Date());
     }
   }, [existingPayment, defaultTeamMemberId, currentPeriod, currentBusiness?.currency.code]);
 
@@ -125,7 +130,7 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
             amount,
             currency: formData.currency,
             period: formData.period,
-            paymentDate: formData.paymentDate,
+            paymentDate: paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             type: formData.type,
             name: formData.name,
             description: formData.description || undefined,
@@ -276,13 +281,30 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentDate">Payment Date</Label>
-              <Input
-                id="paymentDate"
-                type="date"
-                value={formData.paymentDate}
-                onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-              />
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(d) => d && setPaymentDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
