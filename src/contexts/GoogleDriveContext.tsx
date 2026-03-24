@@ -357,12 +357,10 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     discoverAccounts();
   }, [discoverAccounts]);
 
-  // Auto-trigger account discovery for connected users without a workspace selected
-  useEffect(() => {
-    if (isConnected && !settings.currentAccountId && !showAccountSelection && !isDiscoveringAccounts) {
-      discoverAccounts();
-    }
-  }, [isConnected, settings.currentAccountId, showAccountSelection, isDiscoveringAccounts, discoverAccounts]);
+  // NOTE: We intentionally do NOT auto-trigger account discovery here.
+  // Discovery is initiated explicitly by the Auth component after the user
+  // clicks "Continue with Google".  An auto-trigger would re-open the
+  // workspace modal every time the user dismisses it, making it unclosable.
 
   const syncNow = useCallback(async (data: AppData) => {
     if (!isConnected) return;
