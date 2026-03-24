@@ -204,15 +204,16 @@ export interface Client {
 export interface ServiceType {
   id: string;
   name: string;
+  icon?: string; // lucide icon name e.g. 'Globe', 'Server'
 }
 
 export const DEFAULT_SERVICE_TYPES: ServiceType[] = [
-  { id: 'domain', name: 'Domain' },
-  { id: 'hosting', name: 'Hosting' },
-  { id: 'software', name: 'Software' },
-  { id: 'ssl', name: 'SSL Certificate' },
-  { id: 'email', name: 'Email Service' },
-  { id: 'other', name: 'Other' },
+  { id: 'domain', name: 'Domain', icon: 'Globe' },
+  { id: 'hosting', name: 'Hosting', icon: 'Server' },
+  { id: 'software', name: 'Software', icon: 'Code' },
+  { id: 'ssl', name: 'SSL Certificate', icon: 'Shield' },
+  { id: 'email', name: 'Email Service', icon: 'Mail' },
+  { id: 'other', name: 'Other', icon: 'MoreHorizontal' },
 ];
 
 export interface Renewal {
