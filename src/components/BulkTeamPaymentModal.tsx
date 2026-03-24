@@ -14,8 +14,11 @@ import { formatCurrency } from '@/utils/storage';
 import { TeamMember, SUPPORTED_CURRENCIES } from '@/types/business';
 import { convertCurrency } from '@/utils/currencyConversion';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Users, DollarSign, Briefcase, CheckCircle } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Users, DollarSign, Briefcase, CheckCircle, CalendarIcon } from 'lucide-react';
 
 interface BulkTeamPaymentModalProps {
   isOpen: boolean;
@@ -36,7 +39,7 @@ interface MemberPaymentInfo {
 export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOpen, onClose }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set());
-  const [paymentDate, setPaymentDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [payTypes, setPayTypes] = useState({ salary: true, projects: true, quickTasks: true });
@@ -133,6 +136,7 @@ export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOp
 
   const handleProcessPayments = async () => {
     if (!currentBusiness || selectedMembers.size === 0) return;
+    const paymentDateStr = paymentDate ? paymentDate.toISOString().split('T')[0] : format(new Date(), 'yyyy-MM-dd');
     setIsProcessing(true);
     let paymentsProcessed = 0;
     try {
@@ -142,7 +146,7 @@ export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOp
           for (const salaryRecordId of info.salaryRecordIds) {
             const record = data.salaryRecords.find(r => r.id === salaryRecordId);
             if (record) {
-              dispatch({ type: 'ADD_SALARY_PAYMENT', payload: { id: crypto.randomUUID(), salaryRecordId, amount: record.amount, paymentDate, period: format(new Date(), 'MMMM yyyy'), method: paymentMethod, description: notes || `Bulk payment`, status: 'paid', createdAt: new Date().toISOString() } });
+              dispatch({ type: 'ADD_SALARY_PAYMENT', payload: { id: crypto.randomUUID(), salaryRecordId, amount: record.amount, paymentDate: paymentDateStr, period: format(new Date(), 'MMMM yyyy'), method: paymentMethod, description: notes || `Bulk payment`, status: 'paid', createdAt: new Date().toISOString() } });
               paymentsProcessed++;
             }
           }
@@ -168,7 +172,7 @@ export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOp
         }
         if (payTypes.quickTasks && info.quickTaskOutstanding > 0) {
           for (const taskId of info.quickTaskIds) {
-            dispatch({ type: 'COMPLETE_QUICK_TASK', payload: { id: taskId, paidAt: paymentDate } });
+            dispatch({ type: 'COMPLETE_QUICK_TASK', payload: { id: taskId, paidAt: paymentDateStr } });
             paymentsProcessed++;
           }
         }
@@ -234,7 +238,32 @@ export const BulkTeamPaymentModal: React.FC<BulkTeamPaymentModalProps> = ({ isOp
                 <div className="flex items-center gap-2"><Checkbox id="pay-tasks" checked={payTypes.quickTasks} onCheckedChange={(c) => setPayTypes(p => ({ ...p, quickTasks: !!c }))} /><Label htmlFor="pay-tasks" className="text-sm flex items-center gap-2"><CheckCircle className="h-4 w-4" />Pay Quick Task Outstanding</Label></div>
               </div>
             </div>
-            <div><Label htmlFor="payment-date">Payment Date</Label><Input id="payment-date" type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Payment Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !paymentDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(d) => d && setPaymentDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div><Label htmlFor="payment-method">Payment Method</Label><Select value={paymentMethod} onValueChange={setPaymentMethod}><SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger><SelectContent><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cash">Cash</SelectItem><SelectItem value="check">Check</SelectItem><SelectItem value="mobile_money">Mobile Money</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select></div>
             <div><Label htmlFor="notes">Notes (Optional)</Label><Textarea id="notes" placeholder="Add notes..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
             <Card className="bg-primary/5 border-primary/20"><CardContent className="p-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total to Pay</p><p className="text-2xl font-bold text-primary">{formatCurrency(calculateSelectedTotal(), currentBusiness.currency)}</p></div><Badge variant="secondary" className="text-lg px-3 py-1">{selectedMembers.size} members</Badge></div></CardContent></Card>

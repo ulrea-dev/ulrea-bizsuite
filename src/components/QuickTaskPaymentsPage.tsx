@@ -11,8 +11,11 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { Payment, QuickTask } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { ListChecks, User, CheckCircle2, Users, DollarSign, Calendar } from 'lucide-react';
+import { ListChecks, User, CheckCircle2, Users, DollarSign, Calendar as CalendarLucideIcon, CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/utils/storage';
 
 const TASK_TYPES = [
@@ -40,7 +43,7 @@ export const QuickTaskPaymentsPage: React.FC = () => {
     taskDescription: '',
     description: '',
   });
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
 
   const isTaskPaid = (task: QuickTask) => !!task.paidAt;
 
@@ -106,7 +109,7 @@ export const QuickTaskPaymentsPage: React.FC = () => {
       taskDescription: '',
       description: '',
     });
-    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentDate(new Date());
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -130,7 +133,7 @@ export const QuickTaskPaymentsPage: React.FC = () => {
       return;
     }
 
-    const dateToUse = paymentDate || new Date().toISOString().split('T')[0];
+    const dateToUse = paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
     if (bulkMode && selectedTaskIds.length > 0) {
       const totalAmount = getTotalAmount;
@@ -406,7 +409,7 @@ export const QuickTaskPaymentsPage: React.FC = () => {
                               </div>
                               {task.dueDate && (
                                 <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
+                                  <CalendarLucideIcon className="h-3 w-3" />
                                   <span>Due: {format(new Date(task.dueDate), 'MMM dd')}</span>
                                 </div>
                               )}
@@ -456,14 +459,30 @@ export const QuickTaskPaymentsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bulkDate">Payment Date</Label>
-                    <Input
-                      id="bulkDate"
-                      type="date"
-                      value={paymentDate}
-                      onChange={(e) => setPaymentDate(e.target.value)}
-                      required
-                    />
+                    <Label>Payment Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !paymentDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={paymentDate}
+                          onSelect={(d) => d && setPaymentDate(d)}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </>
               ) : (
@@ -504,14 +523,30 @@ export const QuickTaskPaymentsPage: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="date">Payment Date</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={paymentDate}
-                        onChange={(e) => setPaymentDate(e.target.value)}
-                        required
-                      />
+                      <Label>Payment Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !paymentDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {paymentDate ? format(paymentDate, "PP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={paymentDate}
+                            onSelect={(d) => d && setPaymentDate(d)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
 

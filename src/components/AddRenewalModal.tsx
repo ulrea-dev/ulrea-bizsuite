@@ -6,6 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { RenewalType, SUPPORTED_CURRENCIES } from '@/types/business';
 
@@ -39,7 +44,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(currentBusiness?.currency.code || 'USD');
   const [frequency, setFrequency] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
-  const [nextRenewalDate, setNextRenewalDate] = useState('');
+  const [nextRenewalDate, setNextRenewalDate] = useState<Date | undefined>(undefined);
   const [description, setDescription] = useState('');
 
   const allCurrencies = useMemo(() => {
@@ -78,7 +83,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         amount: parseFloat(amount),
         currency,
         frequency,
-        nextRenewalDate,
+        nextRenewalDate: nextRenewalDate!.toISOString().split('T')[0],
         description: description || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -203,14 +208,30 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nextRenewalDate">Next Renewal Date *</Label>
-              <Input
-                id="nextRenewalDate"
-                type="date"
-                value={nextRenewalDate}
-                onChange={(e) => setNextRenewalDate(e.target.value)}
-                required
-              />
+              <Label>Next Renewal Date *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !nextRenewalDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {nextRenewalDate ? format(nextRenewalDate, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={nextRenewalDate}
+                    onSelect={(date) => date && setNextRenewalDate(date)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

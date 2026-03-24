@@ -7,6 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { RenewalPayment, Renewal, SUPPORTED_CURRENCIES } from '@/types/business';
 import { addMonths, addYears, format } from 'date-fns';
@@ -29,7 +33,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
 
   const [amount, setAmount] = useState(existingPayment?.amount.toString() || renewal.amount.toString());
   const [currency, setCurrency] = useState(existingPayment?.currency || renewal.currency);
-  const [date, setDate] = useState(existingPayment?.date || format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState<Date | undefined>(existingPayment?.date ? new Date(existingPayment.date + 'T00:00:00') : new Date());
   const [invoiceUrl, setInvoiceUrl] = useState(existingPayment?.invoiceUrl || '');
   const [invoiceFileName, setInvoiceFileName] = useState(existingPayment?.invoiceFileName || '');
   const [notes, setNotes] = useState(existingPayment?.notes || '');
@@ -57,6 +61,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !date) return;
+    const dateStr = date.toISOString().split('T')[0];
 
     const paymentAmount = parseFloat(amount);
 
@@ -68,7 +73,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
           updates: {
             amount: paymentAmount,
             currency,
-            date,
+            date: dateStr,
             invoiceUrl: invoiceUrl || undefined,
             invoiceFileName: invoiceFileName || undefined,
             notes: notes || undefined,
@@ -86,7 +91,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
           renewalId: renewal.id,
           amount: paymentAmount,
           currency,
-          date,
+          date: dateStr,
           invoiceUrl: invoiceUrl || undefined,
           invoiceFileName: invoiceFileName || undefined,
           notes: notes || undefined,
@@ -100,7 +105,7 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
       const newTotalPaid = currentTotalPaid + paymentAmount;
 
       const renewalUpdates: Partial<Renewal> = {
-        lastPaidDate: date,
+        lastPaidDate: dateStr,
         totalPaid: newTotalPaid,
       };
 
@@ -164,14 +169,30 @@ export const RenewalPaymentModal: React.FC<RenewalPaymentModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="date">Payment Date *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
+              <Label>Payment Date *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => d && setDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
