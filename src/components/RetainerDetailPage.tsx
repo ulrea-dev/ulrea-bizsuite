@@ -11,7 +11,7 @@ import { RetainerModal } from './RetainerModal';
 import { AddRenewalModal } from './AddRenewalModal';
 import { RenewalPaymentModal } from './RenewalPaymentModal';
 import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
-import { Renewal, RenewalType } from '@/types/business';
+import { Renewal } from '@/types/business';
 import { getDaysUntilDue, getRenewalStatus } from '@/utils/renewalUtils';
 
 interface RetainerDetailPageProps {
@@ -19,13 +19,17 @@ interface RetainerDetailPageProps {
   onBack: () => void;
 }
 
-const RENEWAL_TYPE_ICONS: Record<RenewalType, React.ReactNode> = {
+const SERVICE_TYPE_ICON_MAP: Record<string, React.ReactNode> = {
   domain: <Globe className="h-4 w-4" />,
   hosting: <Server className="h-4 w-4" />,
   software: <Code className="h-4 w-4" />,
   ssl: <Shield className="h-4 w-4" />,
   email: <Mail className="h-4 w-4" />,
-  other: <MoreHorizontal className="h-4 w-4" />,
+};
+
+const getServiceTypeIcon = (id?: string): React.ReactNode => {
+  if (id && SERVICE_TYPE_ICON_MAP[id]) return SERVICE_TYPE_ICON_MAP[id];
+  return <MoreHorizontal className="h-4 w-4" />;
 };
 
 export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainerId, onBack }) => {
@@ -350,11 +354,13 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
                 return (
                   <div key={renewal.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
-                      {RENEWAL_TYPE_ICONS[renewal.type]}
+                      {getServiceTypeIcon(renewal.serviceTypeId)}
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{renewal.name}</span>
-                          <Badge variant="outline" className="capitalize">{renewal.type}</Badge>
+                          <Badge variant="outline" className="capitalize">
+                            {(data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.name || renewal.serviceTypeId || 'Uncategorized'}
+                          </Badge>
                           <Badge 
                             variant={status === 'overdue' ? 'destructive' : status === 'urgent' ? 'default' : 'secondary'}
                             className="capitalize"

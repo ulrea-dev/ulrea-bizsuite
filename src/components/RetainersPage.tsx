@@ -159,6 +159,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
               <TableRow>
                 <TableHead>Client</TableHead>
                 <TableHead>Retainer Name</TableHead>
+                <TableHead>Service Type</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Next Billing</TableHead>
@@ -169,7 +170,7 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
             <TableBody>
               {retainers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <p className="text-muted-foreground">No retainers yet</p>
                       <p className="text-sm text-muted-foreground">Add retainers to track recurring client revenue</p>
@@ -183,6 +184,11 @@ export const RetainersPage: React.FC<RetainersPageProps> = ({ isEmbedded = false
                     <TableRow key={retainer.id}>
                       <TableCell>{client?.name || 'Unknown Client'}</TableCell>
                       <TableCell className="font-medium">{retainer.name}</TableCell>
+                      <TableCell>
+                        {retainer.serviceTypeId
+                          ? (data.serviceTypes || []).find(st => st.id === retainer.serviceTypeId)?.name || retainer.serviceTypeId
+                          : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell>{formatCurrency(retainer.amount, { symbol: retainer.currency === currentBusiness.currency.code ? currentBusiness.currency.symbol : '$', code: retainer.currency })}</TableCell>
                       <TableCell className="capitalize">{retainer.frequency}</TableCell>
                       <TableCell>{format(new Date(retainer.nextBillingDate), 'PP')}</TableCell>

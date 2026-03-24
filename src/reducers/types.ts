@@ -23,6 +23,7 @@ import {
   QuickTask,
   Retainer,
   Renewal,
+  ServiceType,
   ExtraPayment,
   BankAccount,
   Payable,
@@ -92,6 +93,10 @@ export type BusinessAction =
   // Custom Currency actions
   | { type: 'ADD_CUSTOM_CURRENCY'; payload: Currency }
   | { type: 'DELETE_CUSTOM_CURRENCY'; payload: string }
+  // Service Type actions
+  | { type: 'ADD_SERVICE_TYPE'; payload: ServiceType }
+  | { type: 'UPDATE_SERVICE_TYPE'; payload: { id: string; updates: Partial<ServiceType> } }
+  | { type: 'DELETE_SERVICE_TYPE'; payload: string }
   // Partner actions
   | { type: 'ADD_PARTNER'; payload: Partner }
   | { type: 'UPDATE_PARTNER'; payload: { id: string; updates: Partial<Partner> } }

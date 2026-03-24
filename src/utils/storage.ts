@@ -7,7 +7,7 @@
  * @deprecated Use LocalStorageRepository from @/repositories instead
  */
 
-import { AppData, SUPPORTED_CURRENCIES } from '@/types/business';
+import { AppData, SUPPORTED_CURRENCIES, DEFAULT_SERVICE_TYPES } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from './appearance';
 import { localStorageRepository } from '@/repositories';
 
@@ -38,6 +38,7 @@ const getInitialData = (): AppData => ({
   receivables: [],
   
   // Service-based business entities
+  serviceTypes: [...DEFAULT_SERVICE_TYPES],
   quickTasks: [],
   retainers: [],
   renewals: [],

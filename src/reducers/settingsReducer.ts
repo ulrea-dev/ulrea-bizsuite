@@ -59,6 +59,27 @@ export const settingsReducer = (state: AppData, action: BusinessAction): AppData
         customCurrencies: (state.customCurrencies || []).filter(c => c.code !== action.payload),
       };
 
+    // Service Type actions
+    case 'ADD_SERVICE_TYPE':
+      return {
+        ...state,
+        serviceTypes: [...(state.serviceTypes || []), action.payload],
+      };
+
+    case 'UPDATE_SERVICE_TYPE':
+      return {
+        ...state,
+        serviceTypes: (state.serviceTypes || []).map(st =>
+          st.id === action.payload.id ? { ...st, ...action.payload.updates } : st
+        ),
+      };
+
+    case 'DELETE_SERVICE_TYPE':
+      return {
+        ...state,
+        serviceTypes: (state.serviceTypes || []).filter(st => st.id !== action.payload),
+      };
+
     // Exchange Rate actions
     case 'ADD_EXCHANGE_RATE':
       return { ...state, exchangeRates: [...state.exchangeRates, action.payload] };

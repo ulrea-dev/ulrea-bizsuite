@@ -12,22 +12,13 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { RenewalType, SUPPORTED_CURRENCIES } from '@/types/business';
+import { SUPPORTED_CURRENCIES } from '@/types/business';
 
 interface AddRenewalModalProps {
   isOpen: boolean;
   onClose: () => void;
   preselectedRetainerId?: string;
 }
-
-const RENEWAL_TYPES: { value: RenewalType; label: string }[] = [
-  { value: 'domain', label: 'Domain' },
-  { value: 'hosting', label: 'Hosting' },
-  { value: 'software', label: 'Software' },
-  { value: 'ssl', label: 'SSL Certificate' },
-  { value: 'email', label: 'Email Service' },
-  { value: 'other', label: 'Other' },
-];
 
 export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClose, preselectedRetainerId }) => {
   const { data, currentBusiness, dispatch } = useBusiness();
@@ -38,7 +29,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
     : undefined;
 
   const [name, setName] = useState('');
-  const [type, setType] = useState<RenewalType>('domain');
+  const [serviceTypeId, setServiceTypeId] = useState('');
   const [clientId, setClientId] = useState(preselectedRetainer?.clientId || '');
   const [retainerId, setRetainerId] = useState(preselectedRetainerId || 'none');
   const [amount, setAmount] = useState('');
@@ -79,7 +70,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         clientId,
         retainerId: retainerId !== 'none' ? retainerId : undefined,
         name,
-        type,
+        serviceTypeId: serviceTypeId || undefined,
         amount: parseFloat(amount),
         currency,
         frequency,
@@ -150,15 +141,15 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
-            <Select value={type} onValueChange={(value) => setType(value as RenewalType)}>
+            <Label htmlFor="serviceType">Service Type</Label>
+            <Select value={serviceTypeId} onValueChange={setServiceTypeId}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select service type" />
               </SelectTrigger>
               <SelectContent>
-                {RENEWAL_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
+                {(data.serviceTypes || []).map((st) => (
+                  <SelectItem key={st.id} value={st.id}>
+                    {st.name}
                   </SelectItem>
                 ))}
               </SelectContent>

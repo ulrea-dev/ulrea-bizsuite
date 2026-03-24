@@ -33,6 +33,7 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
     name: '',
     amount: '',
     frequency: 'monthly' as 'monthly' | 'quarterly' | 'yearly',
+    serviceTypeId: '',
     startDate: new Date(),
     endDate: undefined as Date | undefined,
     description: '',
@@ -48,6 +49,7 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         name: retainer.name,
         amount: retainer.amount.toString(),
         frequency: retainer.frequency,
+        serviceTypeId: retainer.serviceTypeId || '',
         startDate: new Date(retainer.startDate),
         endDate: retainer.endDate ? new Date(retainer.endDate) : undefined,
         description: retainer.description || '',
@@ -59,6 +61,7 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         name: '',
         amount: '',
         frequency: 'monthly',
+        serviceTypeId: '',
         startDate: new Date(),
         endDate: undefined,
         description: '',
@@ -108,6 +111,7 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         startDate: formData.startDate.toISOString(),
         endDate: formData.endDate?.toISOString(),
         status: formData.status,
+        serviceTypeId: formData.serviceTypeId || undefined,
         description: formData.description.trim() || undefined,
         nextBillingDate: calculateNextBillingDate(formData.startDate, formData.frequency),
         totalReceived: 0,
@@ -126,6 +130,7 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
         endDate: formData.endDate?.toISOString(),
         description: formData.description.trim() || undefined,
         status: formData.status,
+        serviceTypeId: formData.serviceTypeId || undefined,
         nextBillingDate: calculateNextBillingDate(formData.startDate, formData.frequency),
         updatedAt: new Date().toISOString(),
       };
@@ -190,6 +195,26 @@ export const RetainerModal: React.FC<RetainerModalProps> = ({
               disabled={isReadOnly}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="serviceType">Service Type (Optional)</Label>
+            <Select
+              value={formData.serviceTypeId}
+              onValueChange={(value) => setFormData({ ...formData, serviceTypeId: value })}
+              disabled={isReadOnly}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select service type" />
+              </SelectTrigger>
+              <SelectContent>
+                {(data.serviceTypes || []).map((st) => (
+                  <SelectItem key={st.id} value={st.id}>
+                    {st.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
