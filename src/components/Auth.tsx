@@ -9,7 +9,6 @@ import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudO
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTheme } from '@/hooks/useTheme';
 import { format } from 'date-fns';
-import { AccountSelectionModal } from './AccountSelectionModal';
 
 interface AuthProps {
   onLogin: (username: string) => void;
@@ -20,23 +19,16 @@ type AuthView = 'main' | 'newUser' | 'backupSelection';
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { data, dispatch } = useBusiness();
   const { theme, toggleTheme } = useTheme();
-  const { 
-    isConnected, 
-    isLoading: isGoogleLoading, 
-    connect, 
-    loadBackups, 
-    backups, 
+  const {
+    isConnected,
+    isLoading: isGoogleLoading,
+    connect,
+    loadBackups,
+    backups,
     restoreBackup,
-    discoverAccounts,
     currentAccount,
-    availableAccounts,
-    legacyFolders,
     showAccountSelection,
     isDiscoveringAccounts,
-    selectAccount,
-    createAccount,
-    migrateAccount,
-    closeAccountSelection,
   } = useGoogleDrive();
   
   const [username, setUsername] = useState('');
@@ -53,18 +45,17 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   // Track if user explicitly connected (to differentiate from returning to login after logout)
   const [hasExplicitlyConnected, setHasExplicitlyConnected] = useState(false);
 
-  // Handle Google connection success - discover accounts first
-  useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && view === 'main' && !currentAccount) {
-      // Discover accounts after connecting
-      discoverAccounts();
-    }
-  }, [isConnected, hasExplicitlyConnected, view, currentAccount, discoverAccounts]);
-
-  // When account is selected, load backups
+  // When Google connects and account already exists, load backups
   useEffect(() => {
     if (isConnected && hasExplicitlyConnected && currentAccount && view === 'main' && !isLoadingBackups) {
       handleLoadBackupsForAccount();
+    }
+  }, [isConnected, hasExplicitlyConnected, currentAccount, view]);
+
+  // When Google connects but no workspace exists, go straight to name entry
+  useEffect(() => {
+    if (isConnected && hasExplicitlyConnected && !currentAccount && view === 'main') {
+      setView('newUser');
     }
   }, [isConnected, hasExplicitlyConnected, currentAccount, view]);
 
@@ -107,11 +98,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleGoogleLogin = () => {
     setHasExplicitlyConnected(true);
     if (isConnected) {
-      // Already connected, discover accounts
+      // Already connected
       if (currentAccount) {
         handleLoadGoogleBackups();
       } else {
-        discoverAccounts();
+        // No workspace yet — let user login first, workspace prompt comes after
+        setView('newUser');
       }
     } else {
       connect();
@@ -213,19 +205,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     } catch {
       return dateString;
     }
-  };
-
-  // Account selection handlers
-  const handleSelectAccount = (account: typeof availableAccounts[0]) => {
-    selectAccount(account);
-  };
-
-  const handleCreateAccount = async (name: string) => {
-    await createAccount(name);
-  };
-
-  const handleMigrateLegacy = async (folderId: string, name: string) => {
-    await migrateAccount(folderId, name);
   };
 
   const renderBackupSelection = () => (
@@ -548,18 +527,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         )}
       </div>
 
-      {/* Account Selection Modal */}
-      <AccountSelectionModal
-        isOpen={showAccountSelection}
-        onClose={() => { closeAccountSelection(); setHasExplicitlyConnected(false); }}
-        accounts={availableAccounts}
-        legacyFolders={legacyFolders}
-        onSelectAccount={handleSelectAccount}
-        onCreateAccount={handleCreateAccount}
-        onMigrateLegacy={handleMigrateLegacy}
-        isLoading={isDiscoveringAccounts}
-        connectedEmail={null}
-      />
     </div>
   );
 };
