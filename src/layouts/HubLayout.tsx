@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { HubSidebar } from '@/components/HubSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -8,13 +8,34 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { AccountSelectionModal } from '@/components/AccountSelectionModal';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
   const { dispatch } = useBusiness();
-  const { disconnect, isConnected } = useGoogleDrive();
-  
+  const {
+    disconnect,
+    isConnected,
+    currentAccount,
+    availableAccounts,
+    legacyFolders,
+    showAccountSelection,
+    isDiscoveringAccounts,
+    discoverAccounts,
+    selectAccount,
+    createAccount,
+    migrateAccount,
+    closeAccountSelection,
+  } = useGoogleDrive();
+
   useAppearance();
+
+  // After login, if connected to Google but no workspace selected, prompt for workspace
+  useEffect(() => {
+    if (isConnected && !currentAccount) {
+      discoverAccounts();
+    }
+  }, [isConnected, currentAccount, discoverAccounts]);
 
   const handleLogout = () => {
     if (isConnected) {
@@ -26,7 +47,7 @@ const LayoutContent: React.FC = () => {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
-        <HubSidebar 
+        <HubSidebar
           onLogout={handleLogout}
         />
         <SidebarInset>
@@ -37,6 +58,19 @@ const LayoutContent: React.FC = () => {
         </SidebarInset>
       </div>
       <BottomTabBar />
+
+      {/* Workspace selection - shown after login when connected but no workspace */}
+      <AccountSelectionModal
+        isOpen={showAccountSelection}
+        onClose={closeAccountSelection}
+        accounts={availableAccounts}
+        legacyFolders={legacyFolders}
+        onSelectAccount={selectAccount}
+        onCreateAccount={createAccount}
+        onMigrateLegacy={migrateAccount}
+        isLoading={isDiscoveringAccounts}
+        connectedEmail={null}
+      />
     </SidebarProvider>
   );
 };
