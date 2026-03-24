@@ -35,7 +35,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
   const [name, setName] = useState('');
   const [type, setType] = useState<RenewalType>('domain');
   const [clientId, setClientId] = useState(preselectedRetainer?.clientId || '');
-  const [retainerId, setRetainerId] = useState(preselectedRetainerId || '');
+  const [retainerId, setRetainerId] = useState(preselectedRetainerId || 'none');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState(currentBusiness?.currency.code || 'USD');
   const [frequency, setFrequency] = useState<'monthly' | 'quarterly' | 'yearly'>('yearly');
@@ -56,7 +56,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
   const handleClientChange = (newClientId: string) => {
     setClientId(newClientId);
     if (!preselectedRetainerId) {
-      setRetainerId('');
+      setRetainerId('none');
     }
   };
 
@@ -72,7 +72,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
         id: renewalId,
         businessId: currentBusiness.id,
         clientId,
-        retainerId: retainerId || undefined,
+        retainerId: retainerId !== 'none' ? retainerId : undefined,
         name,
         type,
         amount: parseFloat(amount),
@@ -119,7 +119,7 @@ export const AddRenewalModal: React.FC<AddRenewalModalProps> = ({ isOpen, onClos
                   <SelectValue placeholder="No retainer linked" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No retainer linked</SelectItem>
+                  <SelectItem value="none">No retainer linked</SelectItem>
                   {clientRetainers.map((retainer) => (
                     <SelectItem key={retainer.id} value={retainer.id}>
                       {retainer.name}
