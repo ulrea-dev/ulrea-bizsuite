@@ -12,17 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Calendar, 
-  AlertCircle, 
-  AlertTriangle, 
-  Clock, 
+import {
+  Calendar,
+  AlertCircle,
+  AlertTriangle,
+  Clock,
   CheckCircle2,
-  Globe,
-  Server,
-  Code,
-  Shield,
-  Mail,
   MoreHorizontal,
   Plus,
   DollarSign,
@@ -39,6 +34,7 @@ import { AddRenewalModal } from './AddRenewalModal';
 import { RenewalPaymentModal } from './RenewalPaymentModal';
 import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getServiceTypeIcon } from '@/utils/serviceTypeIcons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,19 +45,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-const SERVICE_TYPE_ICON_MAP: Record<string, React.ReactNode> = {
-  domain: <Globe className="h-4 w-4" />,
-  hosting: <Server className="h-4 w-4" />,
-  software: <Code className="h-4 w-4" />,
-  ssl: <Shield className="h-4 w-4" />,
-  email: <Mail className="h-4 w-4" />,
-};
-
-const getServiceTypeIcon = (id?: string): React.ReactNode => {
-  if (id && SERVICE_TYPE_ICON_MAP[id]) return SERVICE_TYPE_ICON_MAP[id];
-  return <MoreHorizontal className="h-4 w-4" />;
-};
 
 const STATUS_CONFIG: Record<RenewalStatus, { label: string; color: string; icon: React.ReactNode }> = {
   overdue: { 
@@ -96,6 +79,12 @@ export const RenewalsDashboard: React.FC = () => {
   const [paymentRenewal, setPaymentRenewal] = useState<Renewal | null>(null);
   const [historyRenewal, setHistoryRenewal] = useState<Renewal | null>(null);
   const [deletingRenewalId, setDeletingRenewalId] = useState<string | null>(null);
+
+  const renderSTIcon = (serviceTypeId?: string) => {
+    const st = (data.serviceTypes || []).find(s => s.id === serviceTypeId);
+    const Icon = getServiceTypeIcon(st?.icon);
+    return <Icon className="h-4 w-4" />;
+  };
 
   const businessRenewals = useMemo(() => {
     if (!currentBusiness) return [];
@@ -225,7 +214,7 @@ export const RenewalsDashboard: React.FC = () => {
           
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center gap-1 text-muted-foreground">
-              {getServiceTypeIcon(renewal.serviceTypeId)}
+              {renderSTIcon(renewal.serviceTypeId)}
               <span className="text-xs">{(data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.name || renewal.serviceTypeId || '-'}</span>
             </div>
             {renewal.retainerName && (
@@ -422,7 +411,7 @@ export const RenewalsDashboard: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {getServiceTypeIcon(renewal.serviceTypeId)}
+                          {renderSTIcon(renewal.serviceTypeId)}
                           <span>{(data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.name || renewal.serviceTypeId || '-'}</span>
                         </div>
                       </TableCell>

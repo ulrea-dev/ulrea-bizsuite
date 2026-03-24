@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play, Calendar, History, Globe, Server, Code, Shield, Mail, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Receipt, Edit, Pause, Play, Calendar, History } from 'lucide-react';
 import { ExpenseModal } from './ExpenseModal';
 import { RetainerModal } from './RetainerModal';
 import { AddRenewalModal } from './AddRenewalModal';
@@ -13,23 +13,16 @@ import { RenewalPaymentModal } from './RenewalPaymentModal';
 import { RenewalPaymentHistoryModal } from './RenewalPaymentHistoryModal';
 import { Renewal } from '@/types/business';
 import { getDaysUntilDue, getRenewalStatus } from '@/utils/renewalUtils';
+import { getServiceTypeIcon as getServiceTypeIconComponent } from '@/utils/serviceTypeIcons';
 
 interface RetainerDetailPageProps {
   retainerId: string;
   onBack: () => void;
 }
 
-const SERVICE_TYPE_ICON_MAP: Record<string, React.ReactNode> = {
-  domain: <Globe className="h-4 w-4" />,
-  hosting: <Server className="h-4 w-4" />,
-  software: <Code className="h-4 w-4" />,
-  ssl: <Shield className="h-4 w-4" />,
-  email: <Mail className="h-4 w-4" />,
-};
-
-const getServiceTypeIcon = (id?: string): React.ReactNode => {
-  if (id && SERVICE_TYPE_ICON_MAP[id]) return SERVICE_TYPE_ICON_MAP[id];
-  return <MoreHorizontal className="h-4 w-4" />;
+const renderServiceTypeIcon = (iconName?: string): React.ReactNode => {
+  const Icon = getServiceTypeIconComponent(iconName);
+  return <Icon className="h-4 w-4" />;
 };
 
 export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainerId, onBack }) => {
@@ -354,7 +347,7 @@ export const RetainerDetailPage: React.FC<RetainerDetailPageProps> = ({ retainer
                 return (
                   <div key={renewal.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-4">
-                      {getServiceTypeIcon(renewal.serviceTypeId)}
+                      {renderServiceTypeIcon((data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.icon)}
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{renewal.name}</span>

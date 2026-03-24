@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { formatCurrency } from '@/utils/storage';
 import { format, parseISO } from 'date-fns';
@@ -14,20 +15,14 @@ import { ServiceType } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
 import {
   Plus, Pencil, Trash2, Tags,
-  Globe, Server, Code, Shield, Mail, MoreHorizontal,
   Repeat, RefreshCw,
 } from 'lucide-react';
+import { getServiceTypeIcon, SERVICE_TYPE_ICON_NAMES, SERVICE_TYPE_ICONS } from '@/utils/serviceTypeIcons';
 
-const SERVICE_TYPE_ICON_MAP: Record<string, React.ReactNode> = {
-  domain: <Globe className="h-5 w-5" />,
-  hosting: <Server className="h-5 w-5" />,
-  software: <Code className="h-5 w-5" />,
-  ssl: <Shield className="h-5 w-5" />,
-  email: <Mail className="h-5 w-5" />,
+const renderIcon = (iconName?: string, size = 'h-5 w-5') => {
+  const Icon = getServiceTypeIcon(iconName);
+  return <Icon className={size} />;
 };
-
-const getIcon = (id?: string): React.ReactNode =>
-  (id && SERVICE_TYPE_ICON_MAP[id]) || <MoreHorizontal className="h-5 w-5" />;
 
 const toMonthly = (amount: number, freq: string): number => {
   if (freq === 'quarterly') return amount / 3;
@@ -41,6 +36,7 @@ export const ServiceTypesPage: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<ServiceType | null>(null);
   const [typeName, setTypeName] = useState('');
+  const [typeIcon, setTypeIcon] = useState('MoreHorizontal');
 
   const serviceTypeStats = useMemo(() => {
     if (!currentBusiness) return [];
@@ -70,12 +66,14 @@ export const ServiceTypesPage: React.FC = () => {
   const handleAdd = () => {
     setEditingType(null);
     setTypeName('');
+    setTypeIcon('MoreHorizontal');
     setModalOpen(true);
   };
 
   const handleEdit = (st: ServiceType) => {
     setEditingType(st);
     setTypeName(st.name);
+    setTypeIcon(st.icon || 'MoreHorizontal');
     setModalOpen(true);
   };
 
@@ -83,15 +81,15 @@ export const ServiceTypesPage: React.FC = () => {
     const trimmed = typeName.trim();
     if (!trimmed) return;
     if (editingType) {
-      dispatch({ type: 'UPDATE_SERVICE_TYPE', payload: { id: editingType.id, updates: { name: trimmed } } });
-      toast({ title: 'Updated', description: `Service type renamed to "${trimmed}".` });
+      dispatch({ type: 'UPDATE_SERVICE_TYPE', payload: { id: editingType.id, updates: { name: trimmed, icon: typeIcon } } });
+      toast({ title: 'Updated', description: `Service type "${trimmed}" updated.` });
     } else {
       const id = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       if ((data.serviceTypes || []).find(st => st.id === id)) {
         toast({ title: 'Error', description: 'A service type with this ID already exists.', variant: 'destructive' });
         return;
       }
-      dispatch({ type: 'ADD_SERVICE_TYPE', payload: { id, name: trimmed } });
+      dispatch({ type: 'ADD_SERVICE_TYPE', payload: { id, name: trimmed, icon: typeIcon } });
       toast({ title: 'Added', description: `Service type "${trimmed}" created.` });
     }
     setModalOpen(false);
@@ -145,7 +143,7 @@ export const ServiceTypesPage: React.FC = () => {
                 <Card key={stats.serviceType.id}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{getIcon(stats.serviceType.id)}</span>
+                      <span className="text-muted-foreground">{renderIcon(stats.serviceType.icon)}</span>
                       <CardTitle className="text-base">{stats.serviceType.name}</CardTitle>
                     </div>
                   </CardHeader>
@@ -217,7 +215,7 @@ export const ServiceTypesPage: React.FC = () => {
               {serviceTypes.map(st => (
                 <div key={st.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">{getIcon(st.id)}</span>
+                    <span className="text-muted-foreground">{renderIcon(st.icon)}</span>
                     <div>
                       <span className="font-medium">{st.name}</span>
                       <span className="text-xs text-muted-foreground ml-2">({st.id})</span>
@@ -255,6 +253,32 @@ export const ServiceTypesPage: React.FC = () => {
                 onKeyDown={e => e.key === 'Enter' && handleSave()}
                 autoFocus
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Icon</Label>
+              <ScrollArea className="h-48 rounded-md border p-3">
+                <div className="grid grid-cols-7 gap-1.5">
+                  {SERVICE_TYPE_ICON_NAMES.map(name => {
+                    const IconComp = SERVICE_TYPE_ICONS[name];
+                    const selected = typeIcon === name;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setTypeIcon(name)}
+                        title={name}
+                        className={`flex items-center justify-center rounded-md p-2 transition-colors ${
+                          selected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <IconComp className="h-4 w-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
             </div>
           </div>
           <DialogFooter>
