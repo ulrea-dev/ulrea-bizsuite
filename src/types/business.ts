@@ -201,7 +201,19 @@ export interface Client {
   createdAt: string;
 }
 
-export type RenewalType = 'domain' | 'hosting' | 'software' | 'ssl' | 'email' | 'other';
+export interface ServiceType {
+  id: string;
+  name: string;
+}
+
+export const DEFAULT_SERVICE_TYPES: ServiceType[] = [
+  { id: 'domain', name: 'Domain' },
+  { id: 'hosting', name: 'Hosting' },
+  { id: 'software', name: 'Software' },
+  { id: 'ssl', name: 'SSL Certificate' },
+  { id: 'email', name: 'Email Service' },
+  { id: 'other', name: 'Other' },
+];
 
 export interface Renewal {
   id: string;
@@ -209,7 +221,8 @@ export interface Renewal {
   clientId: string;
   retainerId?: string; // Optional link to a retainer for charging alongside retainer dues
   name: string;
-  type: RenewalType;
+  type?: string; // deprecated, kept for migration
+  serviceTypeId?: string;
   amount: number;
   currency: string;
   frequency: 'monthly' | 'quarterly' | 'yearly';
@@ -245,6 +258,7 @@ export interface Retainer {
   startDate: string;
   endDate?: string;
   status: 'active' | 'paused' | 'cancelled';
+  serviceTypeId?: string;
   description?: string;
   nextBillingDate: string;
   totalReceived: number;
@@ -704,6 +718,7 @@ export interface AppData {
   receivables: Receivable[];
   
   // Service-based business entities
+  serviceTypes: ServiceType[];
   quickTasks: QuickTask[];
   retainers: Retainer[];
   renewals: Renewal[];

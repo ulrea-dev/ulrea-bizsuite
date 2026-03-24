@@ -1,4 +1,4 @@
-import { AppData, SUPPORTED_CURRENCIES } from '@/types/business';
+import { AppData, SUPPORTED_CURRENCIES, DEFAULT_SERVICE_TYPES } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
 import { 
   IDataRepository, 
@@ -45,6 +45,7 @@ export class LocalStorageRepository implements IDataRepository {
       receivables: [],
       
       // Service-based business entities
+      serviceTypes: [...DEFAULT_SERVICE_TYPES],
       quickTasks: [],
       retainers: [],
       renewals: [],
@@ -112,6 +113,13 @@ export class LocalStorageRepository implements IDataRepository {
         salesOrders: data.salesOrders || [],
         productionBatches: data.productionBatches || [],
         purchaseOrders: data.purchaseOrders || [],
+        // Service types (backward compatibility - seed defaults if missing)
+        serviceTypes: data.serviceTypes && data.serviceTypes.length > 0 ? data.serviceTypes : [...DEFAULT_SERVICE_TYPES],
+        // Migrate renewals: copy old `type` to `serviceTypeId` if not set
+        renewals: (data.renewals || []).map(renewal => ({
+          ...renewal,
+          serviceTypeId: renewal.serviceTypeId || (renewal as any).type || undefined,
+        })),
         // To-Do system (backward compatibility)
         todos: data.todos || [],
         // Ensure businesses have businessModel field (backward compatibility - default to 'service')

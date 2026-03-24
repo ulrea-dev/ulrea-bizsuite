@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { getAllRenewals, getRenewalSummary, EnrichedRenewal, RenewalStatus } from '@/utils/renewalUtils';
-import { RenewalType, Renewal } from '@/types/business';
+import { Renewal } from '@/types/business';
 import { format, parseISO } from 'date-fns';
 import { getCurrencySymbol, convertAmountWithRate } from '@/utils/currencyConversion';
 import { AddRenewalModal } from './AddRenewalModal';
@@ -50,22 +50,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const RENEWAL_TYPE_ICONS: Record<RenewalType, React.ReactNode> = {
+const SERVICE_TYPE_ICON_MAP: Record<string, React.ReactNode> = {
   domain: <Globe className="h-4 w-4" />,
   hosting: <Server className="h-4 w-4" />,
   software: <Code className="h-4 w-4" />,
   ssl: <Shield className="h-4 w-4" />,
   email: <Mail className="h-4 w-4" />,
-  other: <MoreHorizontal className="h-4 w-4" />,
 };
 
-const RENEWAL_TYPE_LABELS: Record<RenewalType, string> = {
-  domain: 'Domain',
-  hosting: 'Hosting',
-  software: 'Software',
-  ssl: 'SSL',
-  email: 'Email',
-  other: 'Other',
+const getServiceTypeIcon = (id?: string): React.ReactNode => {
+  if (id && SERVICE_TYPE_ICON_MAP[id]) return SERVICE_TYPE_ICON_MAP[id];
+  return <MoreHorizontal className="h-4 w-4" />;
 };
 
 const STATUS_CONFIG: Record<RenewalStatus, { label: string; color: string; icon: React.ReactNode }> = {
@@ -115,7 +110,7 @@ export const RenewalsDashboard: React.FC = () => {
 
   const filteredRenewals = useMemo(() => {
     return allRenewals.filter((r) => {
-      const matchesType = typeFilter === 'all' || r.type === typeFilter;
+      const matchesType = typeFilter === 'all' || r.serviceTypeId === typeFilter;
       const matchesClient = clientFilter === 'all' || r.clientId === clientFilter;
       return matchesType && matchesClient;
     });
@@ -230,8 +225,8 @@ export const RenewalsDashboard: React.FC = () => {
           
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center gap-1 text-muted-foreground">
-              {RENEWAL_TYPE_ICONS[renewal.type]}
-              <span className="text-xs">{RENEWAL_TYPE_LABELS[renewal.type]}</span>
+              {getServiceTypeIcon(renewal.serviceTypeId)}
+              <span className="text-xs">{(data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.name || renewal.serviceTypeId || '-'}</span>
             </div>
             {renewal.retainerName && (
               <Badge variant="outline" className="text-xs">{renewal.retainerName}</Badge>
@@ -337,13 +332,13 @@ export const RenewalsDashboard: React.FC = () => {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="All Types" />
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="All Service Types" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {Object.entries(RENEWAL_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>{label}</SelectItem>
+            <SelectItem value="all">All Service Types</SelectItem>
+            {(data.serviceTypes || []).map((st) => (
+              <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -427,8 +422,8 @@ export const RenewalsDashboard: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {RENEWAL_TYPE_ICONS[renewal.type]}
-                          <span>{RENEWAL_TYPE_LABELS[renewal.type]}</span>
+                          {getServiceTypeIcon(renewal.serviceTypeId)}
+                          <span>{(data.serviceTypes || []).find(st => st.id === renewal.serviceTypeId)?.name || renewal.serviceTypeId || '-'}</span>
                         </div>
                       </TableCell>
                       <TableCell>{formatAmount(renewal)}</TableCell>
