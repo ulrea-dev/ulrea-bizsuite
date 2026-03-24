@@ -25,6 +25,7 @@ import ProjectsPage from "./pages/ProjectsPage";
 import QuickTasksPage from "./pages/QuickTasksPage";
 import RetainersPage from "./pages/RetainersPage";
 import RenewalsDashboardPage from "./pages/RenewalsDashboardPage";
+import ServiceTypesPage from "./pages/ServiceTypesPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
 import RetainerDetailPage from "./pages/RetainerDetailPage";
 import ClientsPage from "./pages/ClientsPage";
@@ -133,7 +134,8 @@ const App = () => (
               <Route path="/works/retainers" element={<RetainersPage />} />
               <Route path="/works/retainers/:retainerId" element={<RetainerDetailPage />} />
               <Route path="/works/renewals" element={<RenewalsDashboardPage />} />
-              
+              <Route path="/works/service-types" element={<ServiceTypesPage />} />
+
               {/* Products Section (for product/hybrid businesses) */}
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/sales" element={<SalesPage />} />
