@@ -21,9 +21,7 @@ import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { ShareAccessModal } from '@/components/ShareAccessModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw, Users, ArrowUpRight, Pencil, Trash2 } from 'lucide-react';
-import { ServiceType } from '@/types/business';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Plus, RotateCcw, Users, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
@@ -41,10 +39,6 @@ export const SettingsPage: React.FC = () => {
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(
     data.userSettings.colorPalette || getDefaultColorPalette()
   );
-
-  const [serviceTypeModalOpen, setServiceTypeModalOpen] = useState(false);
-  const [editingServiceType, setEditingServiceType] = useState<ServiceType | null>(null);
-  const [serviceTypeName, setServiceTypeName] = useState('');
 
   const allCurrencies = SUPPORTED_CURRENCIES.concat(data.customCurrencies || []);
 
@@ -94,42 +88,6 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleCurrencyAdded = (_currency: Currency) => {};
-
-  const handleAddServiceType = () => {
-    setEditingServiceType(null);
-    setServiceTypeName('');
-    setServiceTypeModalOpen(true);
-  };
-
-  const handleEditServiceType = (st: ServiceType) => {
-    setEditingServiceType(st);
-    setServiceTypeName(st.name);
-    setServiceTypeModalOpen(true);
-  };
-
-  const handleSaveServiceType = () => {
-    const trimmed = serviceTypeName.trim();
-    if (!trimmed) return;
-    if (editingServiceType) {
-      dispatch({ type: 'UPDATE_SERVICE_TYPE', payload: { id: editingServiceType.id, updates: { name: trimmed } } });
-      toast({ title: "Updated", description: `Service type renamed to "${trimmed}".` });
-    } else {
-      const id = trimmed.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const existing = (data.serviceTypes || []).find(st => st.id === id);
-      if (existing) {
-        toast({ title: "Error", description: "A service type with this ID already exists.", variant: "destructive" });
-        return;
-      }
-      dispatch({ type: 'ADD_SERVICE_TYPE', payload: { id, name: trimmed } });
-      toast({ title: "Added", description: `Service type "${trimmed}" created.` });
-    }
-    setServiceTypeModalOpen(false);
-  };
-
-  const handleDeleteServiceType = (st: ServiceType) => {
-    dispatch({ type: 'DELETE_SERVICE_TYPE', payload: st.id });
-    toast({ title: "Deleted", description: `Service type "${st.name}" removed.` });
-  };
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -305,33 +263,17 @@ export const SettingsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Service Types</CardTitle>
-              <CardDescription>Manage service type categories for retainers and renewals.</CardDescription>
+              <CardDescription>
+                Service Types have moved to Works for better organisation.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleAddServiceType}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Service Type
+            <CardContent>
+              <Button variant="outline" asChild>
+                <Link to="/works/service-types" className="flex items-center gap-2">
+                  Manage Service Types in Works
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
               </Button>
-              {(data.serviceTypes || []).length > 0 && (
-                <div className="space-y-2">
-                  {(data.serviceTypes || []).map((st) => (
-                    <div key={st.id} className="flex items-center justify-between p-3 border rounded">
-                      <div>
-                        <span className="font-medium">{st.name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({st.id})</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditServiceType(st)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteServiceType(st)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -344,32 +286,6 @@ export const SettingsPage: React.FC = () => {
       <CustomCurrencyModal isOpen={showCustomCurrencyModal} onClose={() => setShowCustomCurrencyModal(false)} onCurrencyAdded={handleCurrencyAdded} />
       <RestoreFromDriveModal isOpen={showRestoreModal} onClose={() => setShowRestoreModal(false)} />
       <ShareAccessModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} />
-
-      <Dialog open={serviceTypeModalOpen} onOpenChange={setServiceTypeModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingServiceType ? 'Edit Service Type' : 'Add Service Type'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="serviceTypeName">Name</Label>
-              <Input
-                id="serviceTypeName"
-                value={serviceTypeName}
-                onChange={(e) => setServiceTypeName(e.target.value)}
-                placeholder="e.g. Domain, Hosting, SSL"
-                onKeyDown={(e) => e.key === 'Enter' && handleSaveServiceType()}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setServiceTypeModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveServiceType} disabled={!serviceTypeName.trim()}>
-              {editingServiceType ? 'Update' : 'Add'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

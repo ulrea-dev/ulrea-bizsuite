@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Building2, Home, DollarSign, Moon, Sun, Download, Users, UserCheck,
   BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown,
-  FolderKanban, ListChecks, Repeat, Calendar, TrendingUp, Receipt,
+  FolderKanban, ListChecks, Repeat, Calendar, Tags, TrendingUp, Receipt,
   CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck, ListTodo,
   MoreHorizontal, Settings, LogOut
 } from 'lucide-react';
@@ -54,6 +54,7 @@ const worksSubItems: NavSubItem[] = [
   { id: 'quick-tasks', label: 'Quick Tasks', icon: ListChecks, path: '/works/quick-tasks' },
   { id: 'retainers', label: 'Retainers', icon: Repeat, path: '/works/retainers' },
   { id: 'renewals', label: 'Renewals', icon: Calendar, path: '/works/renewals' },
+  { id: 'service-types', label: 'Service Types', icon: Tags, path: '/works/service-types' },
 ];
 
 const financialsSubItems: NavSubItem[] = [

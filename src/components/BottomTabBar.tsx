@@ -9,6 +9,7 @@ const operationsSubNav = [
   { label: 'Quick Tasks', path: '/works/quick-tasks' },
   { label: 'Retainers', path: '/works/retainers' },
   { label: 'Renewals', path: '/works/renewals' },
+  { label: 'Service Types', path: '/works/service-types' },
   { label: 'Revenue', path: '/financials/revenue' },
   { label: 'Payments', path: '/financials/payments' },
   { label: 'Expenses', path: '/financials/expenses' },
