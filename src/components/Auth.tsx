@@ -551,7 +551,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Account Selection Modal */}
       <AccountSelectionModal
         isOpen={showAccountSelection}
-        onClose={closeAccountSelection}
+        onClose={() => { closeAccountSelection(); setHasExplicitlyConnected(false); }}
         accounts={availableAccounts}
         legacyFolders={legacyFolders}
         onSelectAccount={handleSelectAccount}
