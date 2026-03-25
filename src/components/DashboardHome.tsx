@@ -11,4 +11,3 @@ interface DashboardHomeProps {
 export const DashboardHome: React.FC<DashboardHomeProps> = () => {
   return <WorkOSHub />;
 };
-};
