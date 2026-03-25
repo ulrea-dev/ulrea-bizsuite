@@ -184,6 +184,11 @@ const App = () => (
               <Route path="/todos/all" element={<AllTodosPage />} />
             </Route>
           </Route>
+          {/* Super Admin — isolated, outside all app providers */}
+          <Route path="/super-admin" element={<SuperAdminLoginPage />} />
+          <Route element={<SuperAdminLayout />}>
+            <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
         <GoogleDriveOverlays />
