@@ -78,6 +78,47 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
   };
 
+  // Check cloud backup on mount if accountName is set
+  useEffect(() => {
+    const accountName = data.userSettings.accountName || '';
+    const userId = data.userSettings.userId || '';
+    if (!accountName && !userId) return;
+    const pathKey = getStoragePath(accountName, userId);
+    if (!pathKey) return;
+
+    setIsCheckingCloud(true);
+    checkCloudExists(pathKey).then((result) => {
+      if (result?.exists && result.syncedAt) {
+        setCloudBackupInfo({ syncedAt: result.syncedAt });
+      }
+      setIsCheckingCloud(false);
+    });
+  }, []);
+
+  const handleRestoreFromCloud = async () => {
+    const accountName = data.userSettings.accountName || '';
+    const userId = data.userSettings.userId || '';
+    const pathKey = getStoragePath(accountName, userId);
+    if (!pathKey) return;
+
+    setIsRestoringCloud(true);
+    setRestoringData(true);
+    try {
+      const result = await downloadCloud(pathKey);
+      if (result) {
+        dispatch({ type: 'LOAD_DATA', payload: result.data });
+        if (result.data.userSettings?.username) {
+          onLogin(result.data.userSettings.username);
+        }
+      }
+    } catch (error) {
+      console.error('Cloud restore failed:', error);
+    } finally {
+      setIsRestoringCloud(false);
+      setTimeout(() => setRestoringData(false), 1000);
+    }
+  };
+
   // Auto-restore latest backup when backups are loaded
   useEffect(() => {
     if (isConnected && hasExplicitlyConnected && currentAccount && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups && !showAccountSelection) {
