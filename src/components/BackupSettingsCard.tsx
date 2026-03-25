@@ -11,7 +11,7 @@ import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 
 import { formatDistanceToNow } from 'date-fns';
 
 export const BackupSettingsCard: React.FC = () => {
-  const { data } = useBusiness();
+  const { data, dispatch } = useBusiness();
   const {
     isConnected: isDriveConnected,
     isLoading: isDriveLoading,
@@ -21,11 +21,17 @@ export const BackupSettingsCard: React.FC = () => {
     disconnect: disconnectDrive,
     syncNow: syncToDrive,
     setAutoSync,
+    backups,
+    loadBackups,
+    restoreBackup,
   } = useGoogleDrive();
 
   const { cloudSync, uploadNow } = useSupabaseStorage();
 
   const [showSetupInfo, setShowSetupInfo] = useState(false);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showRestoreSection, setShowRestoreSection] = useState(false);
 
   const lastCloudSyncFormatted = cloudSync.lastSyncTime
     ? formatDistanceToNow(new Date(cloudSync.lastSyncTime), { addSuffix: true })
