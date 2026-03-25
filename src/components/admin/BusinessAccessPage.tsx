@@ -174,10 +174,12 @@ export const BusinessAccessPage: React.FC = () => {
   };
 
   const handleSendInvite = async () => {
-    if (!inviteEmail.trim() || inviteBusinessIds.length === 0) {
-      toast({ title: 'Fill in email and select at least one business.', variant: 'destructive' });
+    if (!inviteEmail.trim()) {
+      toast({ title: 'Please enter an email address.', variant: 'destructive' });
       return;
     }
+    // Auto-assign all businesses in the workspace
+    const allBusinessIds = data.businesses.map(b => b.id);
     setIsSaving(true);
     try {
       let userId: string;
@@ -210,7 +212,7 @@ export const BusinessAccessPage: React.FC = () => {
         }
       }
 
-      const updated = assignUserBusinessAccess(data, userId, inviteBusinessIds, inviteRole, inviteEmail.trim());
+      const updated = assignUserBusinessAccess(data, userId, allBusinessIds, inviteRole, inviteEmail.trim());
       const withStatus = updated.map(a =>
         a.userId === userId ? { ...a, inviteStatus: 'active' as const } : a
       );
@@ -226,10 +228,11 @@ export const BusinessAccessPage: React.FC = () => {
   };
 
   const handleCreateAccount = async () => {
-    if (!createEmail.trim() || createBusinessIds.length === 0) {
-      toast({ title: 'Fill in email and select at least one business.', variant: 'destructive' });
+    if (!createEmail.trim()) {
+      toast({ title: 'Please enter an email address.', variant: 'destructive' });
       return;
     }
+    const allBusinessIds = data.businesses.map(b => b.id);
     setIsSaving(true);
     try {
       const result = await invokeEdgeFunction({
@@ -240,7 +243,7 @@ export const BusinessAccessPage: React.FC = () => {
         workspaceId: currentUserId,
       });
       const userId = result.userId ?? crypto.randomUUID();
-      const updated = assignUserBusinessAccess(data, userId, createBusinessIds, createRole, createEmail.trim());
+      const updated = assignUserBusinessAccess(data, userId, allBusinessIds, createRole, createEmail.trim());
       const withStatus = updated.map(a =>
         a.userId === userId
           ? { ...a, inviteStatus: 'pending' as const, displayName: createDisplayName.trim() || undefined }
@@ -321,8 +324,8 @@ export const BusinessAccessPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold dashboard-text-primary">Business Access</h1>
-          <p className="text-sm dashboard-text-secondary mt-1">Manage who can access your workspace and businesses</p>
+          <h1 className="text-2xl font-bold dashboard-text-primary">Venture Access</h1>
+          <p className="text-sm dashboard-text-secondary mt-1">Manage who can access your venture workspace</p>
         </div>
         {isOwner && (
           <Button onClick={() => { setShowAddDialog(true); resetAddForm(); }}>
@@ -351,9 +354,7 @@ export const BusinessAccessPage: React.FC = () => {
                 {currentUserAccess?.role || 'Owner'}
               </Badge>
               <p className="text-xs dashboard-text-secondary mt-1">
-                {currentUserAccess?.businessIds
-                  ? `Access to: ${getBusinessNames(currentUserAccess.businessIds)}`
-                  : `Full access to all ${data.businesses.length} business${data.businesses.length !== 1 ? 'es' : ''}`}
+                Full access to this venture workspace
               </p>
             </div>
           </div>
@@ -370,7 +371,7 @@ export const BusinessAccessPage: React.FC = () => {
               <Badge variant="secondary" className="ml-auto">{sharedUsers.length}</Badge>
             )}
           </CardTitle>
-          <CardDescription>People who have been granted access to your businesses</CardDescription>
+          <CardDescription>People who have been granted access to this venture</CardDescription>
         </CardHeader>
         <CardContent>
           {sharedUsers.length === 0 ? (
@@ -458,7 +459,7 @@ export const BusinessAccessPage: React.FC = () => {
             {/* Invite by Email */}
             <TabsContent value="invite" className="space-y-4 pt-2">
               <p className="text-xs text-muted-foreground">
-                The user will receive an email with a link to set their password and join your workspace.
+                The user will receive an email with a link to set their password and join your venture.
               </p>
               <div className="space-y-2">
                 <Label>Email Address</Label>
@@ -468,17 +469,9 @@ export const BusinessAccessPage: React.FC = () => {
                 <Label>Role</Label>
                 <RoleSelect value={inviteRole} onChange={setInviteRole} />
               </div>
-              <div className="space-y-2">
-                <Label>Businesses</Label>
-                <BusinessCheckboxList
-                  businesses={data.businesses}
-                  selected={inviteBusinessIds}
-                  onToggle={(id) => setInviteBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-                />
-              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                <Button onClick={handleSendInvite} disabled={isSaving || !inviteEmail.trim() || inviteBusinessIds.length === 0}>
+                <Button onClick={handleSendInvite} disabled={isSaving || !inviteEmail.trim()}>
                   {isSaving ? 'Sending…' : 'Send Invitation'}
                 </Button>
               </DialogFooter>
@@ -516,17 +509,9 @@ export const BusinessAccessPage: React.FC = () => {
                 <Label>Role</Label>
                 <RoleSelect value={createRole} onChange={setCreateRole} />
               </div>
-              <div className="space-y-2">
-                <Label>Businesses</Label>
-                <BusinessCheckboxList
-                  businesses={data.businesses}
-                  selected={createBusinessIds}
-                  onToggle={(id) => setCreateBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-                />
-              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                <Button onClick={handleCreateAccount} disabled={isSaving || !createEmail.trim() || createBusinessIds.length === 0}>
+                <Button onClick={handleCreateAccount} disabled={isSaving || !createEmail.trim()}>
                   {isSaving ? 'Creating…' : 'Create Account'}
                 </Button>
               </DialogFooter>
@@ -547,18 +532,14 @@ export const BusinessAccessPage: React.FC = () => {
               <Label>Role</Label>
               <RoleSelect value={editRole} onChange={setEditRole} />
             </div>
-            <div className="space-y-2">
-              <Label>Businesses</Label>
-              <BusinessCheckboxList
-                businesses={data.businesses}
-                selected={editBusinessIds}
-                onToggle={(id) => setEditBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-              />
+          <div className="space-y-2">
+              <Label>Role</Label>
+              <RoleSelect value={editRole} onChange={setEditRole} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAccess(null)}>Cancel</Button>
-            <Button onClick={handleUpdateAccess} disabled={editBusinessIds.length === 0}>Save Changes</Button>
+            <Button onClick={handleUpdateAccess}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -569,7 +550,7 @@ export const BusinessAccessPage: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove User Access?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will revoke <strong>{deleteTarget?.displayName || deleteTarget?.email}</strong>'s access to all assigned businesses.
+              This will revoke <strong>{deleteTarget?.displayName || deleteTarget?.email}</strong>'s access to this venture.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center gap-2 px-1 py-2">
