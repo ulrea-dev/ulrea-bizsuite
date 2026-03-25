@@ -100,7 +100,8 @@ export const BackupSettingsCard: React.FC = () => {
   }, [isDriveConnected, showRestoreSection]);
 
   return (
-    <div className="space-y-4">
+    <>
+
 
       {/* ── Tier 1: Cloud Storage (always-on Supabase) ── */}
       <Card>
