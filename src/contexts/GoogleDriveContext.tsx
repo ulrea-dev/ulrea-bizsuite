@@ -415,7 +415,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'sync', data });
+        handleTokenExpiry({ type: 'sync', data }, silent); // silent for auto-sync
       } else {
         toast({ title: 'Backup Failed', description: error instanceof Error ? error.message : 'Could not backup.', variant: 'destructive' });
       }
@@ -427,7 +427,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const scheduleSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.autoSyncEnabled || !currentAccount) return;
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = setTimeout(() => syncNow(data), DEBOUNCE_DELAY);
+    syncTimeoutRef.current = setTimeout(() => syncNow(data, true), DEBOUNCE_DELAY); // silent auto-sync
   }, [isConnected, settings.autoSyncEnabled, currentAccount, syncNow]);
 
   const loadBackups = useCallback(async () => {
