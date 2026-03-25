@@ -173,6 +173,23 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
     dispatch({ type: 'LOAD_DATA', payload: importedData });
   };
 
+  // Switch to a different venture/workspace — updates JWT workspace_id and reloads data
+  const switchVenture = async (workspaceId: string): Promise<void> => {
+    setIsLoadingFromDB(true);
+    try {
+      // Update JWT metadata so RLS uses the new workspace_id
+      await supabase.auth.updateUser({ data: { workspace_id: workspaceId } });
+      await supabase.auth.refreshSession();
+      // Reload data from the new workspace
+      if (repository instanceof SupabaseDBRepository) {
+        const newData = await repository.loadAsync();
+        dispatch({ type: 'LOAD_DATA', payload: newData });
+      }
+    } finally {
+      setIsLoadingFromDB(false);
+    }
+  };
+
   const value = useMemo(
     () => ({
       data,
@@ -186,6 +203,7 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
       updateProject,
       exportData,
       importData,
+      switchVenture,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, currentBusiness, accessibleBusinesses, isLoadingFromDB, repository]
