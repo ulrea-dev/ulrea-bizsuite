@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTodoReminders } from '@/hooks/useTodoReminders';
 import { LegacyOnboardingFlow } from './LegacyOnboardingFlow';
-import { Briefcase, Settings2, ListTodo, ArrowRight, FolderKanban, ListChecks, Repeat, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Briefcase, Settings2, ListTodo, ArrowRight, FolderKanban, ListChecks, Repeat, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/storage';
 
 export const WorkOSHub: React.FC = () => {
@@ -12,63 +11,35 @@ export const WorkOSHub: React.FC = () => {
   const { data, currentBusiness, isLoadingFromDB } = useBusiness();
   const { overdueCount, dueTodayCount } = useTodoReminders();
 
-  // Show legacy onboarding flow if no ventures exist yet
-  if (!isLoadingFromDB && data.businesses.length === 0) {
-    return <LegacyOnboardingFlow onComplete={() => { /* data loaded via importData, hub re-renders */ }} />;
-  }
-
-
+  // All hooks must be called before any conditional returns
   const recentWorks = useMemo(() => {
     if (!currentBusiness) return [];
     const projects = data.projects
       .filter(p => p.businessId === currentBusiness.id && p.status === 'active')
-      .map(p => ({
-        type: 'project' as const,
-        id: p.id,
-        name: p.name,
-        value: p.totalValue,
-        date: p.updatedAt || p.createdAt,
-      }));
+      .map(p => ({ type: 'project' as const, id: p.id, name: p.name, value: p.totalValue, date: p.updatedAt || p.createdAt }));
     const tasks = (data.quickTasks || [])
       .filter(t => t.businessId === currentBusiness.id && (t.status === 'active' || t.status === 'pending'))
-      .map(t => ({
-        type: 'task' as const,
-        id: t.id,
-        name: t.title,
-        value: t.amount,
-        date: t.updatedAt || t.createdAt,
-      }));
+      .map(t => ({ type: 'task' as const, id: t.id, name: t.title, value: t.amount, date: t.updatedAt || t.createdAt }));
     const retainers = (data.retainers || [])
       .filter(r => r.businessId === currentBusiness.id && r.status === 'active')
-      .map(r => ({
-        type: 'retainer' as const,
-        id: r.id,
-        name: r.name,
-        value: r.amount,
-        date: r.updatedAt || r.createdAt,
-      }));
+      .map(r => ({ type: 'retainer' as const, id: r.id, name: r.name, value: r.amount, date: r.updatedAt || r.createdAt }));
     return [...projects, ...tasks, ...retainers]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 4);
   }, [data, currentBusiness]);
 
-  // Upcoming todos
   const upcomingTodos = useMemo(() => {
     const todos = data.todos || [];
     const today = new Date().toISOString().split('T')[0];
-    return todos
-      .filter(t => t.status === 'pending' && t.dueDate >= today)
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-      .slice(0, 4);
+    return todos.filter(t => t.status === 'pending' && t.dueDate >= today)
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 4);
   }, [data.todos]);
 
   const overdueTodos = useMemo(() => {
     const todos = data.todos || [];
     const today = new Date().toISOString().split('T')[0];
-    return todos
-      .filter(t => t.status === 'pending' && t.dueDate < today)
-      .sort((a, b) => b.dueDate.localeCompare(a.dueDate))
-      .slice(0, 3);
+    return todos.filter(t => t.status === 'pending' && t.dueDate < today)
+      .sort((a, b) => b.dueDate.localeCompare(a.dueDate)).slice(0, 3);
   }, [data.todos]);
 
   const activeProjectsCount = currentBusiness
@@ -76,6 +47,11 @@ export const WorkOSHub: React.FC = () => {
     : data.projects.filter(p => p.status === 'active').length;
 
   const teamCount = data.teamMembers?.length || 0;
+
+  // After all hooks: show legacy onboarding if no ventures exist
+  if (!isLoadingFromDB && data.businesses.length === 0) {
+    return <LegacyOnboardingFlow onComplete={() => { /* importData triggers re-render */ }} />;
+  }
 
   const getWorkIcon = (type: string) => {
     switch (type) {
@@ -110,7 +86,7 @@ export const WorkOSHub: React.FC = () => {
         </p>
       </div>
 
-      {/* Quick Nav - Three area cards */}
+      {/* Quick Nav */}
       <div className="grid grid-cols-3 gap-3">
         <button
           onClick={() => navigate(currentBusiness ? '/works/projects' : '/dashboard')}
@@ -151,16 +127,13 @@ export const WorkOSHub: React.FC = () => {
         </button>
       </div>
 
-      {/* Two-column layout for summaries */}
+      {/* Two-column summaries */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Tasks summary */}
+        {/* Tasks */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Tasks</h2>
-            <button
-              onClick={() => navigate('/todos/today')}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
+            <button onClick={() => navigate('/todos/today')} className="text-xs text-primary hover:underline flex items-center gap-1">
               View all <ArrowRight className="h-3 w-3" />
             </button>
           </div>
@@ -168,11 +141,8 @@ export const WorkOSHub: React.FC = () => {
           {overdueTodos.length > 0 && (
             <div className="space-y-1.5">
               {overdueTodos.map(todo => (
-                <div
-                  key={todo.id}
-                  onClick={() => navigate('/todos/overdue')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-                >
+                <div key={todo.id} onClick={() => navigate('/todos/overdue')}
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
                   <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
                   <span className="text-sm text-foreground truncate flex-1">{todo.title}</span>
                   <span className="text-xs text-destructive shrink-0">Overdue</span>
@@ -184,11 +154,8 @@ export const WorkOSHub: React.FC = () => {
           {upcomingTodos.length > 0 ? (
             <div className="space-y-1.5">
               {upcomingTodos.map(todo => (
-                <div
-                  key={todo.id}
-                  onClick={() => navigate('/todos/today')}
-                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-                >
+                <div key={todo.id} onClick={() => navigate('/todos/today')}
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
                   <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   <span className="text-sm text-foreground truncate flex-1">{todo.title}</span>
                   <span className="text-xs text-muted-foreground shrink-0">
@@ -202,14 +169,11 @@ export const WorkOSHub: React.FC = () => {
           ) : null}
         </div>
 
-        {/* Recent works summary */}
+        {/* Recent works */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Recent Works</h2>
-            <button
-              onClick={() => navigate('/works/projects')}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
+            <button onClick={() => navigate('/works/projects')} className="text-xs text-primary hover:underline flex items-center gap-1">
               View all <ArrowRight className="h-3 w-3" />
             </button>
           </div>
@@ -217,11 +181,8 @@ export const WorkOSHub: React.FC = () => {
           {recentWorks.length > 0 ? (
             <div className="space-y-1.5">
               {recentWorks.map(work => (
-                <div
-                  key={`${work.type}-${work.id}`}
-                  onClick={() => handleWorkClick(work)}
-                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
-                >
+                <div key={`${work.type}-${work.id}`} onClick={() => handleWorkClick(work)}
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
                   <div className="text-muted-foreground shrink-0">{getWorkIcon(work.type)}</div>
                   <span className="text-sm text-foreground truncate flex-1">{work.name}</span>
                   {currentBusiness && (
