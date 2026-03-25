@@ -101,9 +101,8 @@ export const BackupSettingsCard: React.FC = () => {
 
   return (
     <>
+    <div className="space-y-4">
 
-
-      {/* ── Tier 1: Cloud Storage (always-on Supabase) ── */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
