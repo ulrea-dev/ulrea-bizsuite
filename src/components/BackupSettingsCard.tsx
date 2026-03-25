@@ -9,6 +9,8 @@ import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { LegacyImportBusinessPickerModal } from './LegacyImportBusinessPickerModal';
+import { AppData } from '@/types/business';
 
 export const BackupSettingsCard: React.FC = () => {
   const { data, dispatch } = useBusiness();
