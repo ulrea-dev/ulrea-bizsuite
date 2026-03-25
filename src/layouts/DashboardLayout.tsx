@@ -26,16 +26,16 @@ const LayoutContent: React.FC = () => {
     navigate('/login');
   };
 
-  const handleCreateBusiness = () => {
-    console.log('Create business triggered');
+  const handleCreateVenture = () => {
+    navigate('/business-management/venture-settings');
   };
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
-        <AppSidebar 
+        <AppSidebar
           onLogout={handleLogout}
-          onCreateBusiness={handleCreateBusiness}
+          onCreateVenture={handleCreateVenture}
         />
         <SidebarInset className="overflow-x-hidden">
           <MobileHeader title="Operations" onLogout={handleLogout} />

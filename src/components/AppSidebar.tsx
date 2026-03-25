@@ -65,7 +65,7 @@ const financialsSubItems: NavSubItem[] = [
   { id: 'tasks', label: 'Task Payments', icon: ListChecks, path: '/financials/tasks' },
 ];
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ onLogout, onCreateBusiness }) => {
+export const AppSidebar: React.FC<AppSidebarProps> = ({ onLogout, onCreateVenture }) => {
   const { theme, toggleTheme } = useTheme();
   const { currentBusiness, data } = useBusiness();
   const { isConnected, isSyncing, syncNow, settings } = useGoogleDrive();
@@ -164,7 +164,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onLogout, onCreateBusine
         </div>
         {sidebarOpen && (
           <div className="px-4">
-            <BusinessSwitcher onCreateBusiness={onCreateBusiness} onManageBusinesses={handleManageBusinesses} />
+            <VentureSwitcher onCreateVenture={onCreateVenture} />
           </div>
         )}
       </SidebarHeader>
