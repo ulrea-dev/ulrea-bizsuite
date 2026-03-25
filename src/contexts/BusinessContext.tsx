@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useMemo, useRef, type ReactNode, type Dispatch, type FC } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch, type FC } from 'react';
 import {
   AppData,
   Business,
@@ -27,6 +27,7 @@ import {
 } from '@/types/business';
 import { rootReducer, BusinessAction } from '@/reducers';
 import { useRepository } from '@/repositories';
+import { SupabaseDBRepository } from '@/repositories/SupabaseDBRepository';
 import { getUserAccessibleBusinessIds } from '@/utils/filterDataForUser';
 
 // Flag to prevent sync during restore operations
@@ -42,6 +43,7 @@ interface BusinessContextProps {
   currentBusiness: Business | null;
   accessibleBusinesses: Business[];
   dispatch: Dispatch<BusinessAction>;
+  isLoadingFromDB: boolean;
   // Helper functions used by components
   addBusiness: (input: {
     name: string;
@@ -77,23 +79,35 @@ interface BusinessProviderProps {
 export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
   const { repository } = useRepository();
   
-  // Initialize state from repository
+  // Initialize state from local cache (synchronous, fast)
   const [data, dispatch] = useReducer(rootReducer, repository.load());
+  const [isLoadingFromDB, setIsLoadingFromDB] = useState(false);
 
   const isInitialMount = useRef(true);
 
-  // Save to repository whenever data changes
+  // On mount: async load from Supabase DB (replaces local cache)
   useEffect(() => {
-    repository.save(data);
-    
-    // Only dispatch sync event if not restoring and not initial mount
-    if (!isRestoringData && !isInitialMount.current) {
-      window.dispatchEvent(new CustomEvent('bizsuite-data-change', { detail: data }));
+    if (repository instanceof SupabaseDBRepository) {
+      setIsLoadingFromDB(true);
+      repository.loadAsync().then(dbData => {
+        dispatch({ type: 'LOAD_DATA', payload: dbData });
+        setIsLoadingFromDB(false);
+      }).catch(() => setIsLoadingFromDB(false));
     }
-    
-    // After first render, mark as not initial
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save to repository whenever data changes (after initial load)
+  useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      return;
+    }
+
+    repository.save(data);
+    
+    if (!isRestoringData) {
+      window.dispatchEvent(new CustomEvent('bizsuite-data-change', { detail: data }));
     }
   }, [data, repository]);
 
@@ -110,7 +124,7 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
     return data.businesses.filter(b => accessibleIds.includes(b.id));
   }, [data]);
 
-  // Helper: addBusiness used by BusinessSetup
+  // Helper: addBusiness
   const addBusiness: BusinessContextProps['addBusiness'] = (input) => {
     const now = new Date().toISOString();
     const business: Business = {
@@ -125,16 +139,13 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
       updatedAt: now,
     };
     dispatch({ type: 'ADD_BUSINESS', payload: business });
-    // Set as current after creation
     dispatch({ type: 'SET_CURRENT_BUSINESS', payload: business.id });
   };
 
-  // Helper: switchBusiness used by Sidebar and management pages
   const switchBusiness: BusinessContextProps['switchBusiness'] = (id) => {
     dispatch({ type: 'SET_CURRENT_BUSINESS', payload: id });
   };
 
-  // Helper: addProject
   const addProject: BusinessContextProps['addProject'] = (projectData) => {
     const now = new Date().toISOString();
     const project: Project = {
@@ -146,18 +157,15 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
     dispatch({ type: 'ADD_PROJECT', payload: project });
   };
 
-  // Helper: updateProject
   const updateProject: BusinessContextProps['updateProject'] = (id, updates) => {
     dispatch({ type: 'UPDATE_PROJECT', payload: { id, updates } });
   };
 
-  // Export data with metadata for complete backup
   const exportData = (): string => {
     const exported = repository.export();
     return JSON.stringify(exported, null, 2);
   };
 
-  // Import data from backup
   const importData = (jsonString: string): void => {
     const importedData = repository.import(jsonString);
     dispatch({ type: 'LOAD_DATA', payload: importedData });
@@ -169,6 +177,7 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
       currentBusiness,
       accessibleBusinesses,
       dispatch,
+      isLoadingFromDB,
       addBusiness,
       switchBusiness,
       addProject,
@@ -176,7 +185,8 @@ export const BusinessProvider: FC<BusinessProviderProps> = ({ children }) => {
       exportData,
       importData,
     }),
-    [data, currentBusiness, accessibleBusinesses, repository]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, currentBusiness, accessibleBusinesses, isLoadingFromDB, repository]
   );
 
   return (

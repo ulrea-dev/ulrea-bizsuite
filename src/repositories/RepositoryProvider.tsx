@@ -1,18 +1,12 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { IDataRepository } from './IDataRepository';
-import { SupabaseStorageRepository } from './SupabaseStorageRepository';
+import { SupabaseDBRepository } from './SupabaseDBRepository';
 
 /**
  * Repository Context
- * 
- * This context provides dependency injection for the data repository.
- * Components can use the useRepository() hook to access data operations
- * without knowing the underlying storage mechanism.
- * 
- * To switch storage backends:
- * 1. Create a new class implementing IDataRepository (e.g., SupabaseRepository)
- * 2. Update the defaultRepository in this file
- * 3. All components will automatically use the new storage
+ *
+ * Provides the active data repository via React context (dependency injection).
+ * Default: SupabaseDBRepository — all data stored in Supabase DB tables with RLS.
  */
 
 interface RepositoryContextValue {
@@ -21,14 +15,6 @@ interface RepositoryContextValue {
 
 const RepositoryContext = createContext<RepositoryContextValue | undefined>(undefined);
 
-/**
- * Hook to access the data repository
- * 
- * @example
- * const { repository } = useRepository();
- * const data = repository.load();
- * repository.save(updatedData);
- */
 export const useRepository = (): RepositoryContextValue => {
   const context = useContext(RepositoryContext);
   if (!context) {
@@ -39,37 +25,15 @@ export const useRepository = (): RepositoryContextValue => {
 
 interface RepositoryProviderProps {
   children: React.ReactNode;
-  /**
-   * Optional custom repository implementation
-   * If not provided, LocalStorageRepository is used
-   */
   repository?: IDataRepository;
 }
 
-/**
- * Repository Provider Component
- * 
- * Wraps the application and provides the data repository via context.
- * For database integration, pass a different repository implementation.
- * 
- * @example
- * // Using default localStorage
- * <RepositoryProvider>
- *   <App />
- * </RepositoryProvider>
- * 
- * // Using custom repository (future Supabase integration)
- * <RepositoryProvider repository={supabaseRepository}>
- *   <App />
- * </RepositoryProvider>
- */
-export const RepositoryProvider: React.FC<RepositoryProviderProps> = ({ 
-  children, 
-  repository 
+export const RepositoryProvider: React.FC<RepositoryProviderProps> = ({
+  children,
+  repository,
 }) => {
-  // Use provided repository or default to SupabaseStorageRepository
   const activeRepository = useMemo(
-    () => repository || new SupabaseStorageRepository(),
+    () => repository || new SupabaseDBRepository(),
     [repository]
   );
 
