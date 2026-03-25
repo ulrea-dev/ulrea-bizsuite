@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react';
 import { IDataRepository } from './IDataRepository';
-import { LocalStorageRepository } from './LocalStorageRepository';
+import { SupabaseStorageRepository } from './SupabaseStorageRepository';
 
 /**
  * Repository Context
