@@ -504,7 +504,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     toast({ title: 'Sheet Disconnected', description: 'The spreadsheet has been disconnected.' });
   }, [updateSettings, toast]);
 
-  const syncToConnectedSheet = useCallback(async (data: AppData) => {
+  const syncToConnectedSheet = useCallback(async (data: AppData, silent = false) => {
     if (!isConnected || !settings.connectedSheet) return;
     setIsSyncingSheet(true);
     try {
@@ -513,7 +513,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       toast({ title: 'Sheet Updated', description: 'Your spreadsheet has been updated.' });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'syncToConnectedSheet', data });
+        handleTokenExpiry({ type: 'syncToConnectedSheet', data }, silent);
       } else {
         toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not update sheet.', variant: 'destructive' });
       }
