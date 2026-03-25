@@ -528,7 +528,7 @@ export const BackupSettingsCard: React.FC = () => {
       </Card>
     </div>
 
-    {/* Legacy multi-business import picker */}
+    {/* Legacy multi-business import picker (Google Drive restore) */}
     {pendingBackupData && (
       <LegacyImportBusinessPickerModal
         isOpen={showBusinessPicker}
@@ -540,6 +540,19 @@ export const BackupSettingsCard: React.FC = () => {
         backupData={pendingBackupData}
         onConfirm={_applyRestoredData}
         isImporting={isRestoring}
+      />
+    )}
+
+    {/* Cloud backup multi-business picker */}
+    {cloudBackupInfo && cloudPickerOpen && (
+      <LegacyImportBusinessPickerModal
+        isOpen={cloudPickerOpen}
+        onClose={() => {
+          setCloudPickerOpen(false);
+        }}
+        backupData={cloudBackupInfo.data}
+        onConfirm={handleCloudImportConfirm}
+        isImporting={isCloudImporting}
       />
     )}
     </>
