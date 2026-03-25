@@ -251,6 +251,88 @@ export const BackupSettingsCard: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* ── Restore from Supabase Cloud Backup ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <DatabaseBackup className="h-5 w-5 text-muted-foreground" />
+              Restore from Cloud Backup
+            </CardTitle>
+            <Badge variant="outline" className="text-xs">
+              Recovery
+            </Badge>
+          </div>
+          <CardDescription>
+            Re-import all your data (projects, to-dos, expenses, payments) from your Supabase cloud backup.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!cloudBackupInfo ? (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleScanCloudBackup}
+              disabled={isCloudScanning}
+            >
+              {isCloudScanning ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <DatabaseBackup className="h-4 w-4 mr-2" />
+              )}
+              {isCloudScanning ? 'Scanning…' : 'Scan for Cloud Backup'}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg border border-border bg-muted/40">
+                <p className="text-xs font-medium text-foreground">
+                  Backup found — {cloudBackupInfo.data.businesses.length} venture
+                  {cloudBackupInfo.data.businesses.length !== 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {cloudBackupInfo.data.projects.length} projects ·{' '}
+                  {cloudBackupInfo.data.todos.length} to-dos ·{' '}
+                  {cloudBackupInfo.data.payments.length} payments
+                </p>
+                {cloudBackupInfo.syncedAt && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Last saved{' '}
+                    {formatDistanceToNow(new Date(cloudBackupInfo.syncedAt), { addSuffix: true })}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (cloudBackupInfo.data.businesses.length > 1) {
+                      setCloudPickerOpen(true);
+                    } else {
+                      handleCloudImport(cloudBackupInfo.data);
+                    }
+                  }}
+                  disabled={isCloudImporting}
+                >
+                  {isCloudImporting ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {isCloudImporting ? 'Importing…' : 'Import Now'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCloudBackupInfo(null)}
+                  disabled={isCloudImporting}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* ── Restore from Google Drive (legacy migration) ── */}
       <Card>
         <CardHeader>
