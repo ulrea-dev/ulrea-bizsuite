@@ -4,17 +4,18 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useBusiness, setRestoringData } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
+import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { importData } from '@/utils/storage';
-import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTheme } from '@/hooks/useTheme';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 interface AuthProps {
   onLogin: (username: string) => void;
 }
 
-type AuthView = 'main' | 'newUser' | 'backupSelection';
+type AuthView = 'main' | 'newUser' | 'backupSelection' | 'cloudRestore';
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { data, dispatch } = useBusiness();
@@ -30,6 +31,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     showAccountSelection,
     isDiscoveringAccounts,
   } = useGoogleDrive();
+  const { checkCloudExists, downloadCloud, getStoragePath } = useSupabaseStorage();
   
   const [username, setUsername] = useState('');
   const [showSwitchUser, setShowSwitchUser] = useState(false);
@@ -37,6 +39,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('main');
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  // Cloud restore state
+  const [cloudBackupInfo, setCloudBackupInfo] = useState<{ syncedAt: string } | null>(null);
+  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
+  const [isRestoringCloud, setIsRestoringCloud] = useState(false);
 
   const existingUser = data.userSettings.username;
   const businessCount = data.businesses.length;
@@ -69,6 +75,47 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       setHasExplicitlyConnected(false);
     } finally {
       setIsLoadingBackups(false);
+    }
+  };
+
+  // Check cloud backup on mount if accountName is set
+  useEffect(() => {
+    const accountName = data.userSettings.accountName || '';
+    const userId = data.userSettings.userId || '';
+    if (!accountName && !userId) return;
+    const pathKey = getStoragePath(accountName, userId);
+    if (!pathKey) return;
+
+    setIsCheckingCloud(true);
+    checkCloudExists(pathKey).then((result) => {
+      if (result?.exists && result.syncedAt) {
+        setCloudBackupInfo({ syncedAt: result.syncedAt });
+      }
+      setIsCheckingCloud(false);
+    });
+  }, []);
+
+  const handleRestoreFromCloud = async () => {
+    const accountName = data.userSettings.accountName || '';
+    const userId = data.userSettings.userId || '';
+    const pathKey = getStoragePath(accountName, userId);
+    if (!pathKey) return;
+
+    setIsRestoringCloud(true);
+    setRestoringData(true);
+    try {
+      const result = await downloadCloud(pathKey);
+      if (result) {
+        dispatch({ type: 'LOAD_DATA', payload: result.data });
+        if (result.data.userSettings?.username) {
+          onLogin(result.data.userSettings.username);
+        }
+      }
+    } catch (error) {
+      console.error('Cloud restore failed:', error);
+    } finally {
+      setIsRestoringCloud(false);
+      setTimeout(() => setRestoringData(false), 1000);
     }
   };
 
@@ -210,8 +257,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const renderBackupSelection = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-3">
-          <Cloud className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style={{ backgroundColor: 'hsl(142 76% 36% / 0.12)' }}>
+          <Cloud className="w-6 h-6" style={{ color: 'hsl(142 76% 36%)' }} />
         </div>
         <h2 className="text-xl font-semibold text-foreground">Google Drive Connected</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -371,6 +418,32 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <Button onClick={handleContinue} className="w-full h-11" size="lg">
             Continue
           </Button>
+
+          {/* Cloud restore banner */}
+          {cloudBackupInfo && (
+            <div className="rounded-lg border p-3 text-left space-y-2" style={{ borderColor: 'hsl(var(--primary) / 0.3)', backgroundColor: 'hsl(var(--primary) / 0.05)' }}>
+              <div className="flex items-center gap-2">
+                <Cloud className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs font-medium text-foreground">Cloud backup found</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Saved {formatDistanceToNow(new Date(cloudBackupInfo.syncedAt), { addSuffix: true })}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8"
+                onClick={handleRestoreFromCloud}
+                disabled={isRestoringCloud}
+              >
+                {isRestoringCloud ? (
+                  <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />Restoring...</>
+                ) : (
+                  <>Resume from cloud</>
+                )}
+              </Button>
+            </div>
+          )}
 
           <button
             onClick={() => setShowSwitchUser(true)}

@@ -188,6 +188,8 @@ const App = () => (
           <Route path="/super-admin" element={<SuperAdminLoginPage />} />
           <Route element={<SuperAdminLayout />}>
             <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+            <Route path="/super-admin/workspaces" element={<SuperAdminDashboard />} />
+            <Route path="/super-admin/users" element={<SuperAdminDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
