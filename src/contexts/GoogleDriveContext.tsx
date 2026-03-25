@@ -438,7 +438,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       setBackups(list);
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'loadBackups' });
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiry({ type: 'loadBackups' }, true); // silent — background load
+      }
       } else {
         toast({ title: 'Failed to Load Backups', description: error instanceof Error ? error.message : 'Could not load backups.', variant: 'destructive' });
       }
@@ -804,7 +806,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       return data;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'refreshFromRemote' });
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiry({ type: 'refreshFromRemote' }, true); // silent — user triggered via sync overlay, not export section
+      }
       } else {
         toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not sync.', variant: 'destructive' });
       }
