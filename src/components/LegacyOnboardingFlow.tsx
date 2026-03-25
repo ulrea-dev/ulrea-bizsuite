@@ -42,27 +42,100 @@ const MODEL_ICON: Record<string, React.ReactNode> = {
   hybrid: <Layers className="w-4 h-4" />,
 };
 
-/** Filter all workspace data down to a single selected business */
+/** Filter all workspace data down to a single selected business, keeping ALL related entities */
 function filterDataForBusiness(data: AppData, businessId: string): AppData {
   const business = data.businesses.find(b => b.id === businessId)!;
+
+  // Collect IDs scoped to this business so we can follow relations
+  const bizProjects = data.projects.filter(p => p.businessId === businessId);
+  const bizProjectIds = new Set(bizProjects.map(p => p.id));
+
+  const bizRetainers = (data.retainers || []).filter(r => r.businessId === businessId);
+  const bizRetainerIds = new Set(bizRetainers.map(r => r.id));
+
+  const bizRenewals = (data.renewals || []).filter(r => r.businessId === businessId);
+  const bizRenewalIds = new Set(bizRenewals.map(r => r.id));
+
+  const bizSalaryRecords = (data.salaryRecords || []).filter(s => s.businessId === businessId);
+  const bizSalaryRecordIds = new Set(bizSalaryRecords.map(s => s.id));
+
+  const bizQuickTasks = (data.quickTasks || []).filter(t => t.businessId === businessId);
+  const bizQuickTaskIds = new Set(bizQuickTasks.map(t => t.id));
+
+  // Payments: include any payment that relates to this business via project, retainer, quick task,
+  // salary record, or is a direct outgoing payment (team/partner) with no business link
+  const bizPayments = (data.payments || []).filter(p => {
+    if (p.projectId && bizProjectIds.has(p.projectId)) return true;
+    if (p.retainerId && bizRetainerIds.has(p.retainerId)) return true;
+    if (p.taskId && bizQuickTaskIds.has(p.taskId)) return true;
+    // Salary / team / partner payments without a business FK — include if no project/retainer link
+    if (!p.projectId && !p.retainerId) return true;
+    return false;
+  });
+
+  // Salary payments: follow salary records
+  const bizSalaryPayments = (data.salaryPayments || []).filter(sp =>
+    bizSalaryRecordIds.has(sp.salaryRecordId)
+  );
+
+  // Payroll periods & payslips
+  const bizPayrollPeriods = (data.payrollPeriods || []).filter(p => p.businessId === businessId);
+  const bizPayrollPeriodIds = new Set(bizPayrollPeriods.map(p => p.id));
+  const bizPayslips = (data.payslips || []).filter(ps =>
+    ps.businessId === businessId || bizPayrollPeriodIds.has(ps.payrollPeriodId)
+  );
+
+  // Renewal payments: follow renewals
+  const bizRenewalPayments = (data.renewalPayments || []).filter(rp =>
+    bizRenewalIds.has(rp.renewalId)
+  );
+
+  // Extra payments
+  const bizExtraPayments = (data.extraPayments || []).filter(ep => ep.businessId === businessId);
+
+  // Todos: include todos linked to this business's projects/retainers, or general ones
+  const bizTodos = (data.todos || []).filter(t => {
+    if (t.businessId === businessId) return true;
+    if (t.linkedEntityId && (bizProjectIds.has(t.linkedEntityId) || bizRetainerIds.has(t.linkedEntityId))) return true;
+    return false;
+  });
+
+  // Clients: keep all (workspace-wide), they reference projects via array
+  // Team members: keep all (workspace-wide)
+  // Partners: keep all (workspace-wide)
+
   return {
     ...data,
     businesses: [business],
     currentBusinessId: businessId,
-    projects: data.projects.filter(p => p.businessId === businessId),
-    expenses: data.expenses.filter(e => e.businessId === businessId),
-    payments: data.payments.filter(p => p.projectId
-      ? data.projects.some(pr => pr.id === p.projectId && pr.businessId === businessId)
-      : true),
-    quickTasks: (data.quickTasks || []).filter(t => t.businessId === businessId),
-    retainers: (data.retainers || []).filter(r => r.businessId === businessId),
-    renewals: (data.renewals || []).filter(r => r.businessId === businessId),
-    salaryRecords: (data.salaryRecords || []).filter(s => s.businessId === businessId),
+    projects: bizProjects,
+    retainers: bizRetainers,
+    renewals: bizRenewals,
+    renewalPayments: bizRenewalPayments,
+    payments: bizPayments,
+    salaryRecords: bizSalaryRecords,
+    salaryPayments: bizSalaryPayments,
+    payrollPeriods: bizPayrollPeriods,
+    payslips: bizPayslips,
+    quickTasks: bizQuickTasks,
+    extraPayments: bizExtraPayments,
+    expenses: (data.expenses || []).filter(e => e.businessId === businessId),
     bankAccounts: (data.bankAccounts || []).filter(b => b.businessId === businessId),
     payables: (data.payables || []).filter(p => p.businessId === businessId),
     receivables: (data.receivables || []).filter(r => r.businessId === businessId),
-    payrollPeriods: (data.payrollPeriods || []).filter(p => p.businessId === businessId),
-    payslips: (data.payslips || []).filter(p => p.businessId === businessId),
+    todos: bizTodos,
+    // Workspace-wide (keep all — they span ventures)
+    clients: data.clients || [],
+    teamMembers: data.teamMembers || [],
+    partners: data.partners || [],
+    products: (data.products || []).filter(p => p.businessId === businessId),
+    customers: (data.customers || []).filter(c => c.businessId === businessId),
+    salesOrders: (data.salesOrders || []).filter(s => s.businessId === businessId),
+    productionBatches: (data.productionBatches || []).filter(pb => pb.businessId === businessId),
+    purchaseOrders: (data.purchaseOrders || []).filter(po => po.businessId === businessId),
+    serviceTypes: data.serviceTypes || [],
+    exchangeRates: data.exchangeRates || [],
+    customCurrencies: data.customCurrencies || [],
   };
 }
 
