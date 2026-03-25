@@ -5,6 +5,7 @@ import { googleSheetsService } from '@/services/googleSheetsService';
 import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet, TokenExpiredError, RemoteChange, BizSuiteAccount } from '@/types/googleDrive';
 import { AppData, Partner } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000;
