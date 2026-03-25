@@ -61,6 +61,7 @@ import { ByAssigneePage } from "./components/todos/ByAssigneePage";
 import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import { SuperAdminLayout } from "./layouts/SuperAdminLayout";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Component to handle Google Drive modals and overlays
 const GoogleDriveOverlays = () => {
@@ -122,6 +123,7 @@ const App = () => (
           <Route path="/features/back-office" element={<FeaturesBackOfficePage />} />
           <Route path="/features/todo" element={<FeaturesTodoPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<HubLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
