@@ -67,9 +67,9 @@ export const RepositoryProvider: React.FC<RepositoryProviderProps> = ({
   children, 
   repository 
 }) => {
-  // Use provided repository or default to localStorage
+  // Use provided repository or default to SupabaseStorageRepository
   const activeRepository = useMemo(
-    () => repository || new LocalStorageRepository(),
+    () => repository || new SupabaseStorageRepository(),
     [repository]
   );
 
