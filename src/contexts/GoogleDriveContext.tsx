@@ -144,12 +144,12 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
 
   // Passive workspace registration — fire-and-forget, no UI side effects
   const registerWorkspacePassively = useCallback((account: BizSuiteAccount, ownerEmail?: string | null) => {
-    supabase.from('workspace_registry').upsert({
+    void supabase.from('workspace_registry').upsert({
       folder_id: account.folderId,
       workspace_name: account.name,
       owner_email: ownerEmail || null,
       last_sync_at: new Date().toISOString(),
-    }, { onConflict: 'folder_id' }).then(() => {/* silent */}).catch(() => {/* silent */});
+    }, { onConflict: 'folder_id' });
   }, []);
 
   useEffect(() => {
