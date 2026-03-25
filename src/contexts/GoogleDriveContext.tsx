@@ -326,7 +326,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       setShowAccountSelection(true);
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'discoverAccounts' });
+        handleTokenExpiry({ type: 'discoverAccounts' }, true); // silent — background discovery
       } else {
         console.error('Failed to discover accounts:', error);
         setShowAccountSelection(true);
