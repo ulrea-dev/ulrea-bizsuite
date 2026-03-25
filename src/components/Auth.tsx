@@ -216,8 +216,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const renderBackupSelection = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-3">
-          <Cloud className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style={{ backgroundColor: 'hsl(142 76% 36% / 0.12)' }}>
+          <Cloud className="w-6 h-6" style={{ color: 'hsl(142 76% 36%)' }} />
         </div>
         <h2 className="text-xl font-semibold text-foreground">Google Drive Connected</h2>
         <p className="text-sm text-muted-foreground mt-1">
