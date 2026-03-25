@@ -292,7 +292,7 @@ export const BusinessAccessPage: React.FC = () => {
     });
   };
 
-  const sharedUsers = accessList.filter(a => a.userId !== currentUserId);
+  
 
   return (
     <div className="space-y-6">
