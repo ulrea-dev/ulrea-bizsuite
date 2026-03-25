@@ -9,6 +9,8 @@ import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { LegacyImportBusinessPickerModal } from './LegacyImportBusinessPickerModal';
+import { AppData } from '@/types/business';
 
 export const BackupSettingsCard: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -32,6 +34,9 @@ export const BackupSettingsCard: React.FC = () => {
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [showRestoreSection, setShowRestoreSection] = useState(false);
+  // Multi-business picker state
+  const [pendingBackupData, setPendingBackupData] = useState<AppData | null>(null);
+  const [showBusinessPicker, setShowBusinessPicker] = useState(false);
 
   const lastCloudSyncFormatted = cloudSync.lastSyncTime
     ? formatDistanceToNow(new Date(cloudSync.lastSyncTime), { addSuffix: true })
@@ -63,14 +68,27 @@ export const BackupSettingsCard: React.FC = () => {
     try {
       const restoredData = await restoreBackup(fileId);
       if (restoredData) {
-        dispatch({ type: 'LOAD_DATA', payload: restoredData });
-        // Immediately push restored data to Supabase cloud
-        await uploadNow(restoredData);
+        // If the backup has multiple businesses, show the picker
+        if ((restoredData.businesses?.length ?? 0) > 1) {
+          setPendingBackupData(restoredData);
+          setShowBusinessPicker(true);
+          setIsRestoring(false);
+          return;
+        }
+        await _applyRestoredData(restoredData);
       }
       setShowRestoreSection(false);
     } finally {
       setIsRestoring(false);
     }
+  };
+
+  const _applyRestoredData = async (restoredData: AppData) => {
+    dispatch({ type: 'LOAD_DATA', payload: restoredData });
+    await uploadNow(restoredData);
+    setShowRestoreSection(false);
+    setShowBusinessPicker(false);
+    setPendingBackupData(null);
   };
 
   // When Drive connects while restore section is open, auto-load backups
@@ -82,9 +100,9 @@ export const BackupSettingsCard: React.FC = () => {
   }, [isDriveConnected, showRestoreSection]);
 
   return (
+    <>
     <div className="space-y-4">
 
-      {/* ── Tier 1: Cloud Storage (always-on Supabase) ── */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -330,5 +348,21 @@ export const BackupSettingsCard: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+
+    {/* Legacy multi-business import picker */}
+    {pendingBackupData && (
+      <LegacyImportBusinessPickerModal
+        isOpen={showBusinessPicker}
+        onClose={() => {
+          setShowBusinessPicker(false);
+          setPendingBackupData(null);
+          setIsRestoring(false);
+        }}
+        backupData={pendingBackupData}
+        onConfirm={_applyRestoredData}
+        isImporting={isRestoring}
+      />
+    )}
+    </>
   );
 };
