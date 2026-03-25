@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Briefcase, Home, DollarSign, Moon, Sun, Download, Users, UserCheck,
-  BarChart3, ExternalLink, Cloud, RefreshCw, ChevronDown,
+  Building2, Briefcase, Home, DollarSign, Moon, Sun, Download, Users, UserCheck,
+  BarChart3, Cloud, RefreshCw, ChevronDown,
   FolderKanban, ListChecks, Repeat, Calendar, Tags, TrendingUp, Receipt,
   CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck, ListTodo,
   MoreHorizontal, Settings, LogOut
