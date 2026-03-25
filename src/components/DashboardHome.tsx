@@ -18,9 +18,5 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
   // While DB is loading, don't flash the onboarding flow
   if (isLoadingFromDB) return null;
 
-  if (!currentBusiness && data.businesses.length === 0) {
-    return <LegacyOnboardingFlow onComplete={onShowBusinessSetup} />;
-  }
-
   return <WorkOSHub />;
 };
