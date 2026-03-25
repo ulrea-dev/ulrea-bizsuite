@@ -212,7 +212,7 @@ export const BusinessAccessPage: React.FC = () => {
         }
       }
 
-      const updated = assignUserBusinessAccess(data, userId, inviteBusinessIds, inviteRole, inviteEmail.trim());
+      const updated = assignUserBusinessAccess(data, userId, allBusinessIds, inviteRole, inviteEmail.trim());
       const withStatus = updated.map(a =>
         a.userId === userId ? { ...a, inviteStatus: 'active' as const } : a
       );
