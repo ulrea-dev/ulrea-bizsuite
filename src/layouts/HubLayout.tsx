@@ -66,8 +66,8 @@ const LayoutContent: React.FC = () => {
         accounts={availableAccounts}
         legacyFolders={legacyFolders}
         onSelectAccount={selectAccount}
-        onCreateAccount={createAccount}
-        onMigrateLegacy={migrateAccount}
+        onCreateAccount={async (name) => { await createAccount(name); }}
+        onMigrateLegacy={async (folderId, name) => { await migrateAccount(folderId, name); }}
         isLoading={isDiscoveringAccounts}
         connectedEmail={null}
       />

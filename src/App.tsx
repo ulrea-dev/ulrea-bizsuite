@@ -58,6 +58,9 @@ import { UpcomingPage } from "./components/todos/UpcomingPage";
 import { OverduePage } from "./components/todos/OverduePage";
 import { AllTodosPage } from "./components/todos/AllTodosPage";
 import { ByAssigneePage } from "./components/todos/ByAssigneePage";
+import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import { SuperAdminLayout } from "./layouts/SuperAdminLayout";
 
 // Component to handle Google Drive modals and overlays
 const GoogleDriveOverlays = () => {
@@ -180,6 +183,11 @@ const App = () => (
               <Route path="/todos/by-assignee" element={<ByAssigneePage />} />
               <Route path="/todos/all" element={<AllTodosPage />} />
             </Route>
+          </Route>
+          {/* Super Admin — isolated, outside all app providers */}
+          <Route path="/super-admin" element={<SuperAdminLoginPage />} />
+          <Route element={<SuperAdminLayout />}>
+            <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

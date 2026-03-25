@@ -99,7 +99,6 @@ export class LocalStorageRepository implements IDataRepository {
         customCurrencies: data.customCurrencies || [],
         quickTasks: data.quickTasks || [],
         retainers: data.retainers || [],
-        renewals: data.renewals || [],
         expenses: data.expenses || [],
         extraPayments: data.extraPayments || [],
         bankAccounts: data.bankAccounts || [],
@@ -115,10 +114,10 @@ export class LocalStorageRepository implements IDataRepository {
         purchaseOrders: data.purchaseOrders || [],
         // Service types (backward compatibility - seed defaults if missing)
         serviceTypes: data.serviceTypes && data.serviceTypes.length > 0 ? data.serviceTypes : [...DEFAULT_SERVICE_TYPES],
-        // Migrate renewals: copy old `type` to `serviceTypeId` if not set
-        renewals: (data.renewals || []).map(renewal => ({
+        // Migrate renewals: copy old `type` to `serviceTypeId` if not set (deduplicated from line ~51)
+        renewals: (data.renewals || []).map((renewal: any) => ({
           ...renewal,
-          serviceTypeId: renewal.serviceTypeId || (renewal as any).type || undefined,
+          serviceTypeId: renewal.serviceTypeId || renewal.type || undefined,
         })),
         // To-Do system (backward compatibility)
         todos: data.todos || [],

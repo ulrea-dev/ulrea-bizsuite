@@ -5,6 +5,7 @@ import { googleSheetsService } from '@/services/googleSheetsService';
 import { GoogleDriveBackup, GoogleDriveSettings, DEFAULT_GOOGLE_DRIVE_SETTINGS, ConnectedSheet, SpreadsheetInfo, SharedUser, PartnerSheet, TokenExpiredError, RemoteChange, BizSuiteAccount } from '@/types/googleDrive';
 import { AppData, Partner } from '@/types/business';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const STORAGE_KEY = 'bizsuite-google-drive-settings';
 const DEBOUNCE_DELAY = 5000;
@@ -140,6 +141,16 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const pendingAccountSelectCallback = useRef<(() => void) | null>(null);
 
   const isConnected = !!settings.accessToken;
+
+  // Passive workspace registration — fire-and-forget, no UI side effects
+  const registerWorkspacePassively = useCallback((account: BizSuiteAccount, ownerEmail?: string | null) => {
+    void supabase.from('workspace_registry').upsert({
+      folder_id: account.folderId,
+      workspace_name: account.name,
+      owner_email: ownerEmail || null,
+      last_sync_at: new Date().toISOString(),
+    }, { onConflict: 'folder_id' });
+  }, []);
 
   useEffect(() => {
     if (settings.accessToken) {
@@ -334,7 +345,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       title: 'Workspace Selected', 
       description: `Using "${account.name}" workspace.` 
     });
-  }, [updateSettings, toast]);
+    // Passive background registration for super admin tracking
+    registerWorkspacePassively(account);
+  }, [updateSettings, toast, registerWorkspacePassively]);
 
   const createAccount = useCallback(async (name: string): Promise<BizSuiteAccount> => {
     const account = await googleDriveService.createAccountFolder(name);

@@ -1,0 +1,1 @@
+INSERT INTO public.super_admins (user_id, email) VALUES ('b841e51e-ede0-4a04-b4ad-222d4894df80', 'dev@ulrea.com') ON CONFLICT (user_id) DO NOTHING;
