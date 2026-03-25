@@ -74,6 +74,7 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
   const [legacyData, setLegacyData] = useState<AppData | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [importedIds, setImportedIds] = useState<string[]>([]);
 
   const scanForLegacyBackup = useCallback(async () => {
     setFlowState('checking');
