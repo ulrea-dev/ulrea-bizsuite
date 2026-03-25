@@ -1,14 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Building2, Home, DollarSign, Moon, Sun, Download, Users, UserCheck,
-  BarChart3, Briefcase, ExternalLink, Cloud, RefreshCw, ChevronDown,
+  Briefcase, Home, DollarSign, Moon, Sun, Download, Users, UserCheck,
+  BarChart3, ExternalLink, Cloud, RefreshCw, ChevronDown,
   FolderKanban, ListChecks, Repeat, Calendar, Tags, TrendingUp, Receipt,
   CreditCard, Package, ShoppingCart, Warehouse, Factory, Truck, ListTodo,
   MoreHorizontal, Settings, LogOut
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { BusinessSwitcher } from './BusinessSwitcher';
+import { VentureSwitcher } from './VentureSwitcher';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { exportData } from '@/utils/storage';
@@ -31,7 +31,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface AppSidebarProps {
   onLogout: () => void;
-  onCreateBusiness: () => void;
+  onCreateVenture: () => void;
 }
 
 interface NavSubItem {
