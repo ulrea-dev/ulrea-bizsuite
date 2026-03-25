@@ -419,6 +419,32 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             Continue
           </Button>
 
+          {/* Cloud restore banner */}
+          {cloudBackupInfo && (
+            <div className="rounded-lg border p-3 text-left space-y-2" style={{ borderColor: 'hsl(var(--primary) / 0.3)', backgroundColor: 'hsl(var(--primary) / 0.05)' }}>
+              <div className="flex items-center gap-2">
+                <Cloud className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs font-medium text-foreground">Cloud backup found</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Saved {formatDistanceToNow(new Date(cloudBackupInfo.syncedAt), { addSuffix: true })}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-8"
+                onClick={handleRestoreFromCloud}
+                disabled={isRestoringCloud}
+              >
+                {isRestoringCloud ? (
+                  <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />Restoring...</>
+                ) : (
+                  <>Resume from cloud</>
+                )}
+              </Button>
+            </div>
+          )}
+
           <button
             onClick={() => setShowSwitchUser(true)}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
