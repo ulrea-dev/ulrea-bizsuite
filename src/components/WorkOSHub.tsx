@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTodoReminders } from '@/hooks/useTodoReminders';
-import { LegacyOnboardingFlow } from './LegacyOnboardingFlow';
 import { Briefcase, Settings2, ListTodo, ArrowRight, FolderKanban, ListChecks, Repeat, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/storage';
 
@@ -47,11 +46,6 @@ export const WorkOSHub: React.FC = () => {
     : data.projects.filter(p => p.status === 'active').length;
 
   const teamCount = data.teamMembers?.length || 0;
-
-  // After all hooks: show legacy onboarding if no ventures exist
-  if (!isLoadingFromDB && data.businesses.length === 0) {
-    return <LegacyOnboardingFlow onComplete={() => { /* importData triggers re-render */ }} />;
-  }
 
   const getWorkIcon = (type: string) => {
     switch (type) {

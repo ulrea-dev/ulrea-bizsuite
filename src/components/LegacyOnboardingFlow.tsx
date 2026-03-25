@@ -1,93 +1,111 @@
 /**
  * LegacyOnboardingFlow
  *
- * Shown when a logged-in user has no ventures in the DB yet.
+ * A full-screen Dialog shown on first login when a user has no ventures in the DB.
  * Steps:
- *   1. Silently check Supabase Storage for a legacy JSON backup (by userId path)
- *   2a. If backup found with multiple businesses → show LegacyImportBusinessPickerModal
- *   2b. If backup found with single business → auto-import it
- *   3. If no backup → show VentureSetup (create a new venture from scratch)
+ *   1. Silently check Supabase Storage for a legacy JSON backup
+ *   2a. Backup found with multiple businesses → show business picker
+ *   2b. Backup found with single business → confirm + auto-import
+ *   3. No backup found → VentureSetup (create new)
  *
- * This ensures existing users never lose their data on the new DB-backed architecture.
+ * Mounted globally in HubLayout so it appears on any route.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Loader2, Database, CloudOff } from 'lucide-react';
+import { Loader2, Database, CloudOff, Building2, Package, Layers, Check, ArrowRight, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
-import { AppData } from '@/types/business';
-import { LegacyImportBusinessPickerModal } from './LegacyImportBusinessPickerModal';
+import { AppData, Business } from '@/types/business';
 import { VentureSetup } from './VentureSetup';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 
 type FlowState =
-  | 'checking'        // scanning storage for legacy backup
-  | 'picker'          // found multiple businesses → user picks one
-  | 'importing'       // importing the chosen business
-  | 'new_venture'     // no backup found → create new
-  | 'idle';           // done / hidden
+  | 'checking'     // scanning storage for legacy backup
+  | 'found'        // backup found — show what was found before importing
+  | 'picker'       // multiple businesses — user must choose
+  | 'importing'    // importing in progress
+  | 'new_venture'  // no backup → create new
+  | 'idle';        // done / hidden
 
 interface LegacyOnboardingFlowProps {
-  /** Called when the flow is complete (either imported or created) */
+  isOpen: boolean;
   onComplete: () => void;
 }
 
-export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ onComplete }) => {
-  const { importData, data } = useBusiness();
+const MODEL_ICON: Record<string, React.ReactNode> = {
+  service: <Building2 className="w-4 h-4" />,
+  product: <Package className="w-4 h-4" />,
+  hybrid: <Layers className="w-4 h-4" />,
+};
+
+/** Filter all workspace data down to a single selected business */
+function filterDataForBusiness(data: AppData, businessId: string): AppData {
+  const business = data.businesses.find(b => b.id === businessId)!;
+  return {
+    ...data,
+    businesses: [business],
+    currentBusinessId: businessId,
+    projects: data.projects.filter(p => p.businessId === businessId),
+    expenses: data.expenses.filter(e => e.businessId === businessId),
+    payments: data.payments.filter(p => p.projectId
+      ? data.projects.some(pr => pr.id === p.projectId && pr.businessId === businessId)
+      : true),
+    quickTasks: (data.quickTasks || []).filter(t => t.businessId === businessId),
+    retainers: (data.retainers || []).filter(r => r.businessId === businessId),
+    renewals: (data.renewals || []).filter(r => r.businessId === businessId),
+    salaryRecords: (data.salaryRecords || []).filter(s => s.businessId === businessId),
+    bankAccounts: (data.bankAccounts || []).filter(b => b.businessId === businessId),
+    payables: (data.payables || []).filter(p => p.businessId === businessId),
+    receivables: (data.receivables || []).filter(r => r.businessId === businessId),
+    payrollPeriods: (data.payrollPeriods || []).filter(p => p.businessId === businessId),
+    payslips: (data.payslips || []).filter(p => p.businessId === businessId),
+  };
+}
+
+export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOpen, onComplete }) => {
+  const { importData } = useBusiness();
   const { downloadCloud, uploadNow } = useSupabaseStorage();
 
   const [flowState, setFlowState] = useState<FlowState>('checking');
   const [legacyData, setLegacyData] = useState<AppData | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  /** Scan storage for a backup JSON under the user's own userId path */
   const scanForLegacyBackup = useCallback(async () => {
     setFlowState('checking');
     setScanError(null);
     try {
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-      if (!user) {
-        setFlowState('new_venture');
-        return;
-      }
+      if (!user) { setFlowState('new_venture'); return; }
 
-      // Try multiple path variants the user might have stored under:
-      // 1. Their userId directly
-      // 2. Their account_name slug (if set in metadata)
       const pathsToTry: string[] = [user.id];
       const meta = user.user_metadata;
+      if (meta?.workspace_id && meta.workspace_id !== user.id) pathsToTry.push(meta.workspace_id);
       if (meta?.account_name) {
         const slug = String(meta.account_name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        if (slug && slug !== user.id) pathsToTry.push(slug);
+        if (slug && !pathsToTry.includes(slug)) pathsToTry.push(slug);
       }
 
       let found: AppData | null = null;
       for (const pathKey of pathsToTry) {
         const result = await downloadCloud(pathKey);
-        if (result?.data?.businesses?.length) {
-          found = result.data;
-          break;
-        }
+        if (result?.data?.businesses?.length) { found = result.data; break; }
       }
 
-      if (!found) {
-        // No legacy backup — start fresh
-        setFlowState('new_venture');
-        return;
-      }
+      if (!found) { setFlowState('new_venture'); return; }
 
-      if (found.businesses.length === 1) {
-        // Single business — auto-import without asking
-        setFlowState('importing');
-        await _applyImport(found);
-        return;
-      }
-
-      // Multiple businesses — let user pick
       setLegacyData(found);
-      setFlowState('picker');
+      if (found.businesses.length === 1) {
+        setSelectedBusiness(found.businesses[0]);
+        setFlowState('found');
+      } else {
+        setFlowState('picker');
+      }
     } catch (err) {
       console.error('[LegacyOnboarding] scan failed:', err);
       setScanError('Could not scan for existing data. You can create a new venture or retry.');
@@ -96,26 +114,20 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ onCo
   }, [downloadCloud]);
 
   useEffect(() => {
-    scanForLegacyBackup();
+    if (isOpen) scanForLegacyBackup();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isOpen]);
 
   const _applyImport = async (appData: AppData) => {
     setFlowState('importing');
     try {
-      // 1. Get current user so we know the correct workspace_id
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
-
-      // 2. Patch accountName to match the user's current JWT workspace_id.
-      //    Without this, _saveAsync derives the wrong workspace_id and RLS
-      //    silently discards every row (projects, todos, expenses etc.).
       const workspaceId =
         user?.user_metadata?.workspace_id ||
         user?.user_metadata?.account_name ||
         user?.id ||
-        appData.userSettings.accountName ||
-        '';
+        appData.userSettings.accountName || '';
 
       const patchedData: AppData = {
         ...appData,
@@ -126,16 +138,9 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ onCo
         },
       };
 
-      // 3. Clear the migration flag so _saveAsync isn't skipped on next loadAsync
       localStorage.removeItem('bizsuite-db-migrated-v2');
-
-      // 4. importData → repository.import() → _saveAsync() → writes ALL tables
       importData(JSON.stringify(patchedData));
-
-      // 5. Also upload raw JSON to Storage bucket for future restores
       await uploadNow(patchedData);
-
-      // 6. Re-set migration flag so we don't re-migrate on next load
       localStorage.setItem('bizsuite-db-migrated-v2', 'true');
     } catch (err) {
       console.error('[LegacyOnboarding] import error:', err);
@@ -144,60 +149,204 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ onCo
     }
   };
 
-  // ── Render states ────────────────────────────────────────────────────────────
+  const handleConfirmImport = () => {
+    if (!legacyData || !selectedBusiness) return;
+    const filtered = legacyData.businesses.length === 1
+      ? legacyData
+      : filterDataForBusiness(legacyData, selectedBusiness.id);
+    _applyImport(filtered);
+  };
 
-  if (flowState === 'checking' || flowState === 'importing') {
+  // ── Render helpers ────────────────────────────────────────────────────────────
+
+  const renderChecking = () => (
+    <div className="flex flex-col items-center justify-center py-12 gap-4">
+      <div className="p-4 rounded-full bg-primary/10">
+        <Database className="h-10 w-10 text-primary animate-pulse" />
+      </div>
+      <div className="text-center">
+        <p className="text-lg font-semibold text-foreground">Looking for your data…</p>
+        <p className="text-sm text-muted-foreground mt-1">Scanning your cloud backup, this only takes a moment</p>
+      </div>
+    </div>
+  );
+
+  const renderImporting = () => (
+    <div className="flex flex-col items-center justify-center py-12 gap-4">
+      <div className="p-4 rounded-full bg-primary/10">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      </div>
+      <div className="text-center">
+        <p className="text-lg font-semibold text-foreground">Importing your venture…</p>
+        <p className="text-sm text-muted-foreground mt-1">Restoring your data, this will only take a moment</p>
+      </div>
+    </div>
+  );
+
+  const renderFound = () => {
+    if (!legacyData || !selectedBusiness) return null;
+    const b = selectedBusiness;
+    const projectCount = legacyData.projects.filter(p => p.businessId === b.id).length;
+    const clientCount = legacyData.clients?.length || 0;
+    const todoCount = legacyData.todos?.length || 0;
+    const paymentCount = legacyData.payments?.length || 0;
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="p-4 rounded-full bg-primary/10">
-          {flowState === 'checking'
-            ? <Database className="h-8 w-8 text-primary animate-pulse" />
-            : <Loader2 className="h-8 w-8 text-primary animate-spin" />
-          }
-        </div>
+      <div className="space-y-6">
         <div className="text-center">
-          <p className="text-base font-medium text-foreground">
-            {flowState === 'checking' ? 'Checking for existing data…' : 'Importing your venture…'}
-          </p>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
+            <Database className="w-7 h-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">We found your backup!</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {flowState === 'checking'
-              ? 'Looking for any previous backup of your workspace'
-              : 'Restoring your data, this will only take a moment'
-            }
+            Your previous data is ready to restore.
           </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              {MODEL_ICON[b.businessModel] || <Building2 className="w-4 h-4 text-primary" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground truncate">{b.name}</p>
+              <p className="text-xs text-muted-foreground capitalize">{b.businessModel} venture</p>
+            </div>
+            <Badge variant="secondary" className="text-xs shrink-0">{b.currency?.code || 'USD'}</Badge>
+          </div>
+          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border/50">
+            {[
+              { label: 'Projects', value: projectCount },
+              { label: 'Clients', value: clientCount },
+              { label: 'To-dos', value: todoCount },
+              { label: 'Payments', value: paymentCount },
+            ].map(stat => (
+              <div key={stat.label} className="text-center">
+                <p className="text-base font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setFlowState('new_venture')}
+          >
+            Skip — Start Fresh
+          </Button>
+          <Button className="flex-1 gap-2" onClick={handleConfirmImport}>
+            <Check className="w-4 h-4" />
+            Import This Venture
+          </Button>
         </div>
       </div>
     );
-  }
+  };
 
-  if (flowState === 'picker' && legacyData) {
+  const renderPicker = () => {
+    if (!legacyData) return null;
     return (
-      <LegacyImportBusinessPickerModal
-        isOpen
-        onClose={() => {
-          // User dismissed picker — fall through to new venture setup
-          setFlowState('new_venture');
-        }}
-        backupData={legacyData}
-        onConfirm={_applyImport}
-        isImporting={false}
-      />
-    );
-  }
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
+            <Database className="w-7 h-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">Choose a venture to import</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            We found {legacyData.businesses.length} ventures in your backup. Select one to import.
+          </p>
+        </div>
 
-  // flowState === 'new_venture'
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {legacyData.businesses.map(b => {
+            const projectCount = legacyData.projects.filter(p => p.businessId === b.id).length;
+            const isSelected = selectedBusiness?.id === b.id;
+            return (
+              <button
+                key={b.id}
+                onClick={() => setSelectedBusiness(b)}
+                className={cn(
+                  'w-full p-3 rounded-xl border text-left flex items-center gap-3 transition-all',
+                  isSelected
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                    : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
+                )}
+              >
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  {MODEL_ICON[b.businessModel] || <Building2 className="w-4 h-4 text-primary" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">{b.name}</p>
+                  <p className="text-xs text-muted-foreground">{projectCount} project{projectCount !== 1 ? 's' : ''} · {b.businessModel}</p>
+                </div>
+                {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => setFlowState('new_venture')}
+          >
+            Skip — Start Fresh
+          </Button>
+          <Button
+            className="flex-1 gap-2"
+            disabled={!selectedBusiness}
+            onClick={handleConfirmImport}
+          >
+            <ArrowRight className="w-4 h-4" />
+            Import Selected
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNewVenture = () => (
+    <div className="space-y-4">
       {scanError && (
-        <div className="flex items-center gap-2 mb-6 p-3 rounded-lg bg-muted text-sm text-muted-foreground max-w-md w-full">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-sm text-muted-foreground">
           <CloudOff className="h-4 w-4 shrink-0" />
-          {scanError}
-          <Button variant="ghost" size="sm" onClick={scanForLegacyBackup} className="ml-auto shrink-0">
+          <span className="flex-1">{scanError}</span>
+          <Button variant="ghost" size="sm" onClick={scanForLegacyBackup} className="shrink-0">
             Retry
           </Button>
         </div>
       )}
+      {!scanError && (
+        <div className="text-center pb-2">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
+            <Plus className="w-7 h-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">Create your first venture</h2>
+          <p className="text-sm text-muted-foreground mt-1">No existing backup found — let's set up your workspace.</p>
+        </div>
+      )}
       <VentureSetup onComplete={onComplete} />
     </div>
+  );
+
+  return (
+    <Dialog open={isOpen} onOpenChange={() => { /* prevent accidental close */ }}>
+      <DialogContent
+        className="sm:max-w-md w-full"
+        // Remove the default close (X) button — user must complete the flow
+        onInteractOutside={e => e.preventDefault()}
+        onEscapeKeyDown={e => e.preventDefault()}
+      >
+        {flowState === 'checking' && renderChecking()}
+        {flowState === 'importing' && renderImporting()}
+        {flowState === 'found' && renderFound()}
+        {flowState === 'picker' && renderPicker()}
+        {flowState === 'new_venture' && renderNewVenture()}
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -10,6 +10,7 @@ import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
 import { AccountSelectionModal } from '@/components/AccountSelectionModal';
 import { ProfileSetupModal } from '@/components/ProfileSetupModal';
+import { LegacyOnboardingFlow } from '@/components/LegacyOnboardingFlow';
 import { supabase } from '@/integrations/supabase/client';
 
 const LayoutContent: React.FC = () => {
@@ -39,7 +40,6 @@ const LayoutContent: React.FC = () => {
       const user = authData.user;
       if (!user) return;
       if (user.email) setUserEmail(user.email);
-      // Ensure userId is always the real Supabase user.id
       if (data.userSettings.userId !== user.id) {
         dispatch({ type: 'SET_USER_ID', payload: user.id });
       }
@@ -50,8 +50,7 @@ const LayoutContent: React.FC = () => {
   // NOTE: We intentionally do NOT auto-discover Google Drive accounts on load.
   // Google Drive is now an optional external archive only (not the primary storage).
   // The AccountSelectionModal should only appear when the user explicitly uses a
-  // Drive feature, not on every page load. Auto-discovery was causing the modal
-  // to pop up on /settings even when users aren't using Drive.
+  // Drive feature, not on every page load.
 
   const handleLogout = async () => {
     if (isConnected) {
@@ -61,13 +60,13 @@ const LayoutContent: React.FC = () => {
     navigate('/login');
   };
 
-  // Determine if current user is invited (they have an entry in userBusinessAccess)
   const isInvitedUser = !!(data.userBusinessAccess?.length &&
     data.userBusinessAccess.find(a => a.userId === data.userSettings.userId));
 
-  // Profile setup modal: show only if username is genuinely missing (after DB load completes)
-  // The modal itself will detect whether they need a workspace name or not
   const needsProfileSetup = !isLoadingFromDB && !data.userSettings.username?.trim();
+
+  // Show legacy import modal when DB has finished loading and no ventures exist
+  const showLegacyOnboarding = !isLoadingFromDB && data.businesses.length === 0 && !needsProfileSetup;
 
   return (
     <SidebarProvider>
@@ -82,6 +81,7 @@ const LayoutContent: React.FC = () => {
       </div>
       <BottomTabBar />
 
+      {/* Google Drive account selection — only shown when explicitly triggered */}
       <AccountSelectionModal
         isOpen={showAccountSelection}
         onClose={closeAccountSelection}
@@ -98,6 +98,12 @@ const LayoutContent: React.FC = () => {
         isOpen={needsProfileSetup}
         userEmail={userEmail}
         isInvitedUser={isInvitedUser}
+      />
+
+      {/* Legacy onboarding — shown on first login when no ventures exist in DB */}
+      <LegacyOnboardingFlow
+        isOpen={showLegacyOnboarding}
+        onComplete={() => { /* data re-render handled by importData dispatch */ }}
       />
     </SidebarProvider>
   );
