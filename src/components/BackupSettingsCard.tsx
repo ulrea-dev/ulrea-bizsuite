@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 'lucide-react';
+import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download, DatabaseBackup } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { LegacyImportBusinessPickerModal } from './LegacyImportBusinessPickerModal';
 import { AppData } from '@/types/business';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const BackupSettingsCard: React.FC = () => {
   const { data, dispatch } = useBusiness();
