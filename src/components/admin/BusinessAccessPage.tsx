@@ -180,20 +180,41 @@ export const BusinessAccessPage: React.FC = () => {
     }
     setIsSaving(true);
     try {
-      const result = await invokeEdgeFunction({
-        action: 'invite',
-        email: inviteEmail.trim(),
-        workspaceId: currentUserId,
-        workspaceName: data.userSettings.accountName,
-      });
-      const userId = result.userId ?? crypto.randomUUID();
+      let userId: string;
+      let statusMessage: string;
+
+      try {
+        // Try to send an invitation email
+        const result = await invokeEdgeFunction({
+          action: 'invite',
+          email: inviteEmail.trim(),
+          workspaceId: currentUserId,
+          workspaceName: data.userSettings.accountName,
+        });
+        userId = result.userId ?? crypto.randomUUID();
+        statusMessage = `${inviteEmail.trim()} will receive an email with a sign-in link.`;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        // If user already exists, look up their Supabase user id via check_status by email
+        if (msg.toLowerCase().includes('already been registered') || msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('user already exists')) {
+          // User exists — look up their ID
+          const result = await invokeEdgeFunction({
+            action: 'lookup_by_email',
+            email: inviteEmail.trim(),
+          });
+          userId = result.userId;
+          statusMessage = `${inviteEmail.trim()} already has an account and has been granted access.`;
+        } else {
+          throw err;
+        }
+      }
+
       const updated = assignUserBusinessAccess(data, userId, inviteBusinessIds, inviteRole, inviteEmail.trim());
-      // Attach inviteStatus + displayName
       const withStatus = updated.map(a =>
-        a.userId === userId ? { ...a, inviteStatus: 'pending' as const } : a
+        a.userId === userId ? { ...a, inviteStatus: 'active' as const } : a
       );
       dispatch({ type: 'UPDATE_USER_BUSINESS_ACCESS', payload: withStatus });
-      toast({ title: 'Invitation sent!', description: `${inviteEmail} will receive an email with a sign-in link.` });
+      toast({ title: 'Access granted!', description: statusMessage });
       setShowAddDialog(false);
       resetAddForm();
     } catch (err) {

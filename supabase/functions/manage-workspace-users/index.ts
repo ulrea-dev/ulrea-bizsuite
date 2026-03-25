@@ -113,6 +113,37 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'lookup_by_email') {
+      const { email } = body;
+      if (!email) {
+        return new Response(JSON.stringify({ error: 'email is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: { users }, error } = await adminClient.auth.admin.listUsers();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const found = users.find((u) => u.email?.toLowerCase() === (email as string).toLowerCase());
+      if (!found) {
+        return new Response(JSON.stringify({ error: 'User not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ userId: found.id, email: found.email }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (action === 'check_status') {
       const { userId } = body;
       if (!userId) {
