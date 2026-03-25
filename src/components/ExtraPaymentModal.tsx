@@ -150,7 +150,7 @@ export const ExtraPaymentModal: React.FC<ExtraPaymentModalProps> = ({
         amount,
         currency: formData.currency,
         period: formData.period,
-        paymentDate: formData.paymentDate,
+        paymentDate: paymentDate ? paymentDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         type: formData.type,
         name: formData.name,
         description: formData.description || undefined,
