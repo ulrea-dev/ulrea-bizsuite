@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 'lucide-react';
+import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download, DatabaseBackup } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { LegacyImportBusinessPickerModal } from './LegacyImportBusinessPickerModal';
 import { AppData } from '@/types/business';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export const BackupSettingsCard: React.FC = () => {
-  const { data, dispatch } = useBusiness();
+  const { data, dispatch, importData } = useBusiness();
   const {
     isConnected: isDriveConnected,
     isLoading: isDriveLoading,
@@ -28,7 +30,7 @@ export const BackupSettingsCard: React.FC = () => {
     restoreBackup,
   } = useGoogleDrive();
 
-  const { cloudSync, uploadNow } = useSupabaseStorage();
+  const { cloudSync, uploadNow, downloadCloud } = useSupabaseStorage();
 
   const [showSetupInfo, setShowSetupInfo] = useState(false);
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
@@ -37,6 +39,12 @@ export const BackupSettingsCard: React.FC = () => {
   // Multi-business picker state
   const [pendingBackupData, setPendingBackupData] = useState<AppData | null>(null);
   const [showBusinessPicker, setShowBusinessPicker] = useState(false);
+
+  // Cloud re-import state
+  const [isCloudScanning, setIsCloudScanning] = useState(false);
+  const [cloudBackupInfo, setCloudBackupInfo] = useState<{ data: AppData; syncedAt: string; path: string } | null>(null);
+  const [isCloudImporting, setIsCloudImporting] = useState(false);
+  const [cloudPickerOpen, setCloudPickerOpen] = useState(false);
 
   const lastCloudSyncFormatted = cloudSync.lastSyncTime
     ? formatDistanceToNow(new Date(cloudSync.lastSyncTime), { addSuffix: true })
@@ -89,6 +97,95 @@ export const BackupSettingsCard: React.FC = () => {
     setShowRestoreSection(false);
     setShowBusinessPicker(false);
     setPendingBackupData(null);
+  };
+
+  // ── Cloud re-import logic ──────────────────────────────────────────────────
+
+  const handleScanCloudBackup = async () => {
+    setIsCloudScanning(true);
+    setCloudBackupInfo(null);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) { toast.error('Not authenticated'); return; }
+
+      const pathsToTry = [
+        user.user_metadata?.workspace_id,
+        user.user_metadata?.account_name,
+        user.id,
+      ].filter(Boolean) as string[];
+
+      let found: { data: AppData; syncedAt: string } | null = null;
+      let foundPath = '';
+      for (const p of pathsToTry) {
+        const result = await downloadCloud(p);
+        if (result?.data?.businesses?.length) {
+          found = result;
+          foundPath = p;
+          break;
+        }
+      }
+
+      if (!found) {
+        toast.info('No cloud backup found for your account.');
+      } else {
+        setCloudBackupInfo({ ...found, path: foundPath });
+      }
+    } catch (err) {
+      console.error('[CloudRestore] scan error:', err);
+      toast.error('Failed to scan cloud backup.');
+    } finally {
+      setIsCloudScanning(false);
+    }
+  };
+
+  const handleCloudImport = async (appData: AppData) => {
+    setIsCloudImporting(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      const workspaceId =
+        user?.user_metadata?.workspace_id ||
+        user?.user_metadata?.account_name ||
+        user?.id ||
+        appData.userSettings.accountName ||
+        '';
+
+      const patchedData: AppData = {
+        ...appData,
+        userSettings: {
+          ...appData.userSettings,
+          userId: user?.id || appData.userSettings.userId,
+          accountName: workspaceId,
+        },
+      };
+
+      localStorage.removeItem('bizsuite-db-migrated-v2');
+      importData(JSON.stringify(patchedData));
+      await uploadNow(patchedData);
+      localStorage.setItem('bizsuite-db-migrated-v2', 'true');
+
+      const counts = {
+        projects: patchedData.projects.length,
+        todos: patchedData.todos.length,
+        payments: patchedData.payments.length,
+      };
+      toast.success(
+        `Import complete — ${counts.projects} projects, ${counts.todos} todos, ${counts.payments} payments restored.`
+      );
+      setCloudBackupInfo(null);
+      setCloudPickerOpen(false);
+    } catch (err) {
+      console.error('[CloudRestore] import error:', err);
+      toast.error('Import failed. Please try again.');
+    } finally {
+      setIsCloudImporting(false);
+    }
+  };
+
+  const handleCloudImportConfirm = async (appData: AppData) => {
+    await handleCloudImport(appData);
   };
 
   // When Drive connects while restore section is open, auto-load backups
@@ -149,6 +246,88 @@ export const BackupSettingsCard: React.FC = () => {
               <p className="text-xs" style={{ color: 'hsl(38 92% 30%)' }}>
                 Set an <strong>Account Name</strong> in Settings → Account so your cloud backup can be recovered on a new device.
               </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Restore from Supabase Cloud Backup ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <DatabaseBackup className="h-5 w-5 text-muted-foreground" />
+              Restore from Cloud Backup
+            </CardTitle>
+            <Badge variant="outline" className="text-xs">
+              Recovery
+            </Badge>
+          </div>
+          <CardDescription>
+            Re-import all your data (projects, to-dos, expenses, payments) from your Supabase cloud backup.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!cloudBackupInfo ? (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleScanCloudBackup}
+              disabled={isCloudScanning}
+            >
+              {isCloudScanning ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <DatabaseBackup className="h-4 w-4 mr-2" />
+              )}
+              {isCloudScanning ? 'Scanning…' : 'Scan for Cloud Backup'}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg border border-border bg-muted/40">
+                <p className="text-xs font-medium text-foreground">
+                  Backup found — {cloudBackupInfo.data.businesses.length} venture
+                  {cloudBackupInfo.data.businesses.length !== 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {cloudBackupInfo.data.projects.length} projects ·{' '}
+                  {cloudBackupInfo.data.todos.length} to-dos ·{' '}
+                  {cloudBackupInfo.data.payments.length} payments
+                </p>
+                {cloudBackupInfo.syncedAt && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Last saved{' '}
+                    {formatDistanceToNow(new Date(cloudBackupInfo.syncedAt), { addSuffix: true })}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (cloudBackupInfo.data.businesses.length > 1) {
+                      setCloudPickerOpen(true);
+                    } else {
+                      handleCloudImport(cloudBackupInfo.data);
+                    }
+                  }}
+                  disabled={isCloudImporting}
+                >
+                  {isCloudImporting ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {isCloudImporting ? 'Importing…' : 'Import Now'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setCloudBackupInfo(null)}
+                  disabled={isCloudImporting}
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -349,7 +528,7 @@ export const BackupSettingsCard: React.FC = () => {
       </Card>
     </div>
 
-    {/* Legacy multi-business import picker */}
+    {/* Legacy multi-business import picker (Google Drive restore) */}
     {pendingBackupData && (
       <LegacyImportBusinessPickerModal
         isOpen={showBusinessPicker}
@@ -361,6 +540,19 @@ export const BackupSettingsCard: React.FC = () => {
         backupData={pendingBackupData}
         onConfirm={_applyRestoredData}
         isImporting={isRestoring}
+      />
+    )}
+
+    {/* Cloud backup multi-business picker */}
+    {cloudBackupInfo && cloudPickerOpen && (
+      <LegacyImportBusinessPickerModal
+        isOpen={cloudPickerOpen}
+        onClose={() => {
+          setCloudPickerOpen(false);
+        }}
+        backupData={cloudBackupInfo.data}
+        onConfirm={handleCloudImportConfirm}
+        isImporting={isCloudImporting}
       />
     )}
     </>

@@ -103,9 +103,40 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ onCo
   const _applyImport = async (appData: AppData) => {
     setFlowState('importing');
     try {
-      importData(JSON.stringify(appData));
-      // Also push to Supabase Storage so it's backed up under new path
-      await uploadNow(appData);
+      // 1. Get current user so we know the correct workspace_id
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      // 2. Patch accountName to match the user's current JWT workspace_id.
+      //    Without this, _saveAsync derives the wrong workspace_id and RLS
+      //    silently discards every row (projects, todos, expenses etc.).
+      const workspaceId =
+        user?.user_metadata?.workspace_id ||
+        user?.user_metadata?.account_name ||
+        user?.id ||
+        appData.userSettings.accountName ||
+        '';
+
+      const patchedData: AppData = {
+        ...appData,
+        userSettings: {
+          ...appData.userSettings,
+          userId: user?.id || appData.userSettings.userId,
+          accountName: workspaceId,
+        },
+      };
+
+      // 3. Clear the migration flag so _saveAsync isn't skipped on next loadAsync
+      localStorage.removeItem('bizsuite-db-migrated-v2');
+
+      // 4. importData → repository.import() → _saveAsync() → writes ALL tables
+      importData(JSON.stringify(patchedData));
+
+      // 5. Also upload raw JSON to Storage bucket for future restores
+      await uploadNow(patchedData);
+
+      // 6. Re-set migration flag so we don't re-migrate on next load
+      localStorage.setItem('bizsuite-db-migrated-v2', 'true');
     } catch (err) {
       console.error('[LegacyOnboarding] import error:', err);
     } finally {
