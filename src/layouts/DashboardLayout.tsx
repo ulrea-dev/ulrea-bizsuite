@@ -9,6 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { supabase } from '@/integrations/supabase/client';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
