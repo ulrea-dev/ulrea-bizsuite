@@ -119,7 +119,7 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  const _applyImport = async (appData: AppData) => {
+  const _applyImport = async (appData: AppData, businessId?: string) => {
     setFlowState('importing');
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -143,9 +143,21 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
       importData(JSON.stringify(patchedData));
       await uploadNow(patchedData);
       localStorage.setItem('bizsuite-db-migrated-v2', 'true');
+
+      // Track this business as imported and loop back to picker if multi-venture
+      if (businessId) {
+        setImportedIds(prev => [...prev, businessId]);
+      }
+
+      const isMulti = legacyData && legacyData.businesses.length > 1;
+      if (isMulti) {
+        setSelectedBusiness(null);
+        setFlowState('picker');
+      } else {
+        onComplete();
+      }
     } catch (err) {
       console.error('[LegacyOnboarding] import error:', err);
-    } finally {
       onComplete();
     }
   };
@@ -155,7 +167,7 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
     const filtered = legacyData.businesses.length === 1
       ? legacyData
       : filterDataForBusiness(legacyData, selectedBusiness.id);
-    _applyImport(filtered);
+    _applyImport(filtered, selectedBusiness.id);
   };
 
   // ── Render helpers ────────────────────────────────────────────────────────────
