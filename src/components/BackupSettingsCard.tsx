@@ -99,6 +99,95 @@ export const BackupSettingsCard: React.FC = () => {
     setPendingBackupData(null);
   };
 
+  // ── Cloud re-import logic ──────────────────────────────────────────────────
+
+  const handleScanCloudBackup = async () => {
+    setIsCloudScanning(true);
+    setCloudBackupInfo(null);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) { toast.error('Not authenticated'); return; }
+
+      const pathsToTry = [
+        user.user_metadata?.workspace_id,
+        user.user_metadata?.account_name,
+        user.id,
+      ].filter(Boolean) as string[];
+
+      let found: { data: AppData; syncedAt: string } | null = null;
+      let foundPath = '';
+      for (const p of pathsToTry) {
+        const result = await downloadCloud(p);
+        if (result?.data?.businesses?.length) {
+          found = result;
+          foundPath = p;
+          break;
+        }
+      }
+
+      if (!found) {
+        toast.info('No cloud backup found for your account.');
+      } else {
+        setCloudBackupInfo({ ...found, path: foundPath });
+      }
+    } catch (err) {
+      console.error('[CloudRestore] scan error:', err);
+      toast.error('Failed to scan cloud backup.');
+    } finally {
+      setIsCloudScanning(false);
+    }
+  };
+
+  const handleCloudImport = async (appData: AppData) => {
+    setIsCloudImporting(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+
+      const workspaceId =
+        user?.user_metadata?.workspace_id ||
+        user?.user_metadata?.account_name ||
+        user?.id ||
+        appData.userSettings.accountName ||
+        '';
+
+      const patchedData: AppData = {
+        ...appData,
+        userSettings: {
+          ...appData.userSettings,
+          userId: user?.id || appData.userSettings.userId,
+          accountName: workspaceId,
+        },
+      };
+
+      localStorage.removeItem('bizsuite-db-migrated-v2');
+      importData(JSON.stringify(patchedData));
+      await uploadNow(patchedData);
+      localStorage.setItem('bizsuite-db-migrated-v2', 'true');
+
+      const counts = {
+        projects: patchedData.projects.length,
+        todos: patchedData.todos.length,
+        payments: patchedData.payments.length,
+      };
+      toast.success(
+        `Import complete — ${counts.projects} projects, ${counts.todos} todos, ${counts.payments} payments restored.`
+      );
+      setCloudBackupInfo(null);
+      setCloudPickerOpen(false);
+    } catch (err) {
+      console.error('[CloudRestore] import error:', err);
+      toast.error('Import failed. Please try again.');
+    } finally {
+      setIsCloudImporting(false);
+    }
+  };
+
+  const handleCloudImportConfirm = async (appData: AppData) => {
+    await handleCloudImport(appData);
+  };
+
   // When Drive connects while restore section is open, auto-load backups
   React.useEffect(() => {
     if (isDriveConnected && showRestoreSection && backups.length === 0) {
