@@ -1,94 +1,63 @@
 
-## Analysis of Current Architecture
+## Root Cause Analysis
 
-**Current model**: One workspace (Supabase auth user) → many `businesses[]` in `AppData`. All entities (projects, clients, payments, etc.) have a `businessId` field to identify which business they belong to.
+### Problem 1: Operations & Todo data missing after import
+The `_applyImport` in `LegacyOnboardingFlow.tsx` calls:
+```typescript
+importData(JSON.stringify(appData));   // → LocalStorageRepository.import() → saves to localStorage
+await uploadNow(appData);              // → SupabaseStorageContext → saves JSON to Supabase Storage bucket
+```
 
-**Requested model**: One workspace = One venture (business). Creating a second venture = creating a new Supabase workspace (separate auth+data space).
+But it does NOT persist data to the **Supabase DB tables**. `uploadNow` only writes the raw JSON file to the `workspace-data` Storage bucket — it doesn't call `SupabaseDBRepository._saveAsync()`.
 
-**Terminology change**: "Business" → "Venture" throughout the UI (labels, headings, buttons). The data type `Business` keeps its name internally to avoid a massive refactor, but all user-facing strings say "Venture."
+After import, when the app reloads and calls `loadAsync()`, it finds the `DB_MIGRATED_KEY` flag already set (`bizsuite-db-migrated-v2` in localStorage). So it skips migration and queries the **empty Supabase DB tables**, which return empty arrays for projects, todos, expenses, etc. Only the `businesses` table has data because the one-time migration ran separately.
 
----
+The result: only the business record made it to the DB, not the projects/todos/expenses/etc.
 
-## What This Actually Means
-
-The Supabase DB architecture already supports this well — every table has `workspace_id`. Currently, one workspace can hold **multiple** businesses, each with a different `id` but same `workspace_id`. 
-
-The shift to "one venture per workspace" means:
-
-1. **UI constraint**: A workspace can only have 1 business record. Creating a "new venture" creates a **new Supabase workspace** (new `accountName`, new storage path, new `workspace_id`). The user switches between ventures by switching their auth workspace context.
-
-2. **`currentBusinessId` becomes implicit**: Since there's exactly one business per workspace, `currentBusiness` is always `businesses[0]`. No more business switcher dropdown.
-
-3. **Back Office**: No longer shows a "Businesses" management page (since there's only one venture per workspace). That page is replaced with a "Venture Settings" page for editing the single venture's name/currency/balance.
-
-4. **"Venture Switcher"** replaces the "Business Switcher": Users can see all their workspaces (ventures) and switch between them. Switching workspace = switching `accountName` + reloading data from that workspace's DB tables.
-
-5. **Existing users with multiple businesses**: Each business automatically gets its own workspace. We create new workspace entries for each business they have beyond the first, and migrate their data.
+### Problem 2: No way to re-trigger legacy import after the fact
+Once `DB_MIGRATED_KEY` is set, there's no UI button to run the import again. Users who had partial imports can't recover.
 
 ---
 
-## Scope of Changes
+## The Fix — Two Parts
 
-### Phase 1 — Constraint + UI Rename (Primary Work)
+### Part 1: Fix `_applyImport` to write to the Supabase DB tables
 
-**A. `AppSidebar.tsx` — Remove BusinessSwitcher**
-Replace the `BusinessSwitcher` dropdown (which listed all businesses in the workspace) with a simple "Venture Name" display showing the single current venture.
+In `LegacyOnboardingFlow.tsx`, replace the current `_applyImport` implementation:
 
-**B. New `VentureSwitcher` component**
-Shows the current venture name + a "Switch / Create Venture" option that:
-- Lists other workspaces (fetched from the `workspaces` DB table where `owner_user_id = auth.uid()`)
-- "Create New Venture" → opens VentureSetup (renamed BusinessSetup) which creates a new workspace record + business in that new workspace context
-- Placed in the Hub sidebar or as a top-level element in the app
+**Current (broken):**
+```typescript
+const _applyImport = async (appData: AppData) => {
+  importData(JSON.stringify(appData));  // only goes to localStorage
+  await uploadNow(appData);             // only goes to Storage bucket file
+  onComplete();
+};
+```
 
-**C. `BusinessSetup.tsx` → `VentureSetup.tsx`**
-Rename all "Business" labels to "Venture". This form now also creates the workspace record, not just a business. After creating a venture, the user is directed to switch to it.
+**Fixed:**
+The `importData` function in `BusinessContext` calls `repository.import(jsonString)` on the `SupabaseDBRepository`. Looking at the repo's `import()` method:
+```typescript
+import(jsonString: string): AppData {
+  const local = this.local.import(jsonString);
+  void this._saveAsync(local);   // ← THIS already calls _saveAsync!
+  return local;
+}
+```
 
-**D. `BusinessManagement.tsx` / `BusinessesPage.tsx`**
-Replace the "Businesses" section in Back Office with "Venture Settings" — a simple edit form for the single venture's name, type, currency, balances. Remove the ability to add more businesses from here (that's now done via the VentureSwitcher).
+So `importData()` DOES call `_saveAsync`. The issue is that `_saveAsync` derives the `workspaceId` from `data.userSettings.accountName`. During legacy import, `accountName` is often empty or is the user's old account name — which may not match the `workspace_id` in the user's JWT metadata. This means the data gets saved to a **wrong `workspace_id`** and is invisible when queried via RLS.
 
-**E. `AdminSidebar.tsx`**
-Replace "Businesses" nav item with "Venture Settings".
+**The fix**: Before calling `importData`, ensure `accountName` is set correctly in the imported data so `_deriveWorkspaceId` produces the correct workspace slug that matches the user's JWT `workspace_id`.
 
-**F. `BusinessAccessPage.tsx`**  
-Rename "Business Access" → "Venture Access". The "select businesses to grant" checkbox list is removed (since there's only 1 venture per workspace, access = all-or-nothing per role). Simplify to just: email, role (viewer/admin), and invite/create buttons.
+Additionally, we must **clear the `DB_MIGRATED_KEY` flag** before re-importing so the migration check doesn't short-circuit.
 
-**G. `WorkOSHub.tsx`**
-Replace `currentBusiness?.name` references with the venture name. Update greeting/welcome text.
+### Part 2: Add a "Re-import from Backup" card in Settings
 
-**H. `ProfileSetupModal.tsx`**
-"Workspace Name" label → "Venture Name".
-
-**I. Terminology sweep** across components:
-- "Business" → "Venture" in all visible UI strings
-- "businesses" headings, buttons, descriptions
-- Page titles, toast messages, card descriptions
-
-### Phase 2 — Venture Switching Mechanism
-
-**New `VentureContext` (or extend `BusinessContext`)**
-Add a `switchVenture(workspaceAccountName: string)` function that:
-1. Calls `SupabaseDBRepository.loadAsync()` with a different `workspace_id` context
-2. Dispatches `LOAD_DATA` with the new venture's data
-3. Persists the active workspace selection in `localStorage` (`active-venture-account-name`)
-
-The Supabase RLS `get_user_workspace_id()` function returns `user_metadata.workspace_id`. For owners with multiple ventures, we need to update their JWT metadata `workspace_id` when switching. This is done by calling `supabase.auth.updateUser({ data: { workspace_id: newWorkspaceId } })` then re-fetching the session.
-
-**`workspaces` table** (already exists in DB):
-- `owner_user_id` (uuid)
-- `account_name` (text) — the workspace slug / `workspace_id`
-- `workspace_name` (text)
-
-When a user creates a venture, a record is inserted here. The VentureSwitcher queries `SELECT * FROM workspaces WHERE owner_user_id = auth.uid()` to list all ventures.
-
-### Phase 3 — Existing User Migration
-
-In `SupabaseDBRepository.loadAsync()`, add a one-time migration check:
-- If user has more than 1 business in the `businesses` table, for each additional business:
-  1. Create a new `workspaces` record with a derived `account_name` (e.g., `userId-business-{idx}`)
-  2. The user is shown a "You have multiple ventures — we've separated them into individual workspaces" banner
-  3. Data for each business (projects, clients, payments all filtered by `businessId`) is already in the DB — the user can switch between ventures and only see the relevant data once the `workspace_id` scoping is enforced per venture
-
-For now, the simplest migration approach: **display a "Migrate Ventures" prompt** if `data.businesses.length > 1`. The user clicks it to trigger auto-migration, which creates separate workspace records and re-tags all data.
+Add a `LegacyImportCard` component (or section in `BackupSettingsCard`) that:
+1. Shows a "Import from Supabase Cloud Backup" button
+2. On click: scans the `workspace-data` Storage bucket for the user's JSON backup (same logic as `LegacyOnboardingFlow`)
+3. If found with multiple businesses → opens `LegacyImportBusinessPickerModal`
+4. If found single → imports directly with confirmation
+5. Clears `DB_MIGRATED_KEY` and calls `importData()` so `_saveAsync` rewrites all tables
 
 ---
 
@@ -96,53 +65,61 @@ For now, the simplest migration approach: **display a "Migrate Ventures" prompt*
 
 | File | Change |
 |------|--------|
-| `src/types/business.ts` | No type changes; add `VentureWorkspace` interface |
-| `src/components/BusinessSetup.tsx` | Rename labels "Business" → "Venture", also creates `workspaces` DB record |
-| `src/components/BusinessSwitcher.tsx` | Replace with `VentureSwitcher.tsx` — lists workspaces from DB, "Create Venture" button |
-| `src/components/AppSidebar.tsx` | Swap `BusinessSwitcher` for `VentureSwitcher` |
-| `src/components/WorkOSHub.tsx` | Update greeting/text, "Operations" still scoped to current venture |
-| `src/components/BusinessManagement.tsx` | Simplify to "Venture Settings" — single edit form, no add/delete of businesses |
-| `src/components/admin/BusinessesPage.tsx` | Rename to `VentureSettingsPage.tsx`, single-venture edit |
-| `src/components/admin/AdminSidebar.tsx` | "Businesses" → "Venture Settings" nav item |
-| `src/components/admin/BusinessAccessPage.tsx` | "Business Access" → "Venture Access", remove per-business checkbox, simplify |
-| `src/components/ProfileSetupModal.tsx` | "Workspace Name" → "Venture Name" |
-| `src/components/MultiBusinessOverview.tsx` | Removed / not shown (ventures are now workspace-level) |
-| `src/contexts/BusinessContext.tsx` | Add `switchVenture()`, ensure `currentBusiness` is always `businesses[0]` |
-| `src/repositories/SupabaseDBRepository.ts` | `loadAsync()` uses `workspace_id`; add `createWorkspace()` helper |
-| `src/App.tsx` | Update route for `BusinessesPage` → `VentureSettingsPage` |
+| `src/components/LegacyOnboardingFlow.tsx` | Fix `_applyImport`: patch `accountName` in imported data before calling `importData`, clear DB migration flag, reload DB after import |
+| `src/repositories/SupabaseDBRepository.ts` | In `_runOneTimeMigration`: also try `userId` path directly (not just accountName slug). Expose a new `reimportFromBackup(data)` method that clears the flag and re-saves everything |
+| `src/components/BackupSettingsCard.tsx` | Add a "Restore from Cloud Backup" section that scans Storage and lets user re-import, with the business picker for multi-business backups |
 
 ---
 
-## Technical Detail: Venture Switching
+## Detailed Fix for `_applyImport`
 
-```text
-User clicks "Switch Venture" in VentureSwitcher
-  → calls switchVenture(targetAccountName)
-  → supabase.auth.updateUser({ data: { workspace_id: targetAccountName } })
-  → supabase.auth.refreshSession() — so JWT has new workspace_id
-  → SupabaseDBRepository.loadAsync() — DB queries now use new workspace_id via RLS
-  → dispatch(LOAD_DATA, newVentureData)
-  → UI updates to show the selected venture's data
+```typescript
+const _applyImport = async (appData: AppData) => {
+  setFlowState('importing');
+  try {
+    // 1. Get current user to know the correct workspace_id
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    
+    // 2. Patch the imported data: set accountName to the user's existing
+    //    account_name from metadata (or derive one) so _deriveWorkspaceId
+    //    in SupabaseDBRepository produces the correct workspace_id
+    const workspaceId = user?.user_metadata?.workspace_id || user?.id || '';
+    const patchedData: AppData = {
+      ...appData,
+      userSettings: {
+        ...appData.userSettings,
+        userId: user?.id || appData.userSettings.userId,
+        accountName: workspaceId,  // ensures _deriveWorkspaceId returns correct ID
+      },
+    };
+    
+    // 3. Clear the migration flag so SupabaseDBRepository doesn't skip saving
+    localStorage.removeItem('bizsuite-db-migrated-v2');
+    
+    // 4. importData calls repository.import() → _saveAsync() → writes ALL tables
+    importData(JSON.stringify(patchedData));
+    
+    // 5. Set the flag again after successful import
+    localStorage.setItem('bizsuite-db-migrated-v2', 'true');
+    
+  } catch (err) {
+    console.error('[LegacyOnboarding] import error:', err);
+  } finally {
+    onComplete();
+  }
+};
 ```
 
-For invited users: their `workspace_id` in metadata already points to the owner's workspace — no change needed.
+## Re-import Card in BackupSettingsCard
 
----
+Add a new "Restore from Cloud Backup" card:
+- Button: "Scan for backup" → calls `downloadCloud(userId)` and `downloadCloud(accountName slug)` same as `LegacyOnboardingFlow`
+- If backup found: shows venture count + last modified date
+- "Import" button (with business picker if multiple) → runs the same patched `_applyImport` logic
+- Shows success toast with counts: "Imported X projects, Y todos, Z payments"
 
-## What Does NOT Change
-- All DB table schemas (no migration needed)
-- All reducers
-- All entity types (Project, Client, Payment etc.)
-- The `businessId` field on entities — still used internally as the single business's ID in that workspace
-- RLS policies — already use `workspace_id`
-- Back Office team management, partner management, payables/receivables
+This card lives in the "Backup" tab of Settings, below the existing Cloud Storage card.
 
----
-
-## Summary of User-Facing Changes
-1. "Business" everywhere becomes "Venture"
-2. No multi-business switcher dropdown — replaced by workspace-level venture switcher
-3. Back Office "Businesses" page → "Venture Settings" (edit the single venture)
-4. "Business Access" → "Venture Access" with simplified permissions (no per-business checkbox since workspace = one venture)
-5. Creating a new venture = creating a new workspace (separate data silo)
-6. Existing multi-business users see a one-time migration prompt
+## Summary of Root Cause (one sentence)
+The imported data was saved with the wrong `workspace_id` (from the legacy backup's `accountName` rather than the current user's JWT `workspace_id`), causing all DB queries via RLS to return empty results for everything except the one business record.
