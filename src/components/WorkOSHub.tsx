@@ -47,11 +47,6 @@ export const WorkOSHub: React.FC = () => {
 
   const teamCount = data.teamMembers?.length || 0;
 
-  // After all hooks: show legacy onboarding if no ventures exist
-  if (!isLoadingFromDB && data.businesses.length === 0) {
-    return <LegacyOnboardingFlow onComplete={() => { /* importData triggers re-render */ }} />;
-  }
-
   const getWorkIcon = (type: string) => {
     switch (type) {
       case 'project': return <FolderKanban className="h-3.5 w-3.5" />;
