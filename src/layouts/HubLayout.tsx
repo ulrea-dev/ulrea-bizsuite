@@ -23,7 +23,6 @@ const LayoutContent: React.FC = () => {
     legacyFolders,
     showAccountSelection,
     isDiscoveringAccounts,
-    discoverAccounts,
     selectAccount,
     createAccount,
     migrateAccount,
