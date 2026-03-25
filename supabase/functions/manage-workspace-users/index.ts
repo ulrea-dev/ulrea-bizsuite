@@ -47,6 +47,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      // If the user already existed and was just re-invited, also ensure workspace_id is set
+      if (data.user?.id && workspaceId) {
+        await adminClient.auth.admin.updateUserById(data.user.id, {
+          user_metadata: { workspace_id: workspaceId, workspace_name: workspaceName },
+        });
+      }
+
       return new Response(
         JSON.stringify({ userId: data.user?.id, email: data.user?.email }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
