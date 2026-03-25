@@ -15,15 +15,15 @@ import { CustomCurrencyModal } from '@/components/CustomCurrencyModal';
 import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
-import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
 import { BackupSettingsCard } from '@/components/BackupSettingsCard';
 import { GoogleSheetsConnectionCard } from '@/components/GoogleSheetsConnectionCard';
 import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { ShareAccessModal } from '@/components/ShareAccessModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw, Users, ArrowUpRight } from 'lucide-react';
+import { Plus, RotateCcw, Users, ArrowUpRight, Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -40,6 +40,12 @@ export const SettingsPage: React.FC = () => {
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(
     data.userSettings.colorPalette || getDefaultColorPalette()
   );
+
+  // Security / Change Password state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const allCurrencies = SUPPORTED_CURRENCIES.concat(data.customCurrencies || []);
 
@@ -89,6 +95,31 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleCurrencyAdded = (_currency: Currency) => {};
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: 'Password too short', description: 'Password must be at least 6 characters.', variant: 'destructive' });
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast({ title: 'Failed to update password', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Password updated', description: 'Your password has been changed successfully.' });
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6 md:space-y-8">
@@ -157,6 +188,61 @@ export const SettingsPage: React.FC = () => {
 
           <FontSelector selectedFont={selectedFont} onFontChange={handleFontChange} />
           <ColorPaletteSelector selectedPalette={selectedPalette} onPaletteChange={handlePaletteChange} />
+
+          {/* Security */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security
+              </CardTitle>
+              <CardDescription>Change your account password.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Repeat your new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
+                >
+                  {isChangingPassword ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Updating...</>
+                  ) : (
+                    'Update Password'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Partners — link to Back Office */}
           <Card>

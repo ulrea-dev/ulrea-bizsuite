@@ -9,6 +9,7 @@ import { useBusiness } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { supabase } from '@/integrations/supabase/client';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
@@ -17,10 +18,11 @@ const LayoutContent: React.FC = () => {
   
   useAppearance();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (isConnected) {
       disconnect();
     }
+    await supabase.auth.signOut();
     navigate('/login');
   };
 
