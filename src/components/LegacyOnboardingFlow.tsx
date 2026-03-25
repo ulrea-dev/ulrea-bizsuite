@@ -133,10 +133,10 @@ function unwrapBackup(raw: unknown): AppData | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   if (r.metadata && r.data && typeof r.data === 'object') {
-    return r.data as AppData;
+    return r.data as unknown as AppData;
   }
-  if (Array.isArray((r as AppData).businesses)) {
-    return r as AppData;
+  if (Array.isArray((r as unknown as AppData).businesses)) {
+    return r as unknown as AppData;
   }
   return null;
 }
