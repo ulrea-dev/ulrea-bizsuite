@@ -37,7 +37,7 @@ import TaskPaymentsPage from "./pages/TaskPaymentsPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { AdminOverview } from "./components/admin/AdminOverview";
-import { BusinessesPage } from "./components/admin/BusinessesPage";
+import { VentureSettingsPage } from "./components/admin/VentureSettingsPage";
 import { BusinessAccessPage } from "./components/admin/BusinessAccessPage";
 import { TeamMembersPage } from "./components/admin/TeamMembersPage";
 import { BankAccountsPage } from "./components/admin/BankAccountsPage";
@@ -167,7 +167,11 @@ const App = () => (
             </Route>
             <Route element={<BusinessManagementLayout />}>
               <Route path="/business-management" element={<AdminOverview />} />
-              <Route path="/business-management/businesses" element={<BusinessesPage />} />
+              <Route path="/business-management/venture-settings" element={<VentureSettingsPage />} />
+              {/* Legacy redirect */}
+              <Route path="/business-management/businesses" element={<VentureSettingsPage />} />
+              <Route path="/business-management/venture-access" element={<BusinessAccessPage />} />
+              {/* Legacy redirect */}
               <Route path="/business-management/business-access" element={<BusinessAccessPage />} />
               <Route path="/business-management/team-members" element={<TeamMembersPage />} />
               <Route path="/business-management/bank-accounts" element={<BankAccountsPage />} />
