@@ -351,9 +351,7 @@ export const BusinessAccessPage: React.FC = () => {
                 {currentUserAccess?.role || 'Owner'}
               </Badge>
               <p className="text-xs dashboard-text-secondary mt-1">
-                {currentUserAccess?.businessIds
-                  ? `Access to: ${getBusinessNames(currentUserAccess.businessIds)}`
-                  : `Full access to all ${data.businesses.length} business${data.businesses.length !== 1 ? 'es' : ''}`}
+                Full access to this venture workspace
               </p>
             </div>
           </div>
@@ -370,7 +368,7 @@ export const BusinessAccessPage: React.FC = () => {
               <Badge variant="secondary" className="ml-auto">{sharedUsers.length}</Badge>
             )}
           </CardTitle>
-          <CardDescription>People who have been granted access to your businesses</CardDescription>
+          <CardDescription>People who have been granted access to this venture</CardDescription>
         </CardHeader>
         <CardContent>
           {sharedUsers.length === 0 ? (
