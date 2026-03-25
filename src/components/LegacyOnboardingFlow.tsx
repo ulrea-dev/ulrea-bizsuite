@@ -248,62 +248,94 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
 
   const renderPicker = () => {
     if (!legacyData) return null;
+    const remaining = legacyData.businesses.filter(b => !importedIds.includes(b.id));
+    const allDone = remaining.length === 0;
+
     return (
       <div className="space-y-6">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-3">
             <Database className="w-7 h-7 text-primary" />
           </div>
-          <h2 className="text-xl font-semibold text-foreground">Choose a venture to import</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            {allDone ? 'All ventures imported!' : 'Choose ventures to import'}
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            We found {legacyData.businesses.length} ventures in your backup. Select one to import.
+            {allDone
+              ? 'You can switch between ventures from the venture switcher.'
+              : `We found ${legacyData.businesses.length} ventures in your backup. Select each one to import.`}
           </p>
         </div>
 
         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {legacyData.businesses.map(b => {
             const projectCount = legacyData.projects.filter(p => p.businessId === b.id).length;
+            const clientCount = legacyData.clients?.length || 0;
+            const paymentCount = legacyData.payments?.filter(p =>
+              legacyData.projects.some(pr => pr.id === p.projectId && pr.businessId === b.id)
+            ).length || 0;
             const isSelected = selectedBusiness?.id === b.id;
+            const isImported = importedIds.includes(b.id);
             return (
               <button
                 key={b.id}
-                onClick={() => setSelectedBusiness(b)}
+                onClick={() => !isImported && setSelectedBusiness(b)}
+                disabled={isImported}
                 className={cn(
                   'w-full p-3 rounded-xl border text-left flex items-center gap-3 transition-all',
-                  isSelected
+                  isImported
+                    ? 'border-border/40 bg-muted/20 opacity-60 cursor-default'
+                    : isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                     : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
                 )}
               >
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  {MODEL_ICON[b.businessModel] || <Building2 className="w-4 h-4 text-primary" />}
+                <div className={cn(
+                  'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+                  isImported ? 'bg-green-500/10' : 'bg-primary/10'
+                )}>
+                  {isImported
+                    ? <Check className="w-4 h-4 text-green-500" />
+                    : (MODEL_ICON[b.businessModel] || <Building2 className="w-4 h-4 text-primary" />)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground truncate">{b.name}</p>
-                  <p className="text-xs text-muted-foreground">{projectCount} project{projectCount !== 1 ? 's' : ''} · {b.businessModel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {projectCount} project{projectCount !== 1 ? 's' : ''} · {clientCount} client{clientCount !== 1 ? 's' : ''} · {paymentCount} payment{paymentCount !== 1 ? 's' : ''} · {b.businessModel}
+                  </p>
                 </div>
-                {isSelected && <Check className="w-4 h-4 text-primary shrink-0" />}
+                {isImported && <Badge variant="secondary" className="text-xs shrink-0 text-green-600">Imported</Badge>}
+                {isSelected && !isImported && <Check className="w-4 h-4 text-primary shrink-0" />}
               </button>
             );
           })}
         </div>
 
         <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setFlowState('new_venture')}
-          >
-            Skip — Start Fresh
-          </Button>
-          <Button
-            className="flex-1 gap-2"
-            disabled={!selectedBusiness}
-            onClick={handleConfirmImport}
-          >
-            <ArrowRight className="w-4 h-4" />
-            Import Selected
-          </Button>
+          {allDone ? (
+            <Button className="flex-1 gap-2" onClick={onComplete}>
+              <Check className="w-4 h-4" />
+              Done
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => importedIds.length > 0 ? onComplete() : setFlowState('new_venture')}
+              >
+                {importedIds.length > 0 ? 'Done for now' : 'Skip — Start Fresh'}
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                disabled={!selectedBusiness || importedIds.includes(selectedBusiness?.id || '')}
+                onClick={handleConfirmImport}
+              >
+                <ArrowRight className="w-4 h-4" />
+                Import Selected
+              </Button>
+            </>
+          )}
         </div>
       </div>
     );
