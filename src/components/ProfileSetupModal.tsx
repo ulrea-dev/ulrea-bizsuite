@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,13 +20,26 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, us
   const [workspaceName, setWorkspaceName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Pre-fill display name from Google metadata if available
+  useEffect(() => {
+    if (!isOpen) return;
+    supabase.auth.getUser().then(({ data }) => {
+      const meta = data.user?.user_metadata;
+      if (meta?.full_name && !displayName) {
+        setDisplayName(meta.full_name);
+      } else if (meta?.name && !displayName) {
+        setDisplayName(meta.name);
+      }
+    });
+  }, [isOpen]);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName.trim() || !workspaceName.trim()) return;
 
     setIsLoading(true);
     try {
-      // Update Supabase auth user metadata
+      // Persist profile in Supabase auth user metadata
       await supabase.auth.updateUser({
         data: {
           display_name: displayName.trim(),
