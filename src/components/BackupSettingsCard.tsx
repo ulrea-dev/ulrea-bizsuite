@@ -363,5 +363,6 @@ export const BackupSettingsCard: React.FC = () => {
         isImporting={isRestoring}
       />
     )}
+    </>
   );
 };
