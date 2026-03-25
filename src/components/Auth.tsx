@@ -110,6 +110,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           await supabase.auth.resend({ type: 'signup', email: email.trim() });
           return;
         }
+        // Redirect temp-password users to set a permanent password
+        if (data.user.user_metadata?.force_password_change) {
+          window.location.href = '/reset-password?force=1';
+          return;
+        }
         onLogin(data.user.id, data.user.email ?? email);
       }
     } finally {

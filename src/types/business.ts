@@ -613,10 +613,12 @@ export interface Receivable {
 export type UserBusinessRole = 'owner' | 'admin' | 'viewer';
 
 export interface UserBusinessAccess {
-  userId: string;           // Unique identifier (generated on first login)
+  userId: string;           // Unique identifier (Supabase Auth user.id)
   email?: string;           // Email for matching with Google Drive users
+  displayName?: string;     // Display name of the user
   businessIds: string[];    // List of business IDs this user can access
   role: UserBusinessRole;   // Role determines permissions
+  inviteStatus?: 'pending' | 'active'; // Pending = not yet logged in, Active = logged in
 }
 
 // ============= To-Do System =============
