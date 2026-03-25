@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/hooks/useTheme';
 import { supabase } from '@/integrations/supabase/client';
-import { Moon, Sun, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Moon, Sun, Loader2, Eye, EyeOff, ArrowLeft, MailCheck } from 'lucide-react';
 
-type AuthView = 'login' | 'signup' | 'forgotPassword' | 'forgotSent';
+type AuthView = 'login' | 'signup' | 'forgotPassword' | 'forgotSent' | 'verifyOtp';
 
 interface AuthProps {
   onLogin: (userId: string, email: string) => void;
@@ -23,6 +24,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // OTP state
+  const [otpValue, setOtpValue] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,14 +72,54 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       if (data.user) {
         if (data.session) {
+          // Email confirmation disabled — logged in directly
           onLogin(data.user.id, data.user.email ?? email);
         } else {
-          toast({ title: 'Check your email', description: 'We sent a confirmation link to ' + email + '.' });
-          setView('login');
+          // Email confirmation required — show OTP entry
+          setOtpValue('');
+          setView('verifyOtp');
         }
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpValue.length < 6) return;
+    setIsVerifying(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otpValue,
+        type: 'signup',
+      });
+      if (error) {
+        toast({ title: 'Verification failed', description: 'The code is incorrect or has expired. Please try again.', variant: 'destructive' });
+        setOtpValue('');
+        return;
+      }
+      if (data.user) {
+        toast({ title: 'Email verified!', description: 'Welcome to WorkOS.' });
+        onLogin(data.user.id, data.user.email ?? email);
+      }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+      if (error) {
+        toast({ title: 'Could not resend code', description: error.message, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'New code sent', description: `Check ${email} for a fresh code.` });
+      setOtpValue('');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -182,6 +228,98 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     </form>
   );
 
+  const renderVerifyOtp = () => (
+    <div className="space-y-6">
+      <Logo />
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mx-auto mb-4">
+          <MailCheck className="h-6 w-6 text-primary" />
+        </div>
+        <h2 className="text-xl font-semibold text-foreground">Check your inbox</h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          We sent a verification code to{' '}
+          <strong className="text-foreground">{email}</strong>
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-xs text-muted-foreground">Enter the code from your email</p>
+        <InputOTP
+          maxLength={6}
+          value={otpValue}
+          onChange={(val) => {
+            setOtpValue(val);
+            if (val.length === 6) {
+              // Auto-submit when all digits entered
+              setTimeout(() => {
+                setIsVerifying(true);
+                supabase.auth.verifyOtp({ email: email.trim(), token: val, type: 'signup' })
+                  .then(({ data, error }) => {
+                    if (error) {
+                      toast({ title: 'Verification failed', description: 'Incorrect or expired code.', variant: 'destructive' });
+                      setOtpValue('');
+                    } else if (data.user) {
+                      toast({ title: 'Email verified!', description: 'Welcome to WorkOS.' });
+                      onLogin(data.user.id, data.user.email ?? email);
+                    }
+                  })
+                  .finally(() => setIsVerifying(false));
+              }, 100);
+            }
+          }}
+        >
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+          </InputOTPGroup>
+          <InputOTPSeparator />
+          <InputOTPGroup>
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
+
+        {isVerifying && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Verifying…
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <Button
+          type="button"
+          className="w-full h-11"
+          onClick={handleVerifyOtp}
+          disabled={otpValue.length < 6 || isVerifying}
+        >
+          {isVerifying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify Email'}
+        </Button>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={handleResendOtp}
+            disabled={isResending}
+            className="hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            {isResending ? 'Sending…' : 'Resend code'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView('signup'); setOtpValue(''); }}
+            className="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3 w-3" /> Change email
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderForgotPassword = () => (
     <form onSubmit={handleForgotPassword} className="space-y-4">
       <Logo />
@@ -229,6 +367,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="bg-card border border-border rounded-2xl shadow-sm p-8">
           {view === 'login' && renderLogin()}
           {view === 'signup' && renderSignup()}
+          {view === 'verifyOtp' && renderVerifyOtp()}
           {view === 'forgotPassword' && renderForgotPassword()}
           {view === 'forgotSent' && renderForgotSent()}
         </div>
