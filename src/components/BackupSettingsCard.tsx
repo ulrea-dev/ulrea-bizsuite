@@ -348,5 +348,20 @@ export const BackupSettingsCard: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+
+    {/* Legacy multi-business import picker */}
+    {pendingBackupData && (
+      <LegacyImportBusinessPickerModal
+        isOpen={showBusinessPicker}
+        onClose={() => {
+          setShowBusinessPicker(false);
+          setPendingBackupData(null);
+          setIsRestoring(false);
+        }}
+        backupData={pendingBackupData}
+        onConfirm={_applyRestoredData}
+        isImporting={isRestoring}
+      />
+    )}
   );
 };
