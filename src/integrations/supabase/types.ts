@@ -14,13 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      super_admins: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workspace_members: {
+        Row: {
+          id: string
+          last_seen_at: string | null
+          member_display_name: string | null
+          member_email: string | null
+          role: string | null
+          workspace_folder_id: string
+        }
+        Insert: {
+          id?: string
+          last_seen_at?: string | null
+          member_display_name?: string | null
+          member_email?: string | null
+          role?: string | null
+          workspace_folder_id: string
+        }
+        Update: {
+          id?: string
+          last_seen_at?: string | null
+          member_display_name?: string | null
+          member_email?: string | null
+          role?: string | null
+          workspace_folder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_folder_id_fkey"
+            columns: ["workspace_folder_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_registry"
+            referencedColumns: ["folder_id"]
+          },
+        ]
+      }
+      workspace_registry: {
+        Row: {
+          created_at: string | null
+          folder_id: string
+          id: string
+          last_sync_at: string | null
+          owner_display_name: string | null
+          owner_email: string | null
+          workspace_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          folder_id: string
+          id?: string
+          last_sync_at?: string | null
+          owner_display_name?: string | null
+          owner_email?: string | null
+          workspace_name: string
+        }
+        Update: {
+          created_at?: string | null
+          folder_id?: string
+          id?: string
+          last_sync_at?: string | null
+          owner_display_name?: string | null
+          owner_email?: string | null
+          workspace_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
