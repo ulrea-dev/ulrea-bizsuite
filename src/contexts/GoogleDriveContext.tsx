@@ -379,7 +379,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   // clicks "Continue with Google".  An auto-trigger would re-open the
   // workspace modal every time the user dismisses it, making it unclosable.
 
-  const syncNow = useCallback(async (data: AppData) => {
+  const syncNow = useCallback(async (data: AppData, silent = false) => {
     if (!isConnected) return;
     
     // If no account selected, trigger discovery
