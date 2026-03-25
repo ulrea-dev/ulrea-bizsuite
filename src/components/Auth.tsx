@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ interface AuthProps {
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
 
   const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
@@ -30,6 +32,26 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
+  // If redirected here because account is not verified, show the OTP screen
+  useEffect(() => {
+    if (searchParams.get('unverified') === '1') {
+      // Try to get the current unverified session email
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session?.user?.email && !data.session.user.email_confirmed_at) {
+          setEmail(data.session.user.email);
+          setView('verifyOtp');
+          // Sign them out so they can't sneak in
+          supabase.auth.signOut();
+          toast({
+            title: 'Email verification required',
+            description: 'Please verify your email to continue.',
+            variant: 'destructive',
+          });
+        }
+      });
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
@@ -41,6 +63,20 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         return;
       }
       if (data.user) {
+        // Block unverified users — send them to OTP screen
+        if (!data.user.email_confirmed_at) {
+          await supabase.auth.signOut();
+          setOtpValue('');
+          setView('verifyOtp');
+          toast({
+            title: 'Email not verified',
+            description: 'Enter the verification code sent to your email.',
+            variant: 'destructive',
+          });
+          // Resend OTP so they have a fresh code
+          await supabase.auth.resend({ type: 'signup', email: email.trim() });
+          return;
+        }
         onLogin(data.user.id, data.user.email ?? email);
       }
     } finally {
