@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { useTodoReminders } from '@/hooks/useTodoReminders';
+import { LegacyOnboardingFlow } from './LegacyOnboardingFlow';
 import { Briefcase, Settings2, ListTodo, ArrowRight, FolderKanban, ListChecks, Repeat, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/utils/storage';
