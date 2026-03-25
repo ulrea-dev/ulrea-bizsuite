@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch, type FC } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AppData,
   Business,
