@@ -168,48 +168,70 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     }
     setIsCreatingAccount(true);
     try {
-      // Try sign up first
+      // Step 1: Try signing up
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: legacyEmail.trim(),
         password: legacyPassword,
         options: { emailRedirectTo: window.location.origin },
       });
 
+      // Session active immediately — email confirmation is disabled
       if (!signUpError && signUpData.user && signUpData.session) {
-        // Account created and session active
         toast({ title: 'Account created!', description: 'Your Google Drive data has been linked to your new account.' });
         onLogin(signUpData.user.id, signUpData.user.email ?? legacyEmail);
         return;
       }
 
+      // Supabase returns user + no session for BOTH new (email confirm required) AND
+      // already-registered emails (security obfuscation). Always try signing in next.
       if (!signUpError && signUpData.user && !signUpData.session) {
-        // Email confirmation needed
-        toast({ title: 'Confirm your email', description: 'We sent a link to ' + legacyEmail + '. Click it then sign in.' });
+        // Try to sign in — if the account already exists with this password it will work
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: legacyEmail.trim(),
+          password: legacyPassword,
+        });
+        if (!signInError && signInData.user) {
+          toast({ title: 'Account ready!', description: 'Signed in successfully.' });
+          onLogin(signInData.user.id, signInData.user.email ?? legacyEmail);
+          return;
+        }
+        // Sign in failed → account is new but email confirmation is required
+        toast({
+          title: 'Confirm your email',
+          description: `We sent a confirmation link to ${legacyEmail}. Click it, then sign in here.`,
+        });
         setShowLegacy(false);
         setView('login');
         setEmail(legacyEmail);
         return;
       }
 
-      // If account already exists, try signing in (user may have an account already)
-      if (signUpError?.message?.toLowerCase().includes('already registered') ||
-          signUpError?.message?.toLowerCase().includes('user already')) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: legacyEmail.trim(),
-          password: legacyPassword,
-        });
-        if (signInError) {
-          toast({ title: 'Account already exists', description: 'Please sign in with your existing password or reset it.', variant: 'destructive' });
+      // Explicit already-registered error — try signing in with the provided password
+      if (signUpError) {
+        const errMsg = signUpError.message?.toLowerCase() ?? '';
+        if (
+          errMsg.includes('already registered') ||
+          errMsg.includes('user already') ||
+          errMsg.includes('already exists')
+        ) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: legacyEmail.trim(),
+            password: legacyPassword,
+          });
+          if (!signInError && signInData.user) {
+            toast({ title: 'Welcome back!', description: 'Signed in with your existing account.' });
+            onLogin(signInData.user.id, signInData.user.email ?? legacyEmail);
+            return;
+          }
+          toast({
+            title: 'Account already exists',
+            description: 'Wrong password for this account. Use "Forgot password?" to reset it.',
+            variant: 'destructive',
+          });
           return;
         }
-        if (signInData.user) {
-          toast({ title: 'Welcome back!', description: 'Signed in with your existing account.' });
-          onLogin(signInData.user.id, signInData.user.email ?? legacyEmail);
-          return;
-        }
+        toast({ title: 'Error creating account', description: signUpError.message, variant: 'destructive' });
       }
-
-      toast({ title: 'Error creating account', description: signUpError?.message, variant: 'destructive' });
     } finally {
       setIsCreatingAccount(false);
     }
