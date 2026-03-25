@@ -60,6 +60,8 @@ interface BusinessContextProps {
   exportData: () => string;
   // Import function for restore
   importData: (jsonString: string) => void;
+  // Switch to a different venture/workspace
+  switchVenture: (workspaceId: string) => Promise<void>;
 }
 
 const BusinessContext = createContext<BusinessContextProps | undefined>(undefined);
