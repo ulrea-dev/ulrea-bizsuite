@@ -124,17 +124,25 @@ export const BusinessAccessPage: React.FC = () => {
   const [editRole, setEditRole] = useState<UserBusinessRole>('viewer');
   const [editBusinessIds, setEditBusinessIds] = useState<string[]>([]);
 
-  const currentUserId = data.userSettings.userId;
+  // Use the Supabase session user ID if available, falling back to stored userId
+  const currentUserId = sessionUserId || data.userSettings.userId;
   const accessList = data.userBusinessAccess || [];
 
   const currentUserAccess = useMemo(() => accessList.find(a => a.userId === currentUserId), [accessList, currentUserId]);
   const isOwner = useMemo(() => {
-    // Owner if: no access list, OR current user not in access list (they ARE the workspace owner),
-    // OR current user has owner role
+    // Owner if: no access list, OR current user not in the access list at all
+    // (workspace creator is owner by default and typically not listed)
+    // OR their entry explicitly has role 'owner'
     if (accessList.length === 0) return true;
-    if (!currentUserAccess) return true; // Not in list = workspace owner by default
+    if (!currentUserAccess) return true;
     return currentUserAccess.role === 'owner';
   }, [accessList, currentUserAccess]);
+
+  // Users to show — everyone except the current user
+  const sharedUsers = useMemo(
+    () => accessList.filter(a => a.userId !== currentUserId),
+    [accessList, currentUserId]
+  );
 
   const getRoleBadgeVariant = (role: UserBusinessRole) => {
     switch (role) {
