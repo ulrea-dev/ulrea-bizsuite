@@ -92,7 +92,12 @@ export class SupabaseStorageRepository implements IDataRepository {
       if (error || !fileData) return null;
 
       const text = await fileData.text();
-      const parsed = JSON.parse(text) as AppData;
+      const parsed = JSON.parse(text);
+
+      // Handle both wrapped format { metadata, data } and raw AppData
+      const appData: AppData = (parsed?.metadata && parsed?.data)
+        ? parsed.data as AppData
+        : parsed as AppData;
       
       // Get file metadata to know when it was last updated
       const { data: listData } = await supabase.storage
@@ -100,7 +105,7 @@ export class SupabaseStorageRepository implements IDataRepository {
         .list(pathKey, { limit: 1, search: FILE_NAME });
 
       const syncedAt = listData?.[0]?.updated_at || listData?.[0]?.created_at || new Date().toISOString();
-      return { data: parsed, syncedAt };
+      return { data: appData, syncedAt };
     } catch (err) {
       console.warn('[CloudSync] Download failed:', err);
       return null;
