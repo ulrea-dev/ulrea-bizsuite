@@ -464,7 +464,7 @@ export const BusinessAccessPage: React.FC = () => {
                 <div className="flex gap-2">
                   <Input value={tempPassword} readOnly className="font-mono text-sm" />
                   <Button type="button" variant="outline" size="icon" onClick={copyPassword}>
-                    {copiedPassword ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                    {copiedPassword ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                   </Button>
                   <Button type="button" variant="outline" size="icon" onClick={() => setTempPassword(generateTempPassword())}>
                     <RefreshCw className="h-4 w-4" />
