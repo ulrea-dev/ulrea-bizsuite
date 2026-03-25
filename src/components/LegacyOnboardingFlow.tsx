@@ -367,11 +367,15 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
 
         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {legacyData.businesses.map(b => {
-            const projectCount = legacyData.projects.filter(p => p.businessId === b.id).length;
-            const clientCount = legacyData.clients?.length || 0;
-            const paymentCount = legacyData.payments?.filter(p =>
-              legacyData.projects.some(pr => pr.id === p.projectId && pr.businessId === b.id)
-            ).length || 0;
+            const bizProjectIds = new Set(legacyData.projects.filter(p => p.businessId === b.id).map(p => p.id));
+            const bizRetainerIds = new Set((legacyData.retainers || []).filter(r => r.businessId === b.id).map(r => r.id));
+            const projectCount = bizProjectIds.size;
+            const retainerCount = bizRetainerIds.size;
+            const paymentCount = (legacyData.payments || []).filter(p =>
+              (p.projectId && bizProjectIds.has(p.projectId)) ||
+              (p.retainerId && bizRetainerIds.has(p.retainerId)) ||
+              (!p.projectId && !p.retainerId)
+            ).length;
             const isSelected = selectedBusiness?.id === b.id;
             const isImported = importedIds.includes(b.id);
             return (
