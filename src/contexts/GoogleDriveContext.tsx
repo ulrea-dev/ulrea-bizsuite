@@ -181,9 +181,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   }, []);
 
   // Handle token expiry errors
-  const handleTokenExpiry = useCallback((operation: { type: string; data?: AppData }) => {
+  const handleTokenExpiry = useCallback((operation: { type: string; data?: AppData }, silent = false) => {
     setPendingOperation(operation);
-    setShowReconnectModal(true);
+    // Only show the reconnect modal for user-initiated Drive actions (exports, backups, etc.)
+    // Background operations (polling, auto-checks) should fail silently
+    if (!silent) {
+      setShowReconnectModal(true);
+    }
   }, []);
 
   // Initialize Google OAuth client
