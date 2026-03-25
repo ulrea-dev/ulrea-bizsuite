@@ -639,7 +639,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'syncPartnerSheet', data });
+        handleTokenExpiry({ type: 'syncPartnerSheet', data }, silent);
       } else {
         toast({
           title: 'Sync Failed',
