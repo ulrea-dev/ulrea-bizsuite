@@ -1,109 +1,109 @@
 
+## Plan: Super Admin Panel + Build Error Fixes
 
-## Mobile Submenu Navigation and Full Responsiveness
+### Part 1 — Fix the 4 existing build errors first
 
-### Problem
-On mobile, the bottom tab bar navigates to each area (Operations, Back Office, To-Do), but once inside, there is no way to access sub-pages. The desktop sidebar (with all the submenu links) is completely hidden on mobile. Users are stuck on whatever default page loads.
+**Error 1** — `ExtraPaymentModal.tsx:153` — `formData` type is missing `paymentDate`. The `paymentDate` is tracked separately via `setPaymentDate` state but `formData` type doesn't include it. Fix: the line `paymentDate: formData.paymentDate` should use the separate `paymentDate` state variable (which already exists as `paymentDate.toISOString().split('T')[0]`).
 
-Additionally, many content pages (tables, stat cards, filter bars) are not optimized for mobile viewports.
+**Error 2 & 3** — `HubLayout.tsx:69-70` — `onCreateAccount` and `onMigrateLegacy` props on `AccountSelectionModal` expect `Promise<void>` but the context returns `Promise<BizSuiteAccount>`. Fix: Update `AccountSelectionModal` prop interface to accept `Promise<BizSuiteAccount>` OR wrap the calls in `HubLayout` to discard the return value.
 
-### Solution
+**Error 4** — `LocalStorageRepository.ts:119` — duplicate `renewals` key in object literal (line ~62 has `renewals: []` and line ~119 also assigns `renewals`). Fix: remove the duplicate from `getInitialData()`.
 
-#### 1. Context-Aware Mobile Sub-Navigation Bar
+---
 
-Add a **horizontal scrollable pill/tab strip** below the mobile header on each section. This is a common native pattern (think iOS segmented controls or Android's scrollable tab bar at the top).
+### Part 2 — Super Admin Panel
 
-- **Operations pages**: Show a scrollable strip with "Projects | Quick Tasks | Retainers | Renewals | Revenue | Payments | Expenses | Payroll | Clients | Analytics"
-- **Back Office pages**: Show "Overview | Businesses | Access | Team | Bank Accounts | Partners | Allocations | Payables | Receivables"
-- **To-Do pages**: Show "Overview | Today | Week | Upcoming | Overdue | By Assignee | All"
+**Architecture: Supabase-backed, fully isolated from the main app**
 
-The active sub-page is highlighted. The strip scrolls horizontally so it doesn't overflow. This is created as a reusable `MobileSubNav` component.
+The super admin area uses Supabase Auth for login (the `dev@ulrea.com` account) and a Supabase database table to store workspace registry data. This is completely separate from the regular app login (which uses localStorage username).
 
-#### 2. Integrate Sub-Navigation into Each Layout
+**How workspace data is collected:**
+When any WorkOS user connects Google Drive and creates/verifies their workspace, the app will register a lightweight record in Supabase (`workspaces` table): workspace name, owner email, owner display name, folder ID, and last active timestamp. Team members are also registered in a `workspace_members` table when they access a shared workspace. This is a passive background registration — it doesn't affect the existing app behaviour.
 
-Each layout (`DashboardLayout`, `BusinessManagementLayout`, `TodoLayout`) will render the `MobileSubNav` component below the `MobileHeader`, passing in the appropriate sub-page items for that section. It only renders on mobile (hidden on `md+`).
+**Super admin reads:**
+- All registered workspaces
+- For each workspace: the owner, team members, and last sync time
+- Platform-level stats: total workspaces, total users, active in last 30 days
 
-#### 3. Global Mobile Responsiveness Pass
+---
 
-Audit and fix common responsive issues across content pages:
+### Database Schema (Supabase migration)
 
-- **Stat card grids**: Change from fixed `grid-cols-4` to `grid-cols-2` on mobile, `grid-cols-4` on desktop
-- **Tables**: Wrap in horizontal scroll containers, hide less-important columns on mobile using `hidden sm:table-cell`
-- **Filter/action bars**: Stack vertically on mobile instead of horizontal row
-- **Modals/dialogs**: Full-screen on mobile (`max-w-full h-full` on small screens)
-- **Tab lists**: Make scrollable horizontally on mobile with `overflow-x-auto`
-- **Button groups**: Stack or reduce to icon-only on mobile
-- **Text truncation**: Apply `truncate` to long names/descriptions on mobile
+```sql
+-- Workspace registry (populated by app on connect/sync)
+CREATE TABLE public.workspace_registry (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  folder_id text UNIQUE NOT NULL,
+  workspace_name text NOT NULL,
+  owner_email text,
+  owner_display_name text,
+  last_sync_at timestamptz DEFAULT now(),
+  created_at timestamptz DEFAULT now()
+);
 
-### Technical Details
+-- Workspace members (populated when users access a shared workspace)
+CREATE TABLE public.workspace_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_folder_id text NOT NULL REFERENCES public.workspace_registry(folder_id) ON DELETE CASCADE,
+  member_email text,
+  member_display_name text,
+  role text DEFAULT 'member',
+  last_seen_at timestamptz DEFAULT now(),
+  UNIQUE(workspace_folder_id, member_email)
+);
 
-**New file: `src/components/MobileSubNav.tsx`**
-A reusable horizontal scrollable navigation strip that:
-- Accepts an array of `{ label, path, icon? }` items
-- Uses `useLocation` to highlight the active item
-- Renders as `Link` components in a horizontally scrollable container
-- Only visible on mobile (`md:hidden`)
-- Has a subtle bottom border and frosted glass background matching the header
-- Auto-scrolls the active item into view on mount
-
-**Modified layouts:**
-- `src/layouts/DashboardLayout.tsx` -- Import and render `MobileSubNav` with Operations sub-items
-- `src/layouts/BusinessManagementLayout.tsx` -- Render `MobileSubNav` with Back Office sub-items
-- `src/layouts/TodoLayout.tsx` -- Render `MobileSubNav` with To-Do sub-items
-
-**Responsive fixes across content pages (sampling the most impactful ones):**
-- `src/components/ExpensesPage.tsx` -- Responsive stat cards, scrollable table
-- `src/components/PaymentsPage.tsx` -- Same pattern
-- `src/components/RevenuePage.tsx` -- Same pattern
-- `src/components/SalariesPage.tsx` -- Responsive grid
-- `src/components/ClientsPage.tsx` -- Card layout on mobile instead of table
-- `src/components/ProjectCard.tsx` -- Already responsive (per memory)
-- `src/components/AnalyticsPage.tsx` -- Stack charts vertically on mobile
-- `src/components/WorkOSHub.tsx` -- Already responsive
-- `src/components/admin/*.tsx` -- Responsive tables in Back Office pages
-- `src/components/todos/*.tsx` -- Ensure todo lists are touch-friendly
-
-**CSS additions to `src/index.css`:**
-- Utility class for horizontal scroll navigation strip
-- Hide scrollbar on the sub-nav strip (`scrollbar-width: none`, `-webkit-scrollbar: none`)
-
-### Visual Design (Mobile)
-
-```text
-+----------------------------------------------+
-|  < Back    Page Title          [⋮ More]       |  <- Mobile Header
-+----------------------------------------------+
-| [Projects] [Tasks] [Retainers] [Revenue] ... |  <- Scrollable Sub-Nav
-+----------------------------------------------+
-|                                               |
-|              Page Content                     |
-|         (responsive cards/tables)             |
-|                                               |
-+----------------------------------------------+
-| [Home] [Operations] [Back Office] [To-Do]     |  <- Bottom Tab Bar
-+----------------------------------------------+
+-- Super admin role table
+CREATE TABLE public.super_admins (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  email text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
 ```
 
-### Files to Create
-- `src/components/MobileSubNav.tsx`
+RLS:
+- `workspace_registry` and `workspace_members`: public INSERT (upsert from app), SELECT restricted to super admins only
+- `super_admins`: SELECT restricted to the authenticated user's own row
 
-### Files to Modify
-- `src/layouts/DashboardLayout.tsx`
-- `src/layouts/BusinessManagementLayout.tsx`
-- `src/layouts/TodoLayout.tsx`
-- `src/index.css`
-- `src/components/ExpensesPage.tsx`
-- `src/components/PaymentsPage.tsx`
-- `src/components/RevenuePage.tsx`
-- `src/components/SalariesPage.tsx`
-- `src/components/ClientsPage.tsx`
-- `src/components/AnalyticsPage.tsx`
-- `src/components/admin/AdminOverview.tsx`
-- `src/components/admin/TeamMembersPage.tsx`
-- `src/components/admin/BankAccountsPage.tsx`
-- `src/components/admin/PartnersPage.tsx`
-- `src/components/admin/PayablesPage.tsx`
-- `src/components/admin/ReceivablesPage.tsx`
-- `src/components/todos/TodayPage.tsx`
-- `src/components/todos/WeekPage.tsx`
-- `src/components/todos/TodoOverview.tsx`
+---
+
+### Files to Create/Edit
+
+| File | Action |
+|---|---|
+| `src/components/ExtraPaymentModal.tsx` | Fix build error: use `paymentDate` state variable |
+| `src/layouts/HubLayout.tsx` | Fix build error: wrap `createAccount`/`migrateAccount` to return void |
+| `src/repositories/LocalStorageRepository.ts` | Fix build error: remove duplicate `renewals` key |
+| `src/pages/SuperAdminLoginPage.tsx` | New — isolated login page with Supabase Auth |
+| `src/pages/SuperAdminDashboard.tsx` | New — dashboard: workspace list, user counts, search |
+| `src/components/superadmin/WorkspaceTable.tsx` | New — table of all workspaces with expandable team members |
+| `src/components/superadmin/StatsCards.tsx` | New — platform totals: workspaces, users, active |
+| `src/layouts/SuperAdminLayout.tsx` | New — isolated sidebar layout, no ThemeProvider conflict |
+| `src/hooks/useSuperAdmin.ts` | New — auth check, redirect if not super admin |
+| `src/contexts/GoogleDriveContext.tsx` | Add passive workspace registry upsert on connect/sync |
+| `src/App.tsx` | Add `/super-admin` and `/super-admin/dashboard` routes (outside ProtectedRoute) |
+
+---
+
+### Super Admin Login Flow
+
+1. User navigates to `/super-admin`
+2. Supabase email/password sign-in (completely separate from main app username login)
+3. After sign-in, check `super_admins` table for their `user_id` — if not found, show "Unauthorized" and sign out
+4. If authorized, redirect to `/super-admin/dashboard`
+5. Dashboard shows all workspaces from `workspace_registry` with expandable team members from `workspace_members`
+
+The first super admin record (`dev@ulrea.com`) is seeded via a Supabase migration that runs an INSERT after the account is created in Supabase Auth.
+
+---
+
+### Passive Registry (non-breaking)
+In `GoogleDriveContext.tsx`, on `createAccount` and `discoverAccounts` success, a fire-and-forget `fetch` to Supabase upserts the workspace. Uses `anon` key — RLS allows INSERT but not SELECT (except super admins). No await, no user-visible side effects, no errors shown if it fails.
+
+---
+
+### UI Design
+The super admin panel will use a clean, minimal dark sidebar layout distinct from the main WorkOS theme — professional "admin console" aesthetic with:
+- Left sidebar: WorkOS logo, nav items (Overview, Workspaces, Users), Logout
+- Main area: stat cards at top, searchable workspace table below
+- Each workspace row is expandable to show team members
