@@ -272,10 +272,20 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
   const renderFound = () => {
     if (!legacyData || !selectedBusiness) return null;
     const b = selectedBusiness;
-    const projectCount = legacyData.projects.filter(p => p.businessId === b.id).length;
-    const clientCount = legacyData.clients?.length || 0;
-    const todoCount = legacyData.todos?.length || 0;
-    const paymentCount = legacyData.payments?.length || 0;
+    const bizProjectIds = new Set(legacyData.projects.filter(p => p.businessId === b.id).map(p => p.id));
+    const bizRetainerIds = new Set((legacyData.retainers || []).filter(r => r.businessId === b.id).map(r => r.id));
+    const projectCount = bizProjectIds.size;
+    const retainerCount = bizRetainerIds.size;
+    const renewalCount = (legacyData.renewals || []).filter(r => r.businessId === b.id).length;
+    const todoCount = (legacyData.todos || []).filter(t =>
+      t.businessId === b.id || (t.linkedEntityId && (bizProjectIds.has(t.linkedEntityId) || bizRetainerIds.has(t.linkedEntityId)))
+    ).length;
+    const paymentCount = (legacyData.payments || []).filter(p =>
+      (p.projectId && bizProjectIds.has(p.projectId)) ||
+      (p.retainerId && bizRetainerIds.has(p.retainerId)) ||
+      (!p.projectId && !p.retainerId)
+    ).length;
+    const salaryCount = (legacyData.salaryRecords || []).filter(s => s.businessId === b.id).length;
 
     return (
       <div className="space-y-6">
@@ -300,12 +310,14 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
             </div>
             <Badge variant="secondary" className="text-xs shrink-0">{b.currency?.code || 'USD'}</Badge>
           </div>
-          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border/50">
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
             {[
               { label: 'Projects', value: projectCount },
-              { label: 'Clients', value: clientCount },
-              { label: 'To-dos', value: todoCount },
+              { label: 'Retainers', value: retainerCount },
+              { label: 'Renewals', value: renewalCount },
               { label: 'Payments', value: paymentCount },
+              { label: 'To-dos', value: todoCount },
+              { label: 'Salaries', value: salaryCount },
             ].map(stat => (
               <div key={stat.label} className="text-center">
                 <p className="text-base font-bold text-foreground">{stat.value}</p>
