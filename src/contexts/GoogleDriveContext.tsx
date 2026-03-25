@@ -326,7 +326,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       setShowAccountSelection(true);
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'discoverAccounts' });
+        handleTokenExpiry({ type: 'discoverAccounts' }, true); // silent — background discovery
       } else {
         console.error('Failed to discover accounts:', error);
         setShowAccountSelection(true);
@@ -379,7 +379,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   // clicks "Continue with Google".  An auto-trigger would re-open the
   // workspace modal every time the user dismisses it, making it unclosable.
 
-  const syncNow = useCallback(async (data: AppData) => {
+  const syncNow = useCallback(async (data: AppData, silent = false) => {
     if (!isConnected) return;
     
     // If no account selected, trigger discovery
@@ -415,7 +415,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       toast({ title: 'Backup Complete', description: 'Your data has been backed up.' });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'sync', data });
+        handleTokenExpiry({ type: 'sync', data }, silent); // silent for auto-sync
       } else {
         toast({ title: 'Backup Failed', description: error instanceof Error ? error.message : 'Could not backup.', variant: 'destructive' });
       }
@@ -427,7 +427,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const scheduleSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.autoSyncEnabled || !currentAccount) return;
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
-    syncTimeoutRef.current = setTimeout(() => syncNow(data), DEBOUNCE_DELAY);
+    syncTimeoutRef.current = setTimeout(() => syncNow(data, true), DEBOUNCE_DELAY); // silent auto-sync
   }, [isConnected, settings.autoSyncEnabled, currentAccount, syncNow]);
 
   const loadBackups = useCallback(async () => {
@@ -504,7 +504,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     toast({ title: 'Sheet Disconnected', description: 'The spreadsheet has been disconnected.' });
   }, [updateSettings, toast]);
 
-  const syncToConnectedSheet = useCallback(async (data: AppData) => {
+  const syncToConnectedSheet = useCallback(async (data: AppData, silent = false) => {
     if (!isConnected || !settings.connectedSheet) return;
     setIsSyncingSheet(true);
     try {
@@ -513,7 +513,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       toast({ title: 'Sheet Updated', description: 'Your spreadsheet has been updated.' });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'syncToConnectedSheet', data });
+        handleTokenExpiry({ type: 'syncToConnectedSheet', data }, silent);
       } else {
         toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not update sheet.', variant: 'destructive' });
       }
@@ -554,7 +554,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const scheduleSheetSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.sheetAutoSyncEnabled || !settings.connectedSheet) return;
     if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
-    sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data), SHEET_SYNC_DELAY);
+    sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data, true), SHEET_SYNC_DELAY); // silent auto-sync
   }, [isConnected, settings.sheetAutoSyncEnabled, settings.connectedSheet, syncToConnectedSheet]);
 
   // Partner sheet functions
@@ -609,7 +609,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     }
   }, [isConnected, settings.partnerSheets, updateSettings, toast, handleTokenExpiry]);
 
-  const syncPartnerSheet = useCallback(async (partnerId: string, data: AppData) => {
+  const syncPartnerSheet = useCallback(async (partnerId: string, data: AppData, silent = false) => {
     if (!isConnected) return;
     const partnerSheet = settings.partnerSheets?.find(ps => ps.partnerId === partnerId);
     if (!partnerSheet) return;
@@ -639,7 +639,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       });
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'syncPartnerSheet', data });
+        handleTokenExpiry({ type: 'syncPartnerSheet', data }, silent);
       } else {
         toast({
           title: 'Sync Failed',
