@@ -113,9 +113,9 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({ isOpen, us
 
           {/* Workspace name only shown to workspace owners, not invited users */}
           {!isInvitedUser && (
-            <div className="space-y-2">
-              <Label htmlFor="workspace-name">Workspace Name</Label>
-              <p className="text-xs text-muted-foreground">Name of your organisation or team workspace.</p>
+          <div className="space-y-2">
+              <Label htmlFor="workspace-name">Venture Name</Label>
+              <p className="text-xs text-muted-foreground">Name of your venture or organisation.</p>
               <Input
                 id="workspace-name"
                 placeholder="e.g. Acme Corp"
