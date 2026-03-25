@@ -403,7 +403,7 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground truncate">{b.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {projectCount} project{projectCount !== 1 ? 's' : ''} · {clientCount} client{clientCount !== 1 ? 's' : ''} · {paymentCount} payment{paymentCount !== 1 ? 's' : ''} · {b.businessModel}
+                    {projectCount} project{projectCount !== 1 ? 's' : ''} · {retainerCount} retainer{retainerCount !== 1 ? 's' : ''} · {paymentCount} payment{paymentCount !== 1 ? 's' : ''} · {b.businessModel}
                   </p>
                 </div>
                 {isImported && <Badge variant="secondary" className="text-xs shrink-0">Imported</Badge>}
