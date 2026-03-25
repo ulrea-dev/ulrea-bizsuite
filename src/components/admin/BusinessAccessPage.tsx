@@ -93,6 +93,14 @@ export const BusinessAccessPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
   const { toast } = useToast();
 
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: s }) => {
+      if (s.session?.user?.id) setSessionUserId(s.session.user.id);
+    });
+  }, []);
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAccess, setEditingAccess] = useState<UserBusinessAccess | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserBusinessAccess | null>(null);
