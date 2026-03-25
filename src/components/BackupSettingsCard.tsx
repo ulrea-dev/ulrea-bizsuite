@@ -34,6 +34,9 @@ export const BackupSettingsCard: React.FC = () => {
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [showRestoreSection, setShowRestoreSection] = useState(false);
+  // Multi-business picker state
+  const [pendingBackupData, setPendingBackupData] = useState<AppData | null>(null);
+  const [showBusinessPicker, setShowBusinessPicker] = useState(false);
 
   const lastCloudSyncFormatted = cloudSync.lastSyncTime
     ? formatDistanceToNow(new Date(cloudSync.lastSyncTime), { addSuffix: true })
