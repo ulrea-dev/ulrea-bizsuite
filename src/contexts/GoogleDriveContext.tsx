@@ -181,9 +181,13 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   }, []);
 
   // Handle token expiry errors
-  const handleTokenExpiry = useCallback((operation: { type: string; data?: AppData }) => {
+  const handleTokenExpiry = useCallback((operation: { type: string; data?: AppData }, silent = false) => {
     setPendingOperation(operation);
-    setShowReconnectModal(true);
+    // Only show the reconnect modal for user-initiated Drive actions (exports, backups, etc.)
+    // Background operations (polling, auto-checks) should fail silently
+    if (!silent) {
+      setShowReconnectModal(true);
+    }
   }, []);
 
   // Initialize Google OAuth client
@@ -434,7 +438,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       setBackups(list);
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'loadBackups' });
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiry({ type: 'loadBackups' }, true); // silent — background load
+      }
       } else {
         toast({ title: 'Failed to Load Backups', description: error instanceof Error ? error.message : 'Could not load backups.', variant: 'destructive' });
       }
@@ -727,7 +733,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } catch (error) {
       // Don't show errors for polling failures - just retry next time
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'checkForRemoteChanges' });
+        handleTokenExpiry({ type: 'checkForRemoteChanges' }, true); // silent — background poll
       }
     } finally {
       isPollingRef.current = false;
@@ -800,7 +806,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       return data;
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'refreshFromRemote' });
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiry({ type: 'refreshFromRemote' }, true); // silent — user triggered via sync overlay, not export section
+      }
       } else {
         toast({ title: 'Sync Failed', description: error instanceof Error ? error.message : 'Could not sync.', variant: 'destructive' });
       }
