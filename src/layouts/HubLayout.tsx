@@ -48,12 +48,11 @@ const LayoutContent: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // After login, if connected to Google but no workspace selected, prompt for workspace
-  useEffect(() => {
-    if (isConnected && !currentAccount) {
-      discoverAccounts();
-    }
-  }, [isConnected, currentAccount, discoverAccounts]);
+  // NOTE: We intentionally do NOT auto-discover Google Drive accounts on load.
+  // Google Drive is now an optional external archive only (not the primary storage).
+  // The AccountSelectionModal should only appear when the user explicitly uses a
+  // Drive feature, not on every page load. Auto-discovery was causing the modal
+  // to pop up on /settings even when users aren't using Drive.
 
   const handleLogout = async () => {
     if (isConnected) {
