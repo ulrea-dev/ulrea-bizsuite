@@ -121,8 +121,11 @@ export const BusinessAccessPage: React.FC = () => {
 
   const currentUserAccess = useMemo(() => accessList.find(a => a.userId === currentUserId), [accessList, currentUserId]);
   const isOwner = useMemo(() => {
+    // Owner if: no access list, OR current user not in access list (they ARE the workspace owner),
+    // OR current user has owner role
     if (accessList.length === 0) return true;
-    return currentUserAccess?.role === 'owner';
+    if (!currentUserAccess) return true; // Not in list = workspace owner by default
+    return currentUserAccess.role === 'owner';
   }, [accessList, currentUserAccess]);
 
   const getRoleBadgeVariant = (role: UserBusinessRole) => {
