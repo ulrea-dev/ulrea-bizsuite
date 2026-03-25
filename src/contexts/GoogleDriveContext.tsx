@@ -731,7 +731,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     } catch (error) {
       // Don't show errors for polling failures - just retry next time
       if (error instanceof TokenExpiredError) {
-        handleTokenExpiry({ type: 'checkForRemoteChanges' });
+        handleTokenExpiry({ type: 'checkForRemoteChanges' }, true); // silent — background poll
       }
     } finally {
       isPollingRef.current = false;
