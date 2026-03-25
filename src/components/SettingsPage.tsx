@@ -16,6 +16,7 @@ import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
 import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
+import { BackupSettingsCard } from '@/components/BackupSettingsCard';
 import { GoogleSheetsConnectionCard } from '@/components/GoogleSheetsConnectionCard';
 import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { ShareAccessModal } from '@/components/ShareAccessModal';
