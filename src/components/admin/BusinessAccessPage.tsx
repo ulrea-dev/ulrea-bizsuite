@@ -459,7 +459,7 @@ export const BusinessAccessPage: React.FC = () => {
             {/* Invite by Email */}
             <TabsContent value="invite" className="space-y-4 pt-2">
               <p className="text-xs text-muted-foreground">
-                The user will receive an email with a link to set their password and join your workspace.
+                The user will receive an email with a link to set their password and join your venture.
               </p>
               <div className="space-y-2">
                 <Label>Email Address</Label>
@@ -469,17 +469,9 @@ export const BusinessAccessPage: React.FC = () => {
                 <Label>Role</Label>
                 <RoleSelect value={inviteRole} onChange={setInviteRole} />
               </div>
-              <div className="space-y-2">
-                <Label>Businesses</Label>
-                <BusinessCheckboxList
-                  businesses={data.businesses}
-                  selected={inviteBusinessIds}
-                  onToggle={(id) => setInviteBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-                />
-              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                <Button onClick={handleSendInvite} disabled={isSaving || !inviteEmail.trim() || inviteBusinessIds.length === 0}>
+                <Button onClick={handleSendInvite} disabled={isSaving || !inviteEmail.trim()}>
                   {isSaving ? 'Sending…' : 'Send Invitation'}
                 </Button>
               </DialogFooter>
@@ -517,17 +509,9 @@ export const BusinessAccessPage: React.FC = () => {
                 <Label>Role</Label>
                 <RoleSelect value={createRole} onChange={setCreateRole} />
               </div>
-              <div className="space-y-2">
-                <Label>Businesses</Label>
-                <BusinessCheckboxList
-                  businesses={data.businesses}
-                  selected={createBusinessIds}
-                  onToggle={(id) => setCreateBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-                />
-              </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-                <Button onClick={handleCreateAccount} disabled={isSaving || !createEmail.trim() || createBusinessIds.length === 0}>
+                <Button onClick={handleCreateAccount} disabled={isSaving || !createEmail.trim()}>
                   {isSaving ? 'Creating…' : 'Create Account'}
                 </Button>
               </DialogFooter>
