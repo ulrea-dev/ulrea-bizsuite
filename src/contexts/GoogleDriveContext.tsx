@@ -345,7 +345,9 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
       title: 'Workspace Selected', 
       description: `Using "${account.name}" workspace.` 
     });
-  }, [updateSettings, toast]);
+    // Passive background registration for super admin tracking
+    registerWorkspacePassively(account);
+  }, [updateSettings, toast, registerWorkspacePassively]);
 
   const createAccount = useCallback(async (name: string): Promise<BizSuiteAccount> => {
     const account = await googleDriveService.createAccountFolder(name);
