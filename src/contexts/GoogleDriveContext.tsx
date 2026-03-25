@@ -554,7 +554,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
   const scheduleSheetSync = useCallback((data: AppData) => {
     if (!isConnected || !settings.sheetAutoSyncEnabled || !settings.connectedSheet) return;
     if (sheetSyncTimeoutRef.current) clearTimeout(sheetSyncTimeoutRef.current);
-    sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data), SHEET_SYNC_DELAY);
+    sheetSyncTimeoutRef.current = setTimeout(() => syncToConnectedSheet(data, true), SHEET_SYNC_DELAY); // silent auto-sync
   }, [isConnected, settings.sheetAutoSyncEnabled, settings.connectedSheet, syncToConnectedSheet]);
 
   // Partner sheet functions
