@@ -4,17 +4,18 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useBusiness, setRestoringData } from '@/contexts/BusinessContext';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
+import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { importData } from '@/utils/storage';
-import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTheme } from '@/hooks/useTheme';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 interface AuthProps {
   onLogin: (username: string) => void;
 }
 
-type AuthView = 'main' | 'newUser' | 'backupSelection';
+type AuthView = 'main' | 'newUser' | 'backupSelection' | 'cloudRestore';
 
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const { data, dispatch } = useBusiness();
