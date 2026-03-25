@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useBusiness } from '@/contexts/BusinessContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -93,6 +93,14 @@ export const BusinessAccessPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
   const { toast } = useToast();
 
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: s }) => {
+      if (s.session?.user?.id) setSessionUserId(s.session.user.id);
+    });
+  }, []);
+
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAccess, setEditingAccess] = useState<UserBusinessAccess | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserBusinessAccess | null>(null);
@@ -116,14 +124,25 @@ export const BusinessAccessPage: React.FC = () => {
   const [editRole, setEditRole] = useState<UserBusinessRole>('viewer');
   const [editBusinessIds, setEditBusinessIds] = useState<string[]>([]);
 
-  const currentUserId = data.userSettings.userId;
+  // Use the Supabase session user ID if available, falling back to stored userId
+  const currentUserId = sessionUserId || data.userSettings.userId;
   const accessList = data.userBusinessAccess || [];
 
   const currentUserAccess = useMemo(() => accessList.find(a => a.userId === currentUserId), [accessList, currentUserId]);
   const isOwner = useMemo(() => {
+    // Owner if: no access list, OR current user not in the access list at all
+    // (workspace creator is owner by default and typically not listed)
+    // OR their entry explicitly has role 'owner'
     if (accessList.length === 0) return true;
-    return currentUserAccess?.role === 'owner';
+    if (!currentUserAccess) return true;
+    return currentUserAccess.role === 'owner';
   }, [accessList, currentUserAccess]);
+
+  // Users to show — everyone except the current user
+  const sharedUsers = useMemo(
+    () => accessList.filter(a => a.userId !== currentUserId),
+    [accessList, currentUserId]
+  );
 
   const getRoleBadgeVariant = (role: UserBusinessRole) => {
     switch (role) {
@@ -273,7 +292,7 @@ export const BusinessAccessPage: React.FC = () => {
     });
   };
 
-  const sharedUsers = accessList.filter(a => a.userId !== currentUserId);
+  
 
   return (
     <div className="space-y-6">
