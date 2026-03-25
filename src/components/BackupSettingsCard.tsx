@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
 import { useBusiness } from '@/contexts/BusinessContext';
-import { Cloud, CloudOff, RefreshCw, Check, AlertCircle, HardDrive, Wifi } from 'lucide-react';
+import { Cloud, RefreshCw, Check, AlertCircle, HardDrive, Wifi, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export const BackupSettingsCard: React.FC = () => {

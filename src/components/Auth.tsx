@@ -1,15 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/hooks/useTheme';
-import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
-import { useBusiness, setRestoringData } from '@/contexts/BusinessContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Moon, Sun, Loader2, Eye, EyeOff, ArrowLeft, ChevronDown, Cloud, RefreshCw } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Moon, Sun, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 type AuthView = 'login' | 'signup' | 'forgotPassword' | 'forgotSent' | 'legacySetPassword';
 
