@@ -1,153 +1,157 @@
-## Understanding the Request
 
-The user wants to fundamentally change the storage architecture:
+## Current Architecture Analysis
 
-**Current**: localStorage (primary) → Google Drive (optional backup)
+The app currently uses a **username-only login** — no email, no password, no Supabase Auth for regular users. The only Supabase Auth used is for the Super Admin.
 
-**Desired**:
-
-- Supabase Storage (primary, real-time) — stores the full JSON file per workspace
-- Google Drive (optional external archive) — user/admin can push to it manually
-- Users log in without Google required. Users log in with email.
-- Existing Google users are forced to set a password for next login (so there's an option for legacy login for users who were using Google signin)
-- App shows "last synced with Google Drive" timestamp
-- Every data change is immediately saved to Supabase Storage
-- Admin can push to Google Drive as a secondary export
-
-**What stays the same**: localStorage is still used as the in-memory working store (for performance), but every save also pushes the JSON file to Supabase Storage.
+The user wants to:
+1. Switch the main app login to **Supabase Auth (email + password)**
+2. Detect on login if the user has a Supabase Auth account — if not (Google Drive legacy user), force them to set a password using their Google email
+3. Allow users to **reset/change password** via email
+4. After login, force a **profile setup** if the user hasn't filled in Display Name and Account Name yet
+5. The Google email automatically becomes the user's email when they set up via Google
 
 ---
 
-## Architecture Design
-
-### Storage Layers
+## Architecture Shift
 
 ```text
-User makes change
-    ↓
-1. localStorage (instant, in-memory — unchanged)
-    ↓
-2. Supabase Storage (immediate async upload — NEW PRIMARY)
-    ↓
-3. Google Drive (manual push by user — secondary/optional)
+BEFORE: username stored in localStorage → ProtectedRoute checks localStorage
+
+AFTER:  email + password → Supabase Auth session → ProtectedRoute checks auth session
+        localStorage data still keyed to userId (now = Supabase Auth user.id)
 ```
 
-### Supabase Storage Structure
+The `userSettings.username` stays (it's the display name, not the login credential). What changes:
+- Login uses Supabase email/password instead of just a name field
+- `ProtectedRoute` checks Supabase session, not just `username`
+- After auth, check if profile is complete (username + accountName set), if not show profile setup modal
+
+---
+
+## Google Legacy Users Flow
+
+Google Drive connects with `settings.connectedEmail` (already stored in `GoogleDriveSettings`). When a Google user logs in for the first time post-migration:
+
+1. They see the new email/password login
+2. A "Continue with Google" path: user clicks it → Google OAuth connects → app gets the email from the Google connection → checks Supabase if that email exists
+3. If **no Supabase account** → show "Set a password for your account" screen with the pre-filled email
+4. After password set, they're registered in Supabase Auth and logged in
+5. Profile setup modal appears since `username` may be empty
+
+---
+
+## Files to Create / Edit
+
+| File | Change |
+|---|---|
+| `src/components/Auth.tsx` | Full rewrite: email + password login form, sign up form, forgot password form. Remove username-only flow. |
+| `src/pages/LoginPage.tsx` | Wrap new Auth with Supabase session check — if session exists, redirect to `/dashboard` |
+| `src/components/ProtectedRoute.tsx` | Check Supabase session (`supabase.auth.getSession()`) instead of just `data.userSettings.username` |
+| `src/components/ProfileSetupModal.tsx` | NEW — Modal triggered post-login if `username` or `accountName` is missing. Required fields: Display Name, Account Name. Cannot be dismissed without completing. |
+| `src/layouts/DashboardLayout.tsx` / `HubLayout.tsx` | Add `ProfileSetupModal` check — if user logged in but profile incomplete, show modal |
+| `src/pages/ResetPasswordPage.tsx` | NEW — `/reset-password` route that handles Supabase recovery token from email link |
+| `src/App.tsx` | Add `/reset-password` public route |
+| `src/contexts/BusinessContext.tsx` | On login, key the localStorage data by Supabase `user.id` rather than just username |
+
+---
+
+## Login Screen Design
 
 ```text
-bucket: workspace-data
-  └── {workspace_id}/
-        └── data.json   (overwritten on every save)
-```
+[WorkOS Logo]
 
-The `workspace_id` is derived from the `userSettings.accountName` or a stable unique ID. Since users don't have Supabase Auth, we'll use the existing `userSettings.userId` (already generated on first login) as the folder key.
+Sign in to WorkOS
 
-### Key Design Decisions
+Email _______________
+Password _______________
 
-1. **Supabase Auth required** — users still log in with just their email and password (the existing flow). The `userId` from `userSettings` is used as the storage path key.
-2. **Bucket RLS**: Public insert/update using the userId path prefix — simple and consistent with the existing local-first model. Since the data is already stored in localStorage (client-accessible), this doesn't add security concerns.
-3. **Upload on every save**: The `BusinessContext` already calls `repository.save(data)` on every change. We hook into that same `data` change effect to also upload to Supabase Storage.
-4. **Load on login**: When user logs in (either by name or if they have an existing userId), we check if there's a file in Supabase Storage for that userId and offer to restore it.
-5. **Google Drive timestamp**: `GoogleDriveBackupCard` already shows `lastSyncTime`. We keep this and make it clearly labeled as "External Drive" sync time. The Supabase sync time is tracked separately.
+[Sign In]
 
----
+[Forgot password?]
 
-## Files to Create/Change
+─── or ───
 
+[Continue with Google] (connects Google OAuth, sets password if new)
 
-| File                                            | Change                                                                                                                       |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Supabase migration                              | Create `workspace-data` storage bucket with RLS                                                                              |
-| `src/repositories/SupabaseStorageRepository.ts` | NEW — implements `IDataRepository` using Supabase Storage. Also saves to localStorage as fallback.                           |
-| `src/contexts/SupabaseStorageContext.tsx`       | NEW — manages the async Supabase sync layer: uploads on data change, tracks last-saved-to-supabase timestamp, loads on login |
-| `src/repositories/RepositoryProvider.tsx`       | Switch default to `SupabaseStorageRepository`                                                                                |
-| `src/components/Auth.tsx`                       | Add "Restore from Cloud" option on login — if a file exists for the userId, offer to restore it before starting fresh        |
-| `src/components/GoogleDriveBackupCard.tsx`      | Rename/reframe as "External Drive" — show Supabase last-sync and Google Drive last-push separately                           |
-| `src/components/SettingsPage.tsx`               | Update Backup tab to show new 2-tier layout: Cloud Storage (Supabase, always-on) + External Drive (Google Drive, optional)   |
-
-
----
-
-## Supabase Storage Bucket + RLS
-
-```sql
--- Create bucket
-INSERT INTO storage.buckets (id, name, public) VALUES ('workspace-data', 'workspace-data', false);
-
--- Allow any anon user to upload/read their own workspace file by userId path
-CREATE POLICY "Users can upload their own workspace data"
-ON storage.objects FOR INSERT TO anon
-WITH CHECK (bucket_id = 'workspace-data');
-
-CREATE POLICY "Users can update their own workspace data"  
-ON storage.objects FOR UPDATE TO anon
-USING (bucket_id = 'workspace-data');
-
-CREATE POLICY "Users can read their own workspace data"
-ON storage.objects FOR SELECT TO anon
-USING (bucket_id = 'workspace-data');
+Don't have an account? Sign up
 ```
 
 ---
 
-## SupabaseStorageRepository
+## Profile Setup Modal (Post-Login)
 
-This new class wraps `LocalStorageRepository` and additionally:
+Triggered whenever user is authenticated (Supabase session exists) but:
+- `data.userSettings.username` is empty, OR
+- `data.userSettings.accountName` is empty
 
-- On `save(data)`: Async upload JSON to `workspace-data/{userId}/data.json`. Fire-and-forget (no await), stores `lastSupabaseSyncTime` in localStorage separately.
-- On `load()`: Returns from localStorage (fast, synchronous). Supabase loading happens separately in `Auth.tsx` on login.
-- Provides `uploadToSupabase(data, userId)` and `downloadFromSupabase(userId)` public methods.
-
----
-
-## Auth.tsx Login Flow with Cloud Restore
-
-When a user enters their name and logs in:
-
-1. Check localStorage for existing data (current behavior)
-2. **NEW**: If `userId` is set in `userSettings`, check Supabase Storage for `{userId}/data.json`
-3. If a cloud file exists and is newer than local, offer "Restore from Cloud" with timestamp
-4. User can choose: continue with local data OR restore from cloud
-
-For new users (no existing data), after they enter their name, a `userId` is generated and associated. Subsequent logins on different devices can recover data by entering the same name — but since userId is device-specific, we need to show them their userId as a "recovery key" they can note down, OR we link userId to their display name in a simple Supabase table for cross-device lookup.
-
-**Simpler approach**: Use `accountName` (workspace name) as the storage key. The workspace owner sets an account name, and that becomes the bucket path. On new devices, they enter the same account name to discover their cloud backup. This is simpler and doesn't require auth.
-
-Storage path: `workspace-data/{accountName_slug}/data.json`
-
----
-
-## Settings — New Backup Tab Layout
-
-```
-[Cloud Storage — Always On]
-  ✓ Auto-saving to cloud
-  Last saved: 2 minutes ago
-  [View history / Restore]
-
-[External Drive — Optional]
-  Google Drive connection
-  Last pushed to Drive: 3 days ago
-  [Push to Drive Now] [Connect / Disconnect]
-  [Google Sheets connection]
+```text
+╔══════════════════════════════════╗
+║  Set Up Your Profile             ║
+║                                  ║
+║  Email: user@email.com (locked)  ║
+║                                  ║
+║  Display Name ___________        ║
+║  (Your name, shown to teammates) ║
+║                                  ║
+║  Account / Workspace Name ______ ║
+║  (Name of this workspace)        ║
+║                                  ║
+║  [Continue]                      ║
+╚══════════════════════════════════╝
 ```
 
----
-
-## Super Admin Visibility
-
-Since data is now in Supabase Storage, the super admin can also list all workspace files from the `workspace-data` bucket — giving them visibility into all stored workspaces without relying solely on passive registry upserts.
+Cannot be dismissed. Saved to `userSettings` via dispatch.
 
 ---
 
-## Summary of Implementation Steps
+## Google Legacy → Password Setup Flow
 
-1. **Migration**: Create `workspace-data` bucket + RLS policies
-2. `**SupabaseStorageRepository.ts**`: New repository class with local-first + Supabase async upload
-3. `**RepositoryProvider.tsx**`: Use `SupabaseStorageRepository` as default
-4. `**BusinessContext.tsx**`: On data change, trigger Supabase upload (track `lastCloudSyncTime` in a separate localStorage key)
-5. `**Auth.tsx**`: Add cloud restore option — if `accountName` is set and a cloud file exists, show "Resume from Cloud" on login
-6. `**GoogleDriveBackupCard.tsx**` → rename to `BackupSettingsCard.tsx`: Show 2-tier: cloud (Supabase) at top, external drive (Google Drive) below
-7. `**SettingsPage.tsx**`: Update backup tab to use new card
+1. User clicks "Continue with Google" on login screen
+2. Google OAuth connects → `settings.connectedEmail` is populated
+3. App calls `supabase.auth.getUserByEmail(email)` equivalent — actually: attempt sign-in with no password fails → detect no account
+4. More reliable approach: After Google connect, call `supabase.auth.signUp({ email: googleEmail, password: '' })` — if returns `user already exists` → do normal sign-in; if new user → show "Create your password" screen
+5. On password creation: `supabase.auth.signUp({ email, password })` or `supabase.auth.updateUser({ password })` if already signed in
 
-The approach is non-breaking: if Supabase upload fails, the app still works via localStorage. Google Drive integration is fully preserved.
+---
+
+## Password Reset Flow
+
+1. User clicks "Forgot password?" on login
+2. Email input + "Send reset link" button
+3. Calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.origin + '/reset-password' })`
+4. Toast: "Check your email for a reset link"
+5. `/reset-password` page: detects `type=recovery` in URL hash → shows new password form → calls `supabase.auth.updateUser({ password })`
+
+---
+
+## Change Password (Inside App)
+
+In `SettingsPage.tsx`, Account tab, add a "Security" card:
+- "Change Password" button → small form: Current Password (optional for OAuth users), New Password, Confirm New Password
+- Calls `supabase.auth.updateUser({ password: newPassword })`
+
+---
+
+## ProtectedRoute Update
+
+```typescript
+// Check BOTH Supabase session AND local username
+const session = await supabase.auth.getSession();
+if (!session.data.session) → redirect to /login
+```
+
+Using `onAuthStateChange` in a new `AuthContext` or directly in `ProtectedRoute` with a loading state.
+
+---
+
+## Summary of Steps
+
+1. Create `src/components/ProfileSetupModal.tsx` — forced profile completion after login
+2. Create `src/pages/ResetPasswordPage.tsx` — handles email recovery links
+3. Rewrite `src/components/Auth.tsx` — email + password + forgot password + Google path with forced password setup
+4. Update `src/components/ProtectedRoute.tsx` — check Supabase session
+5. Update `src/pages/LoginPage.tsx` — redirect if session exists
+6. Update `src/App.tsx` — add `/reset-password` public route
+7. Update `src/components/SettingsPage.tsx` — add Security card with Change Password
+
+The Supabase `user.id` (from auth session) becomes the storage key for the workspace data, replacing the old `userId` in `userSettings`. This is more reliable and works across devices naturally.
