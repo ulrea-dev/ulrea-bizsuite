@@ -84,9 +84,9 @@ export const BackupSettingsCard: React.FC = () => {
             </Button>
           </div>
           {!data.userSettings.accountName && (
-            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-2 p-3 rounded-lg border" style={{ backgroundColor: 'hsl(38 92% 95%)', borderColor: 'hsl(38 92% 70%)' }}>
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'hsl(38 92% 40%)' }} />
+              <p className="text-xs" style={{ color: 'hsl(38 92% 30%)' }}>
                 Set an <strong>Account Name</strong> in Settings → Account so your cloud backup can be recovered on a new device.
               </p>
             </div>
@@ -113,9 +113,9 @@ export const BackupSettingsCard: React.FC = () => {
         <CardContent className="space-y-4">
           {isDriveConnected ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
+              <div className="flex items-center justify-between p-3 rounded-lg border" style={{ backgroundColor: 'hsl(142 76% 36% / 0.08)', borderColor: 'hsl(142 76% 36% / 0.3)' }}>
                 <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4" style={{ color: 'hsl(142 76% 36%)' }} />
                   <span className="text-sm font-medium">{driveSettings.connectedEmail}</span>
                 </div>
                 <Button variant="outline" size="sm" onClick={disconnectDrive}>
