@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { HubSidebar } from '@/components/HubSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
@@ -9,10 +9,12 @@ import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 import { MobileHeader } from '@/components/MobileHeader';
 import { BottomTabBar } from '@/components/BottomTabBar';
 import { AccountSelectionModal } from '@/components/AccountSelectionModal';
+import { ProfileSetupModal } from '@/components/ProfileSetupModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const LayoutContent: React.FC = () => {
   const navigate = useNavigate();
-  const { dispatch } = useBusiness();
+  const { data, dispatch } = useBusiness();
   const {
     disconnect,
     isConnected,
@@ -28,7 +30,16 @@ const LayoutContent: React.FC = () => {
     closeAccountSelection,
   } = useGoogleDrive();
 
+  const [userEmail, setUserEmail] = useState('');
+
   useAppearance();
+
+  // Get current user email for profile modal
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
 
   // After login, if connected to Google but no workspace selected, prompt for workspace
   useEffect(() => {
@@ -37,12 +48,17 @@ const LayoutContent: React.FC = () => {
     }
   }, [isConnected, currentAccount, discoverAccounts]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (isConnected) {
       disconnect();
     }
+    await supabase.auth.signOut();
     navigate('/login');
   };
+
+  // Profile setup modal: show if username or accountName is missing
+  const needsProfileSetup =
+    !data.userSettings.username?.trim() || !data.userSettings.accountName?.trim();
 
   return (
     <SidebarProvider>
@@ -70,6 +86,12 @@ const LayoutContent: React.FC = () => {
         onMigrateLegacy={async (folderId, name) => { await migrateAccount(folderId, name); }}
         isLoading={isDiscoveringAccounts}
         connectedEmail={null}
+      />
+
+      {/* Profile setup - shown if profile incomplete */}
+      <ProfileSetupModal
+        isOpen={needsProfileSetup}
+        userEmail={userEmail}
       />
     </SidebarProvider>
   );
