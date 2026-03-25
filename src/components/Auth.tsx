@@ -31,6 +31,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     showAccountSelection,
     isDiscoveringAccounts,
   } = useGoogleDrive();
+  const { checkCloudExists, downloadCloud, getStoragePath } = useSupabaseStorage();
   
   const [username, setUsername] = useState('');
   const [showSwitchUser, setShowSwitchUser] = useState(false);
@@ -38,6 +39,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [view, setView] = useState<AuthView>('main');
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  // Cloud restore state
+  const [cloudBackupInfo, setCloudBackupInfo] = useState<{ syncedAt: string } | null>(null);
+  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
+  const [isRestoringCloud, setIsRestoringCloud] = useState(false);
 
   const existingUser = data.userSettings.username;
   const businessCount = data.businesses.length;
