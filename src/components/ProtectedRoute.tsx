@@ -31,8 +31,9 @@ export const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Block access if email not confirmed — force OTP verification
-  if (!session.user.email_confirmed_at) {
+  // Google OAuth users are always confirmed — skip OTP gate for them
+  const isOAuthUser = session.user.app_metadata?.provider === 'google';
+  if (!isOAuthUser && !session.user.email_confirmed_at) {
     return <Navigate to="/login?unverified=1" replace />;
   }
 
