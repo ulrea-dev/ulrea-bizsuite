@@ -99,7 +99,6 @@ export class LocalStorageRepository implements IDataRepository {
         customCurrencies: data.customCurrencies || [],
         quickTasks: data.quickTasks || [],
         retainers: data.retainers || [],
-        renewals: data.renewals || [],
         expenses: data.expenses || [],
         extraPayments: data.extraPayments || [],
         bankAccounts: data.bankAccounts || [],
