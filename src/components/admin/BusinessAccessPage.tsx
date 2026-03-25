@@ -174,10 +174,12 @@ export const BusinessAccessPage: React.FC = () => {
   };
 
   const handleSendInvite = async () => {
-    if (!inviteEmail.trim() || inviteBusinessIds.length === 0) {
-      toast({ title: 'Fill in email and select at least one business.', variant: 'destructive' });
+    if (!inviteEmail.trim()) {
+      toast({ title: 'Please enter an email address.', variant: 'destructive' });
       return;
     }
+    // Auto-assign all businesses in the workspace
+    const allBusinessIds = data.businesses.map(b => b.id);
     setIsSaving(true);
     try {
       let userId: string;
