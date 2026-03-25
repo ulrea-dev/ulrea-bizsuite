@@ -532,18 +532,14 @@ export const BusinessAccessPage: React.FC = () => {
               <Label>Role</Label>
               <RoleSelect value={editRole} onChange={setEditRole} />
             </div>
-            <div className="space-y-2">
-              <Label>Businesses</Label>
-              <BusinessCheckboxList
-                businesses={data.businesses}
-                selected={editBusinessIds}
-                onToggle={(id) => setEditBusinessIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-              />
+          <div className="space-y-2">
+              <Label>Role</Label>
+              <RoleSelect value={editRole} onChange={setEditRole} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAccess(null)}>Cancel</Button>
-            <Button onClick={handleUpdateAccess} disabled={editBusinessIds.length === 0}>Save Changes</Button>
+            <Button onClick={handleUpdateAccess}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -554,7 +550,7 @@ export const BusinessAccessPage: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove User Access?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will revoke <strong>{deleteTarget?.displayName || deleteTarget?.email}</strong>'s access to all assigned businesses.
+              This will revoke <strong>{deleteTarget?.displayName || deleteTarget?.email}</strong>'s access to this venture.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex items-center gap-2 px-1 py-2">
