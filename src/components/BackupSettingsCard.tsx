@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const BackupSettingsCard: React.FC = () => {
-  const { data, dispatch } = useBusiness();
+  const { data, dispatch, importData } = useBusiness();
   const {
     isConnected: isDriveConnected,
     isLoading: isDriveLoading,
@@ -30,7 +30,7 @@ export const BackupSettingsCard: React.FC = () => {
     restoreBackup,
   } = useGoogleDrive();
 
-  const { cloudSync, uploadNow } = useSupabaseStorage();
+  const { cloudSync, uploadNow, downloadCloud } = useSupabaseStorage();
 
   const [showSetupInfo, setShowSetupInfo] = useState(false);
   const [isLoadingBackups, setIsLoadingBackups] = useState(false);
@@ -39,6 +39,12 @@ export const BackupSettingsCard: React.FC = () => {
   // Multi-business picker state
   const [pendingBackupData, setPendingBackupData] = useState<AppData | null>(null);
   const [showBusinessPicker, setShowBusinessPicker] = useState(false);
+
+  // Cloud re-import state
+  const [isCloudScanning, setIsCloudScanning] = useState(false);
+  const [cloudBackupInfo, setCloudBackupInfo] = useState<{ data: AppData; syncedAt: string; path: string } | null>(null);
+  const [isCloudImporting, setIsCloudImporting] = useState(false);
+  const [cloudPickerOpen, setCloudPickerOpen] = useState(false);
 
   const lastCloudSyncFormatted = cloudSync.lastSyncTime
     ? formatDistanceToNow(new Date(cloudSync.lastSyncTime), { addSuffix: true })
