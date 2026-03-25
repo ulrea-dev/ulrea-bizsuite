@@ -305,10 +305,10 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
               >
                 <div className={cn(
                   'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                  isImported ? 'bg-green-500/10' : 'bg-primary/10'
+                  isImported ? 'bg-success/10' : 'bg-primary/10'
                 )}>
                   {isImported
-                    ? <Check className="w-4 h-4 text-green-500" />
+                    ? <Check className="w-4 h-4 text-primary" />
                     : (MODEL_ICON[b.businessModel] || <Building2 className="w-4 h-4 text-primary" />)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -317,7 +317,7 @@ export const LegacyOnboardingFlow: React.FC<LegacyOnboardingFlowProps> = ({ isOp
                     {projectCount} project{projectCount !== 1 ? 's' : ''} · {clientCount} client{clientCount !== 1 ? 's' : ''} · {paymentCount} payment{paymentCount !== 1 ? 's' : ''} · {b.businessModel}
                   </p>
                 </div>
-                {isImported && <Badge variant="secondary" className="text-xs shrink-0 text-green-600">Imported</Badge>}
+                {isImported && <Badge variant="secondary" className="text-xs shrink-0">Imported</Badge>}
                 {isSelected && !isImported && <Check className="w-4 h-4 text-primary shrink-0" />}
               </button>
             );
