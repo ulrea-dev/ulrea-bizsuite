@@ -67,11 +67,9 @@ const LayoutContent: React.FC = () => {
   const isInvitedUser = !!(data.userBusinessAccess?.length &&
     data.userBusinessAccess.find(a => a.userId === data.userSettings.userId));
 
-  // Profile setup modal: show if username is missing
-  const needsProfileSetup = !isLoadingFromDB && (
-    !data.userSettings.username?.trim() ||
-    (!isInvitedUser && !data.userSettings.accountName?.trim())
-  );
+  // Profile setup modal: show only if username is genuinely missing (after DB load completes)
+  // The modal itself will detect whether they need a workspace name or not
+  const needsProfileSetup = !isLoadingFromDB && !data.userSettings.username?.trim();
 
   return (
     <SidebarProvider>
