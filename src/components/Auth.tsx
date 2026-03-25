@@ -1,605 +1,318 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { useBusiness, setRestoringData } from '@/contexts/BusinessContext';
-import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
-import { useSupabaseStorage } from '@/contexts/SupabaseStorageContext';
-import { importData } from '@/utils/storage';
-import { Briefcase, Upload, Play, ChevronDown, Moon, Sun, Loader2, Cloud, CloudOff, RefreshCw } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/hooks/useTheme';
-import { format, formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { Moon, Sun, Loader2, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+
+type AuthView = 'login' | 'signup' | 'forgotPassword' | 'forgotSent';
 
 interface AuthProps {
-  onLogin: (username: string) => void;
+  onLogin: (userId: string, email: string) => void;
 }
 
-type AuthView = 'main' | 'newUser' | 'backupSelection' | 'cloudRestore';
-
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const { data, dispatch } = useBusiness();
   const { theme, toggleTheme } = useTheme();
-  const {
-    isConnected,
-    isLoading: isGoogleLoading,
-    connect,
-    loadBackups,
-    backups,
-    restoreBackup,
-    currentAccount,
-    showAccountSelection,
-    isDiscoveringAccounts,
-  } = useGoogleDrive();
-  const { checkCloudExists, downloadCloud, getStoragePath } = useSupabaseStorage();
-  
-  const [username, setUsername] = useState('');
-  const [showSwitchUser, setShowSwitchUser] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [view, setView] = useState<AuthView>('main');
-  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-  // Cloud restore state
-  const [cloudBackupInfo, setCloudBackupInfo] = useState<{ syncedAt: string } | null>(null);
-  const [isCheckingCloud, setIsCheckingCloud] = useState(false);
-  const [isRestoringCloud, setIsRestoringCloud] = useState(false);
+  const { toast } = useToast();
 
-  const existingUser = data.userSettings.username;
-  const businessCount = data.businesses.length;
-  const projectCount = data.projects.length;
+  const [view, setView] = useState<AuthView>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Track if user explicitly connected (to differentiate from returning to login after logout)
-  const [hasExplicitlyConnected, setHasExplicitlyConnected] = useState(false);
-
-  // When Google connects and account already exists, load backups
-  useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && currentAccount && view === 'main' && !isLoadingBackups) {
-      handleLoadBackupsForAccount();
-    }
-  }, [isConnected, hasExplicitlyConnected, currentAccount, view]);
-
-  // When Google connects but no workspace exists, go straight to name entry
-  useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && !currentAccount && view === 'main') {
-      setView('newUser');
-    }
-  }, [isConnected, hasExplicitlyConnected, currentAccount, view]);
-
-  const handleLoadBackupsForAccount = async () => {
-    setIsLoadingBackups(true);
-    try {
-      await loadBackups();
-      // After loading, check if we should auto-restore or show selection
-    } catch (error) {
-      console.error('Failed to load backups:', error);
-      setHasExplicitlyConnected(false);
-    } finally {
-      setIsLoadingBackups(false);
-    }
-  };
-
-  // Check cloud backup on mount if accountName is set
-  useEffect(() => {
-    const accountName = data.userSettings.accountName || '';
-    const userId = data.userSettings.userId || '';
-    if (!accountName && !userId) return;
-    const pathKey = getStoragePath(accountName, userId);
-    if (!pathKey) return;
-
-    setIsCheckingCloud(true);
-    checkCloudExists(pathKey).then((result) => {
-      if (result?.exists && result.syncedAt) {
-        setCloudBackupInfo({ syncedAt: result.syncedAt });
-      }
-      setIsCheckingCloud(false);
-    });
-  }, []);
-
-  const handleRestoreFromCloud = async () => {
-    const accountName = data.userSettings.accountName || '';
-    const userId = data.userSettings.userId || '';
-    const pathKey = getStoragePath(accountName, userId);
-    if (!pathKey) return;
-
-    setIsRestoringCloud(true);
-    setRestoringData(true);
-    try {
-      const result = await downloadCloud(pathKey);
-      if (result) {
-        dispatch({ type: 'LOAD_DATA', payload: result.data });
-        if (result.data.userSettings?.username) {
-          onLogin(result.data.userSettings.username);
-        }
-      }
-    } catch (error) {
-      console.error('Cloud restore failed:', error);
-    } finally {
-      setIsRestoringCloud(false);
-      setTimeout(() => setRestoringData(false), 1000);
-    }
-  };
-
-  // Auto-restore latest backup when backups are loaded
-  useEffect(() => {
-    if (isConnected && hasExplicitlyConnected && currentAccount && backups.length > 0 && view === 'main' && !isRestoring && !isLoadingBackups && !showAccountSelection) {
-      // Auto-restore the latest backup
-      handleRestoreBackup(backups[0].id);
-    } else if (isConnected && hasExplicitlyConnected && currentAccount && backups.length === 0 && !isLoadingBackups && view === 'main' && !showAccountSelection) {
-      // No backups found, proceed to backup selection to show options
-      setView('backupSelection');
-    }
-  }, [isConnected, hasExplicitlyConnected, currentAccount, backups, view, isRestoring, isLoadingBackups, showAccountSelection]);
-
-  const handleLoadGoogleBackups = async () => {
-    setIsLoadingBackups(true);
-    try {
-      await loadBackups();
-      setView('backupSelection');
-    } catch (error) {
-      console.error('Failed to load backups:', error);
-    } finally {
-      setIsLoadingBackups(false);
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    setHasExplicitlyConnected(true);
-    if (isConnected) {
-      // Already connected
-      if (currentAccount) {
-        handleLoadGoogleBackups();
-      } else {
-        // No workspace yet — let user login first, workspace prompt comes after
-        setView('newUser');
-      }
-    } else {
-      connect();
-    }
-  };
-
-  const handleRestoreBackup = async (fileId: string) => {
-    setIsRestoring(true);
-    setRestoringData(true); // Prevent auto-sync during restore
-    try {
-      const restoredData = await restoreBackup(fileId);
-      
-      // CRITICAL: Load the restored data into the app state
-      if (restoredData) {
-        dispatch({ type: 'LOAD_DATA', payload: restoredData });
-      }
-      
-      if (restoredData?.userSettings?.username) {
-        onLogin(restoredData.userSettings.username);
-      } else {
-        // If no username in backup, go to new user flow
-        setView('newUser');
-      }
-    } catch (error) {
-      console.error('Failed to restore backup:', error);
-    } finally {
-      setIsRestoring(false);
-      // Re-enable sync after a short delay to ensure data is fully loaded
-      setTimeout(() => setRestoringData(false), 1000);
-    }
-  };
-
-  const handleStartFresh = () => {
-    setView('newUser');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username.trim());
-    }
-  };
-
-  const handleContinue = () => {
-    if (existingUser) {
-      onLogin(existingUser);
-    }
-  };
-
-  const handleImportBackup = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          setRestoringData(true); // Prevent auto-sync during restore
-          const text = e.target?.result as string;
-          const importedData = importData(text);
-          dispatch({ type: 'LOAD_DATA', payload: importedData });
-          if (importedData.userSettings?.username) {
-            onLogin(importedData.userSettings.username);
-          }
-          setTimeout(() => setRestoringData(false), 1000);
-        } catch (error) {
-          console.error('Failed to restore backup:', error);
-          setRestoringData(false);
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
-
-  const handleLoadDemo = async () => {
+    if (!email.trim() || !password.trim()) return;
+    setIsLoading(true);
     try {
-      const response = await fetch('/demo-data.json');
-      const demoData = await response.json();
-      const importedData = importData(JSON.stringify(demoData));
-      dispatch({ type: 'LOAD_DATA', payload: importedData });
-      if (importedData.userSettings?.username) {
-        onLogin(importedData.userSettings.username);
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load demo data:', error);
+      if (data.user) {
+        onLogin(data.user.id, data.user.email ?? email);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const formatBackupDate = (dateString: string) => {
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim() || !confirmPassword.trim()) return;
+    if (password !== confirmPassword) {
+      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+    if (password.length < 6) {
+      toast({ title: 'Password too short', description: 'Password must be at least 6 characters.', variant: 'destructive' });
+      return;
+    }
+    setIsLoading(true);
     try {
-      return format(new Date(dateString), 'MMM d, yyyy · h:mm a');
-    } catch {
-      return dateString;
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) {
+        toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+      if (data.user) {
+        // If email confirmation is disabled (immediate session), log in now
+        if (data.session) {
+          onLogin(data.user.id, data.user.email ?? email);
+        } else {
+          toast({
+            title: 'Check your email',
+            description: 'We sent a confirmation link to ' + email + '. Click it to activate your account.',
+          });
+          setView('login');
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderBackupSelection = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style={{ backgroundColor: 'hsl(142 76% 36% / 0.12)' }}>
-          <Cloud className="w-6 h-6" style={{ color: 'hsl(142 76% 36%)' }} />
-        </div>
-        <h2 className="text-xl font-semibold text-foreground">Google Drive Connected</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {currentAccount && (
-            <span className="block text-xs text-primary mb-1">Workspace: {currentAccount.name}</span>
-          )}
-          {backups.length > 0 
-            ? `Found ${backups.length} backup${backups.length === 1 ? '' : 's'} in your Drive`
-            : 'No backups found in your Drive'}
-        </p>
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast({ title: 'Failed to send reset link', description: error.message, variant: 'destructive' });
+        return;
+      }
+      setView('forgotSent');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const Logo = () => (
+    <div className="text-center mb-8">
+      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary mb-4">
+        <span className="text-primary-foreground font-bold text-xl">W</span>
       </div>
-
-      {backups.length > 0 ? (
-        <div className="space-y-3">
-          {/* Latest backup highlight */}
-          <div className="p-4 rounded-lg border-2 border-primary bg-primary/5">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-primary">Latest Backup</span>
-              <span className="text-xs text-muted-foreground">
-                {formatBackupDate(backups[0].createdTime)}
-              </span>
-            </div>
-            <p className="text-sm text-foreground font-medium mb-3">{backups[0].name}</p>
-            <Button 
-              onClick={() => handleRestoreBackup(backups[0].id)} 
-              className="w-full"
-              disabled={isRestoring}
-            >
-              {isRestoring ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Restoring...
-                </>
-              ) : (
-                'Restore Latest'
-              )}
-            </Button>
-          </div>
-
-          {/* Older backups */}
-          {backups.length > 1 && (
-            <Collapsible>
-              <CollapsibleTrigger className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
-                <span>Show {backups.length - 1} older backup{backups.length > 2 ? 's' : ''}</span>
-                <ChevronDown className="w-4 h-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 mt-2">
-                {backups.slice(1, 5).map((backup) => (
-                  <button
-                    key={backup.id}
-                    onClick={() => handleRestoreBackup(backup.id)}
-                    disabled={isRestoring}
-                    className="w-full p-3 rounded-lg border border-border hover:border-primary/50 hover:bg-accent/50 transition-colors text-left"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-foreground">{backup.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatBackupDate(backup.createdTime)}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </div>
-      ) : (
-        <div className="p-4 rounded-lg bg-muted/50 text-center">
-          <CloudOff className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">
-            No backups found. Start fresh and your data will be automatically synced.
-          </p>
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <Button 
-          variant="outline" 
-          onClick={() => setView('main')} 
-          className="flex-1"
-          disabled={isRestoring}
-        >
-          Back
-        </Button>
-        <Button 
-          variant="secondary" 
-          onClick={handleStartFresh} 
-          className="flex-1"
-          disabled={isRestoring}
-        >
-          Start Fresh
-        </Button>
-      </div>
+      <h1 className="text-2xl font-bold text-foreground tracking-tight">WorkOS</h1>
+      <p className="text-sm text-muted-foreground mt-1">by Ulrea</p>
     </div>
   );
 
-  const renderNewUserFlow = () => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="text-center mb-2">
-        <h2 className="text-xl font-semibold text-foreground">
-          {showSwitchUser ? 'Switch Account' : 'Get Started'}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Enter your name to continue
-        </p>
+  const renderLogin = () => (
+    <form onSubmit={handleLogin} className="space-y-4">
+      <Logo />
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-semibold text-foreground">Welcome back</h2>
+        <p className="text-sm text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 
-      <Input
-        type="text"
-        placeholder="Your name"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        className="h-11 text-center"
-        autoFocus
-      />
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+          required
+        />
+      </div>
 
-      <Button type="submit" className="w-full h-11" size="lg" disabled={!username.trim()}>
-        {showSwitchUser ? 'Switch' : 'Get Started'}
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setView('forgotPassword')}
+        className="text-xs text-primary hover:underline"
+      >
+        Forgot password?
+      </button>
+
+      <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim()}>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
       </Button>
 
-      {(showSwitchUser || view === 'newUser') && (
-        <button
-          type="button"
-          onClick={() => {
-            setShowSwitchUser(false);
-            setView('main');
-          }}
-          className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {existingUser ? `Back to ${existingUser.split(' ')[0]}` : 'Back'}
+      <p className="text-center text-sm text-muted-foreground">
+        Don't have an account?{' '}
+        <button type="button" onClick={() => setView('signup')} className="text-primary hover:underline font-medium">
+          Sign up
         </button>
-      )}
+      </p>
     </form>
   );
 
-  const renderMainFlow = () => (
-    <>
-      {/* Returning User Flow */}
-      {existingUser && !showSwitchUser ? (
-        <div className="text-center space-y-6">
-          <div className="space-y-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary text-primary-foreground text-2xl font-bold">
-              {getInitials(existingUser)}
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">
-                Welcome back, {existingUser.split(' ')[0]}
-              </h2>
-              {(businessCount > 0 || projectCount > 0) && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {businessCount} {businessCount === 1 ? 'business' : 'businesses'} · {projectCount} {projectCount === 1 ? 'project' : 'projects'}
-                </p>
-              )}
-            </div>
-          </div>
+  const renderSignup = () => (
+    <form onSubmit={handleSignup} className="space-y-4">
+      <Logo />
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-semibold text-foreground">Create your account</h2>
+        <p className="text-sm text-muted-foreground mt-1">Start managing your workspace</p>
+      </div>
 
-          <Button onClick={handleContinue} className="w-full h-11" size="lg">
-            Continue
-          </Button>
+      <div className="space-y-2">
+        <Label htmlFor="signup-email">Email</Label>
+        <Input
+          id="signup-email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+          required
+        />
+      </div>
 
-          {/* Cloud restore banner */}
-          {cloudBackupInfo && (
-            <div className="rounded-lg border p-3 text-left space-y-2" style={{ borderColor: 'hsl(var(--primary) / 0.3)', backgroundColor: 'hsl(var(--primary) / 0.05)' }}>
-              <div className="flex items-center gap-2">
-                <Cloud className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-xs font-medium text-foreground">Cloud backup found</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Saved {formatDistanceToNow(new Date(cloudBackupInfo.syncedAt), { addSuffix: true })}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-xs h-8"
-                onClick={handleRestoreFromCloud}
-                disabled={isRestoringCloud}
-              >
-                {isRestoringCloud ? (
-                  <><RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />Restoring...</>
-                ) : (
-                  <>Resume from cloud</>
-                )}
-              </Button>
-            </div>
-          )}
-
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password</Label>
+        <div className="relative">
+          <Input
+            id="signup-password"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="At least 6 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="pr-10"
+          />
           <button
-            onClick={() => setShowSwitchUser(true)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            Not {existingUser.split(' ')[0]}? Switch account
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-      ) : (
-        /* New User / Switch User Flow */
-        <div className="space-y-6">
-          <div className="text-center mb-2">
-            <h2 className="text-xl font-semibold text-foreground">
-              {showSwitchUser ? 'Switch Account' : 'Get Started'}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Continue with Google or enter your name
-            </p>
-          </div>
+      </div>
 
-          {/* Google Login Button */}
-          <Button 
-            onClick={handleGoogleLogin} 
-            variant="outline" 
-            className="w-full h-11 gap-2"
-            disabled={isGoogleLoading || isLoadingBackups || isDiscoveringAccounts}
-          >
-            {isGoogleLoading || isLoadingBackups || isDiscoveringAccounts ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-            )}
-            {isDiscoveringAccounts ? 'Finding workspaces...' : isLoadingBackups ? 'Loading backups...' : 'Continue with Google'}
-          </Button>
+      <div className="space-y-2">
+        <Label htmlFor="confirm-password">Confirm Password</Label>
+        <Input
+          id="confirm-password"
+          type={showPassword ? 'text' : 'password'}
+          placeholder="Repeat your password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+      </div>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
+      <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim() || !confirmPassword.trim()}>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
+      </Button>
 
-          {/* Name Input */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Your name"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="h-11 text-center"
-            />
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <button type="button" onClick={() => setView('login')} className="text-primary hover:underline font-medium">
+          Sign in
+        </button>
+      </p>
+    </form>
+  );
 
-            <Button type="submit" className="w-full h-11" size="lg" disabled={!username.trim()}>
-              {showSwitchUser ? 'Switch' : 'Get Started'}
-            </Button>
-          </form>
+  const renderForgotPassword = () => (
+    <form onSubmit={handleForgotPassword} className="space-y-4">
+      <Logo />
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-semibold text-foreground">Reset your password</h2>
+        <p className="text-sm text-muted-foreground mt-1">We'll send a recovery link to your email</p>
+      </div>
 
-          {showSwitchUser && (
-            <button
-              type="button"
-              onClick={() => setShowSwitchUser(false)}
-              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Back to {existingUser?.split(' ')[0]}
-            </button>
-          )}
-        </div>
-      )}
-    </>
+      <div className="space-y-2">
+        <Label htmlFor="reset-email">Email</Label>
+        <Input
+          id="reset-email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+          required
+        />
+      </div>
+
+      <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim()}>
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send Reset Link'}
+      </Button>
+
+      <button
+        type="button"
+        onClick={() => setView('login')}
+        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to sign in
+      </button>
+    </form>
+  );
+
+  const renderForgotSent = () => (
+    <div className="space-y-4 text-center">
+      <Logo />
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mx-auto">
+        <span className="text-2xl">📬</span>
+      </div>
+      <h2 className="text-xl font-semibold text-foreground">Check your inbox</h2>
+      <p className="text-sm text-muted-foreground">
+        We sent a password reset link to <strong className="text-foreground">{email}</strong>.
+        Click the link in the email to set a new password.
+      </p>
+      <Button variant="outline" onClick={() => setView('login')} className="w-full h-11">
+        Back to Sign In
+      </Button>
+    </div>
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 login-gradient relative">
-      {/* Theme Toggle */}
-      <Button
-        variant="ghost"
-        size="icon"
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <button
+        type="button"
         onClick={toggleTheme}
-        className="absolute top-4 right-4"
+        className="fixed top-4 right-4 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        aria-label="Toggle theme"
       >
-        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </Button>
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
 
       <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 backdrop-blur-sm mb-4">
-            <Briefcase className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">BizSuite</h1>
-          <p className="text-sm text-muted-foreground mt-1">Multi-business management</p>
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-8">
+          {view === 'login' && renderLogin()}
+          {view === 'signup' && renderSignup()}
+          {view === 'forgotPassword' && renderForgotPassword()}
+          {view === 'forgotSent' && renderForgotSent()}
         </div>
-
-        <Card className="login-card border-border/50">
-          <CardContent className="pt-6 pb-6">
-            {view === 'backupSelection' && renderBackupSelection()}
-            {view === 'newUser' && renderNewUserFlow()}
-            {view === 'main' && renderMainFlow()}
-          </CardContent>
-        </Card>
-
-        {/* Advanced Options - only show on main view */}
-        {view === 'main' && (
-          <div className="mt-6">
-            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger className="flex items-center justify-center gap-1 w-full text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <span>More options</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    onClick={handleLoadDemo}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Play className="w-4 h-4" />
-                    Try demo
-                  </button>
-                  <span className="text-muted-foreground/50">·</span>
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    Restore backup
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportBackup}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        )}
       </div>
-
     </div>
   );
 };
