@@ -228,10 +228,11 @@ export const BusinessAccessPage: React.FC = () => {
   };
 
   const handleCreateAccount = async () => {
-    if (!createEmail.trim() || createBusinessIds.length === 0) {
-      toast({ title: 'Fill in email and select at least one business.', variant: 'destructive' });
+    if (!createEmail.trim()) {
+      toast({ title: 'Please enter an email address.', variant: 'destructive' });
       return;
     }
+    const allBusinessIds = data.businesses.map(b => b.id);
     setIsSaving(true);
     try {
       const result = await invokeEdgeFunction({
@@ -242,7 +243,7 @@ export const BusinessAccessPage: React.FC = () => {
         workspaceId: currentUserId,
       });
       const userId = result.userId ?? crypto.randomUUID();
-      const updated = assignUserBusinessAccess(data, userId, createBusinessIds, createRole, createEmail.trim());
+      const updated = assignUserBusinessAccess(data, userId, allBusinessIds, createRole, createEmail.trim());
       const withStatus = updated.map(a =>
         a.userId === userId
           ? { ...a, inviteStatus: 'pending' as const, displayName: createDisplayName.trim() || undefined }
