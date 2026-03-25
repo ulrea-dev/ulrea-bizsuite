@@ -8,12 +8,10 @@ export const ProtectedRoute: React.FC = () => {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
     });
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
@@ -21,7 +19,6 @@ export const ProtectedRoute: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Still loading
   if (session === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -32,6 +29,11 @@ export const ProtectedRoute: React.FC = () => {
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Block access if email not confirmed — force OTP verification
+  if (!session.user.email_confirmed_at) {
+    return <Navigate to="/login?unverified=1" replace />;
   }
 
   return <Outlet />;
