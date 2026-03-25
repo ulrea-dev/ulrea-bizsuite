@@ -321,8 +321,8 @@ export const BusinessAccessPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold dashboard-text-primary">Business Access</h1>
-          <p className="text-sm dashboard-text-secondary mt-1">Manage who can access your workspace and businesses</p>
+          <h1 className="text-2xl font-bold dashboard-text-primary">Venture Access</h1>
+          <p className="text-sm dashboard-text-secondary mt-1">Manage who can access your venture workspace</p>
         </div>
         {isOwner && (
           <Button onClick={() => { setShowAddDialog(true); resetAddForm(); }}>
