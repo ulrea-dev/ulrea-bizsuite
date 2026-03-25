@@ -15,15 +15,15 @@ import { CustomCurrencyModal } from '@/components/CustomCurrencyModal';
 import { ColorPaletteSelector } from '@/components/ColorPaletteSelector';
 import { FontSelector } from '@/components/FontSelector';
 import { SalarySettings } from '@/components/SalarySettings';
-import { GoogleDriveBackupCard } from '@/components/GoogleDriveBackupCard';
 import { BackupSettingsCard } from '@/components/BackupSettingsCard';
 import { GoogleSheetsConnectionCard } from '@/components/GoogleSheetsConnectionCard';
 import { RestoreFromDriveModal } from '@/components/RestoreFromDriveModal';
 import { ShareAccessModal } from '@/components/ShareAccessModal';
 import { SUPPORTED_CURRENCIES, Currency, FontOption, ColorPalette } from '@/types/business';
 import { getDefaultFont, getDefaultColorPalette } from '@/utils/appearance';
-import { Plus, RotateCcw, Users, ArrowUpRight } from 'lucide-react';
+import { Plus, RotateCcw, Users, ArrowUpRight, Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export const SettingsPage: React.FC = () => {
   const { data, dispatch } = useBusiness();
@@ -40,6 +40,12 @@ export const SettingsPage: React.FC = () => {
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(
     data.userSettings.colorPalette || getDefaultColorPalette()
   );
+
+  // Security / Change Password state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const allCurrencies = SUPPORTED_CURRENCIES.concat(data.customCurrencies || []);
 
