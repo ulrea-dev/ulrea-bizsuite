@@ -138,9 +138,9 @@ export const LegacyImportBusinessPickerModal: React.FC<LegacyImportBusinessPicke
                       <span>{b.currency?.code ?? 'USD'}</span>
                     </div>
                   </div>
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-primary shrink-0 mt-1" />
-                  )}
+                  <div className="shrink-0 mt-1 w-4 h-4">
+                    {isSelected && <Check className="w-4 h-4 text-primary" />}
+                  </div>
                 </button>
               );
             })}
