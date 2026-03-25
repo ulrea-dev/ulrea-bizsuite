@@ -1,105 +1,95 @@
 
-## What's Being Built
+## Root Cause Analysis
 
-The Business Access page at `/business-management/business-access` needs a full user management system where the workspace owner can:
-1. **Invite users** via email (invitation email with signup link) **or** create an account directly (email + temporary password they must change on first sign-in)
-2. **Edit** user role and business access
-3. **Delete** user access (revoke access from the app, optionally delete from auth)
+The problem has **two separate but related issues**:
 
-Currently, the page just stores access data in the local JSON (via `userBusinessAccess` in `AppData`). It has no real Supabase Auth integration — it generates a random UUID and doesn't actually create auth users or send emails.
+### Issue 1 — Invited users load the workspace owner's data (full access)
+When an invited user logs in:
+1. `LocalStorageRepository.load()` reads from `localStorage` (key: `bizsuite-data`)
+2. Their `localStorage` is either **empty** (new device) or contains **their own unrelated data**
+3. Their `userSettings.userId` is blank/stale — it is never set to their Supabase `user.id` after login
+4. The `getUserAccessibleBusinessIds` function in `filterDataForUser.ts` checks `data.userBusinessAccess` using this `userId` — but since `userId` is blank, it finds **no match** and falls through to the backward-compat default: **return all businesses**
+
+### Issue 2 — Invited users are never loaded into the workspace owner's dataset
+The workspace data (including the `userBusinessAccess` list) lives in the **owner's** Supabase Storage path (keyed by their `accountName`). An invited user has a **blank localStorage** — the app never downloads the owner's workspace for them.
+
+There is no "join workspace" mechanism — invited users need to load the owner's workspace data from Supabase Storage and apply the access filter for their own `userId`.
 
 ---
 
-## Architecture
+## The Fix — Three-Part Solution
 
-### Two invitation methods:
-- **Send Invite Email**: calls `supabase.auth.admin.inviteUserByEmail()` via a new Edge Function (needs service role key). User gets an email with a "Set your password" link. On first login, they're prompted to set password + complete profile.
-- **Create with Temporary Password**: calls `supabase.auth.admin.createUser()` via Edge Function with a generated temp password. Owner copies or shares the credentials. User is flagged (`force_password_change: true` in metadata) → on login, they're redirected to change password before entering the app.
+### Part 1: Set `userId` to Supabase auth `user.id` on login
+In `HubLayout.tsx` (where the user lands post-login), after fetching the Supabase session, dispatch `SET_USER_ID` with the actual Supabase `user.id`. This ensures the `userId` in `userSettings` is always the real auth identity — not blank.
 
-Both methods create real Supabase Auth users tied to the workspace.
+### Part 2: Detect if user is an "invited user" (not workspace owner)
+After setting `userId`, check if the user is listed in `userBusinessAccess` **inside the currently loaded workspace**. But since an invited user has blank localStorage, we need to **scan Supabase Storage** for workspaces where their `userId` appears in the `userBusinessAccess` array.
 
-### New Edge Function: `manage-workspace-users`
-Since `supabase.auth.admin.*` requires the service role key (never exposed client-side), all admin user actions go through this edge function:
-- `POST /invite` — sends invitation email
-- `POST /create` — creates user with temp password
-- `DELETE /remove` — optionally deletes the Supabase Auth user (or just removes access from the JSON)
+The flow:
+1. User logs in → `userId` set to `user.id`
+2. Check if `data.userSettings.userId === user.id` AND `data.businesses.length > 0` → **this is the owner**, no action needed
+3. If `data.businesses.length === 0` OR `userId` just changed → **scan Supabase Storage** for the user's workspace
+4. Use the existing `downloadCloud` to fetch the workspace by the `accountName` stored in Supabase user metadata (`account_name`)
+5. If found and the user's `userId` is in `userBusinessAccess` → load that workspace and apply the access filter
 
-### Workspace Linking
-When an invited user logs in for the first time, the existing Cloud Restore flow (`accountName` lookup in Supabase Storage) already handles loading the workspace data. The access entry in `userBusinessAccess` (stored in the JSON) is keyed by the Supabase Auth `user.id`. The Edge Function returns the new user's Supabase `user.id` so we can store it correctly in the access list.
+### Part 3: Apply access filter when loading data for non-owners
+When a non-owner loads a workspace, `filterDataForUser` already handles filtering — but it needs to be applied **at load time** not just at render time. The `accessibleBusinesses` in `BusinessContext` already does this via `getUserAccessibleBusinessIds`, but the **full unfiltered data** is still in state.
 
-### Force Password Change
-For temp-password accounts: on login, check `user_metadata.force_password_change === true` → redirect to `/reset-password?force=1` with a UI that says "You must set a new password before continuing".
+The real fix: after loading the workspace for an invited user, strip the data to only what they're allowed to see using `filterDataForUser` before dispatching `LOAD_DATA`.
 
 ---
 
 ## Files to Change
 
-### New Files
-1. `supabase/functions/manage-workspace-users/index.ts` — Edge Function with invite, create, remove actions using service role key
-2. (No new page files needed — all within BusinessAccessPage)
+### 1. `src/layouts/HubLayout.tsx`
+Add a `useEffect` that:
+- Gets Supabase session `user.id`
+- Dispatches `SET_USER_ID` with the real auth user ID
+- If `data.businesses.length === 0` (blank state — invited user on a new device), tries to load the workspace from Supabase Storage using the `account_name` from user metadata
+- Alternatively: check if `user.id` appears in the stored `userBusinessAccess` of a downloaded workspace; if yes, filter and load it
 
-### Modified Files
-3. `src/components/admin/BusinessAccessPage.tsx` — Full rewrite with two-tab dialog (Invite by email | Create with password), status badges (Pending/Active), improved user list with avatar initials, inline edit, delete with confirmation
-4. `src/pages/ResetPasswordPage.tsx` — Add `force=1` detection: show "Set your new password" heading + block navigation back until done
-5. `src/components/Auth.tsx` — After login, check `user_metadata.force_password_change` → redirect to `/reset-password?force=1`
+### 2. `src/utils/filterDataForUser.ts`
+Fix `getUserAccessibleBusinessIds` to be **strict for invited users** — only grant full access if:
+- The `userBusinessAccess` array is empty (true blank slate, not "user not found")  
+- OR the user's entry explicitly has all businesses
+
+Change the fallback logic so that if `userBusinessAccess` has entries but the user is not in it, return **empty array** (no access) rather than all businesses.
+
+### 3. `src/components/ProfileSetupModal.tsx`
+When `needsProfileSetup` is true for an **invited user** (they have `userId` set but no `username`):
+- Show a simpler modal with just "Set your display name" (no workspace name — they're joining someone else's workspace)
+- Skip the workspace name field if the user is an invited user (i.e., they appear in `userBusinessAccess`)
+
+### 4. `src/components/admin/BusinessAccessPage.tsx` (minor)
+When the owner saves the workspace data (which includes `userBusinessAccess`), also save the `workspaceId` (owner's `userId` / storage path) in the invited user's Supabase auth metadata via the edge function. This allows invited users to look up whose workspace to join.
+
+The edge function already has access to the invited user — when creating/inviting, also call `adminClient.auth.admin.updateUserById(userId, { user_metadata: { workspace_id: ownerId } })`.
 
 ---
 
-## UI Details for BusinessAccessPage
-
-### "Grant Access" Dialog — Two Tabs
+## Detailed Flow After Fix
 
 ```
-[  Send Invite Email  |  Create Account  ]
-
---- Send Invite Email tab ---
-Email: [input]
-Role: [select: Viewer / Admin / Owner]
-Businesses: [checkbox list]
-[Cancel] [Send Invitation]
-
---- Create Account tab ---
-Email: [input]
-Temporary Password: [auto-generated, show/hide, copy button]
-Display Name: [input, optional]
-Role: [select]
-Businesses: [checkbox list]
-[Cancel] [Create Account]
+Invited user logs in →
+  ProtectedRoute: session valid ✓ →
+  HubLayout mounts →
+    1. Get user.id from Supabase session
+    2. Dispatch SET_USER_ID(user.id)  
+    3. Check user_metadata.workspace_id (set by owner when granting access)
+    4. If workspace_id exists → downloadCloud(workspace_id path)
+    5. Loaded workspace has userBusinessAccess with this user's entry
+    6. Apply filterDataForUser(loadedData, user.id)
+    7. Dispatch LOAD_DATA(filteredData)
+    8. User sees only their assigned businesses ✓
 ```
 
-### User List Enhancements
-- Avatar with initials (from email)
-- Status badge: `Pending` (invited, not yet logged in) | `Active` (has logged in)
-- Business names listed below email
-- Edit icon → opens edit dialog (same fields minus email)
-- Trash icon → confirmation dialog with option to also delete from system
-
-### Status Detection
-Store `inviteStatus: 'pending' | 'active'` in the `UserBusinessAccess` object (already in the type). Set to `pending` on creation, update to `active` when the user logs in (checked against Supabase Auth — the Edge Function can query if the user has `email_confirmed_at`).
-
 ---
 
-## Technical Steps
+## Summary of Changes
 
-1. **Edge Function** `manage-workspace-users/index.ts`:
-   - Uses `SUPABASE_SERVICE_ROLE_KEY` secret (already configured)
-   - `action: 'invite'` → `adminAuthClient.inviteUserByEmail(email, { data: { workspace_invite: true } })` → returns `{ userId, email }`
-   - `action: 'create'` → `adminAuthClient.createUser({ email, password, email_confirm: true, user_metadata: { force_password_change: true } })` → returns `{ userId, email }`
-   - `action: 'remove'` → optionally `adminAuthClient.deleteUser(userId)` based on `deleteFromAuth` flag
-   - `action: 'check_status'` → queries user by ID, returns `email_confirmed_at` to determine `pending/active` status
-
-2. **BusinessAccessPage.tsx** — calls the edge function, then dispatches `UPDATE_USER_BUSINESS_ACCESS` with the real Supabase `userId` returned from the edge function
-
-3. **Auth.tsx** — After successful login, add check:
-   ```typescript
-   if (data.user?.user_metadata?.force_password_change) {
-     navigate('/reset-password?force=1');
-   }
-   ```
-
-4. **ResetPasswordPage.tsx** — Detect `?force=1`, change heading to "Set your permanent password", call `supabase.auth.updateUser({ password })` then `supabase.auth.updateUser({ data: { force_password_change: false } })` before proceeding
-
----
-
-## UserBusinessAccess Type Extension
-Add `inviteStatus?: 'pending' | 'active'` and `displayName?: string` to the `UserBusinessAccess` interface in `types/business.ts`.
+| File | Change |
+|------|--------|
+| `src/layouts/HubLayout.tsx` | Sync `userId`, detect invited user via `user_metadata.workspace_id`, download and filter workspace |
+| `src/utils/filterDataForUser.ts` | Fix fallback — empty access list = no access (not all access) for non-owner users |
+| `supabase/functions/manage-workspace-users/index.ts` | When inviting/creating, save `workspace_id` to invited user's Supabase metadata |
+| `src/components/ProfileSetupModal.tsx` | Skip workspace name field for invited users (they're joining, not creating) |
