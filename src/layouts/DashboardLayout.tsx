@@ -17,10 +17,11 @@ const LayoutContent: React.FC = () => {
   
   useAppearance();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (isConnected) {
       disconnect();
     }
+    await supabase.auth.signOut();
     navigate('/login');
   };
 
