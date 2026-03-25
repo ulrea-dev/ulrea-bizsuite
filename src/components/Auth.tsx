@@ -35,6 +35,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // OTP state
   const [otpValue, setOtpValue] = useState('');
@@ -44,12 +45,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   // If redirected here because account is not verified, show the OTP screen
   useEffect(() => {
     if (searchParams.get('unverified') === '1') {
-      // Try to get the current unverified session email
       supabase.auth.getSession().then(({ data }) => {
         if (data.session?.user?.email && !data.session.user.email_confirmed_at) {
           setEmail(data.session.user.email);
           setView('verifyOtp');
-          // Sign them out so they can't sneak in
           supabase.auth.signOut();
           toast({
             title: 'Email verification required',
@@ -60,6 +59,31 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       });
     }
   }, []);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          // Only request email + profile — no Drive scopes here
+          scopes: 'email profile',
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'online',
+            prompt: 'select_account',
+          },
+        },
+      });
+      if (error) {
+        toast({ title: 'Google sign-in failed', description: error.message, variant: 'destructive' });
+        setIsGoogleLoading(false);
+      }
+      // On success, browser redirects — loading stays true intentionally
+    } catch {
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +96,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         return;
       }
       if (data.user) {
-        // Block unverified users — send them to OTP screen
+        // Block unverified email/password users — send them to OTP screen
+        // (Google OAuth users are always confirmed)
         if (!data.user.email_confirmed_at) {
           await supabase.auth.signOut();
           setOtpValue('');
@@ -82,7 +107,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             description: 'Enter the verification code sent to your email.',
             variant: 'destructive',
           });
-          // Resend OTP so they have a fresh code
           await supabase.auth.resend({ type: 'signup', email: email.trim() });
           return;
         }
@@ -117,10 +141,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       }
       if (data.user) {
         if (data.session) {
-          // Email confirmation disabled — logged in directly
           onLogin(data.user.id, data.user.email ?? email);
         } else {
-          // Email confirmation required — show OTP entry
           setOtpValue('');
           setView('verifyOtp');
         }
@@ -140,7 +162,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         type: 'signup',
       });
       if (error) {
-        toast({ title: 'Verification failed', description: 'The code is incorrect or has expired. Please try again.', variant: 'destructive' });
+        toast({ title: 'Verification failed', description: 'The code is incorrect or has expired.', variant: 'destructive' });
         setOtpValue('');
         return;
       }
@@ -196,81 +218,115 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     </div>
   );
 
+  const GoogleButton = ({ label }: { label: string }) => (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full h-11 gap-2"
+      onClick={handleGoogleSignIn}
+      disabled={isGoogleLoading || isLoading}
+    >
+      {isGoogleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+      {isGoogleLoading ? 'Redirecting…' : label}
+    </Button>
+  );
+
+  const Divider = () => (
+    <div className="relative my-1">
+      <div className="absolute inset-0 flex items-center">
+        <span className="w-full border-t border-border" />
+      </div>
+      <div className="relative flex justify-center text-xs">
+        <span className="bg-card px-2 text-muted-foreground">or</span>
+      </div>
+    </div>
+  );
+
   const renderLogin = () => (
-    <form onSubmit={handleLogin} className="space-y-4">
+    <div className="space-y-4">
       <Logo />
       <div className="text-center mb-6">
         <h2 className="text-xl font-semibold text-foreground">Welcome back</h2>
         <p className="text-sm text-muted-foreground mt-1">Sign in to your workspace</p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />
-      </div>
+      <GoogleButton label="Continue with Google" />
+      <Divider />
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
-          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />
         </div>
-      </div>
 
-      <button type="button" onClick={() => setView('forgotPassword')} className="text-xs text-primary hover:underline">
-        Forgot password?
-      </button>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <div className="relative">
+            <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
 
-      <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim()}>
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
-      </Button>
+        <button type="button" onClick={() => setView('forgotPassword')} className="text-xs text-primary hover:underline">
+          Forgot password?
+        </button>
+
+        <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim()}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
+        </Button>
+      </form>
 
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{' '}
         <button type="button" onClick={() => setView('signup')} className="text-primary hover:underline font-medium">Sign up</button>
       </p>
-    </form>
+    </div>
   );
 
   const renderSignup = () => (
-    <form onSubmit={handleSignup} className="space-y-4">
+    <div className="space-y-4">
       <Logo />
       <div className="text-center mb-6">
         <h2 className="text-xl font-semibold text-foreground">Create your account</h2>
         <p className="text-sm text-muted-foreground mt-1">Start managing your workspace</p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
-        <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />
-      </div>
+      <GoogleButton label="Sign up with Google" />
+      <Divider />
 
-      <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
-        <div className="relative">
-          <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
-          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+      <form onSubmit={handleSignup} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="signup-email">Email</Label>
+          <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus required />
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirm-password">Confirm Password</Label>
-        <Input id="confirm-password" type={showPassword ? 'text' : 'password'} placeholder="Repeat your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-      </div>
+        <div className="space-y-2">
+          <Label htmlFor="signup-password">Password</Label>
+          <div className="relative">
+            <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="At least 6 characters" value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
 
-      <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim() || !confirmPassword.trim()}>
-        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
-      </Button>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-password">Confirm Password</Label>
+          <Input id="confirm-password" type={showPassword ? 'text' : 'password'} placeholder="Repeat your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+        </div>
+
+        <Button type="submit" className="w-full h-11" disabled={isLoading || !email.trim() || !password.trim() || !confirmPassword.trim()}>
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Account'}
+        </Button>
+      </form>
 
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
         <button type="button" onClick={() => setView('login')} className="text-primary hover:underline font-medium">Sign in</button>
       </p>
-    </form>
+    </div>
   );
 
   const renderVerifyOtp = () => (
@@ -295,7 +351,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           onChange={(val) => {
             setOtpValue(val);
             if (val.length === 6) {
-              // Auto-submit when all digits entered
               setTimeout(() => {
                 setIsVerifying(true);
                 supabase.auth.verifyOtp({ email: email.trim(), token: val, type: 'signup' })
