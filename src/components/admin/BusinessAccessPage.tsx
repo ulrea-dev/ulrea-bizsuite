@@ -197,10 +197,11 @@ export const BusinessAccessPage: React.FC = () => {
         const msg = err instanceof Error ? err.message : '';
         // If user already exists, look up their Supabase user id via check_status by email
         if (msg.toLowerCase().includes('already been registered') || msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('user already exists')) {
-          // User exists — look up their ID
+          // User exists — look up their ID and tag them with the workspace_id
           const result = await invokeEdgeFunction({
             action: 'lookup_by_email',
             email: inviteEmail.trim(),
+            workspaceId: currentUserId,
           });
           userId = result.userId;
           statusMessage = `${inviteEmail.trim()} already has an account and has been granted access.`;

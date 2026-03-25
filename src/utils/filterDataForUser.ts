@@ -6,18 +6,30 @@ import { AppData, UserBusinessAccess } from '@/types/business';
  * If no access entries exist for the user, they get access to all businesses (backward compatibility)
  */
 export const getUserAccessibleBusinessIds = (data: AppData, userId: string): string[] => {
+  const accessList = data.userBusinessAccess || [];
+
   // Find user's access entry
-  const userAccess = data.userBusinessAccess?.find(access => access.userId === userId);
-  
+  const userAccess = accessList.find(access => access.userId === userId);
+
   // If user has explicit access defined, use that
   if (userAccess && userAccess.businessIds.length > 0) {
     return userAccess.businessIds;
   }
-  
-  // Backward compatibility: if no access list or user not in list, 
-  // check if this is the original owner (first user)
-  // Give full access to all businesses
-  return data.businesses.map(b => b.id);
+
+  // If the access list is empty entirely → this is a fresh workspace with no multi-user setup
+  // → grant full access (backward compatibility / workspace owner on a clean install)
+  if (accessList.length === 0) {
+    return data.businesses.map(b => b.id);
+  }
+
+  // Access list has entries but this userId is NOT in it → invited user with no match yet
+  // Return empty to prevent unintended full access
+  if (!userAccess) {
+    return [];
+  }
+
+  // User is in the list but has no business IDs assigned yet
+  return [];
 };
 
 /**

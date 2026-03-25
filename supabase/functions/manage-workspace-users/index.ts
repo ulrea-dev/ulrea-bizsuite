@@ -47,6 +47,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      // If the user already existed and was just re-invited, also ensure workspace_id is set
+      if (data.user?.id && workspaceId) {
+        await adminClient.auth.admin.updateUserById(data.user.id, {
+          user_metadata: { workspace_id: workspaceId, workspace_name: workspaceName },
+        });
+      }
+
       return new Response(
         JSON.stringify({ userId: data.user?.id, email: data.user?.email }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -114,7 +121,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'lookup_by_email') {
-      const { email } = body;
+      const { email, workspaceId } = body;
       if (!email) {
         return new Response(JSON.stringify({ error: 'email is required' }), {
           status: 400,
@@ -135,6 +142,16 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'User not found' }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // If a workspaceId was provided, tag the existing user so they can load the workspace on login
+      if (workspaceId && found.id) {
+        await adminClient.auth.admin.updateUserById(found.id, {
+          user_metadata: {
+            ...found.user_metadata,
+            workspace_id: workspaceId,
+          },
         });
       }
 
