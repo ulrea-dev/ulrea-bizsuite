@@ -177,7 +177,7 @@ export const SettingsPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="backup" className="space-y-4">
-          <GoogleDriveBackupCard />
+          <BackupSettingsCard />
           <GoogleSheetsConnectionCard />
           {isConnected && (
             <Card>

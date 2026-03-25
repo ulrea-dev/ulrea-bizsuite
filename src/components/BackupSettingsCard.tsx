@@ -183,7 +183,7 @@ export const BackupSettingsCard: React.FC = () => {
               {showSetupInfo && (
                 <div className="p-3 bg-muted rounded-lg text-xs space-y-1">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 text-amber-500 shrink-0" />
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
                     <p className="text-muted-foreground">
                       Google Drive requires a configured Google Cloud project with OAuth credentials. Ask your developer to set up the Google Client ID.
                     </p>
