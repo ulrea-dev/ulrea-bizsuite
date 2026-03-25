@@ -1,157 +1,105 @@
 
-## Current Architecture Analysis
+## What's Being Built
 
-The app currently uses a **username-only login** — no email, no password, no Supabase Auth for regular users. The only Supabase Auth used is for the Super Admin.
+The Business Access page at `/business-management/business-access` needs a full user management system where the workspace owner can:
+1. **Invite users** via email (invitation email with signup link) **or** create an account directly (email + temporary password they must change on first sign-in)
+2. **Edit** user role and business access
+3. **Delete** user access (revoke access from the app, optionally delete from auth)
 
-The user wants to:
-1. Switch the main app login to **Supabase Auth (email + password)**
-2. Detect on login if the user has a Supabase Auth account — if not (Google Drive legacy user), force them to set a password using their Google email
-3. Allow users to **reset/change password** via email
-4. After login, force a **profile setup** if the user hasn't filled in Display Name and Account Name yet
-5. The Google email automatically becomes the user's email when they set up via Google
+Currently, the page just stores access data in the local JSON (via `userBusinessAccess` in `AppData`). It has no real Supabase Auth integration — it generates a random UUID and doesn't actually create auth users or send emails.
 
 ---
 
-## Architecture Shift
+## Architecture
 
-```text
-BEFORE: username stored in localStorage → ProtectedRoute checks localStorage
+### Two invitation methods:
+- **Send Invite Email**: calls `supabase.auth.admin.inviteUserByEmail()` via a new Edge Function (needs service role key). User gets an email with a "Set your password" link. On first login, they're prompted to set password + complete profile.
+- **Create with Temporary Password**: calls `supabase.auth.admin.createUser()` via Edge Function with a generated temp password. Owner copies or shares the credentials. User is flagged (`force_password_change: true` in metadata) → on login, they're redirected to change password before entering the app.
 
-AFTER:  email + password → Supabase Auth session → ProtectedRoute checks auth session
-        localStorage data still keyed to userId (now = Supabase Auth user.id)
+Both methods create real Supabase Auth users tied to the workspace.
+
+### New Edge Function: `manage-workspace-users`
+Since `supabase.auth.admin.*` requires the service role key (never exposed client-side), all admin user actions go through this edge function:
+- `POST /invite` — sends invitation email
+- `POST /create` — creates user with temp password
+- `DELETE /remove` — optionally deletes the Supabase Auth user (or just removes access from the JSON)
+
+### Workspace Linking
+When an invited user logs in for the first time, the existing Cloud Restore flow (`accountName` lookup in Supabase Storage) already handles loading the workspace data. The access entry in `userBusinessAccess` (stored in the JSON) is keyed by the Supabase Auth `user.id`. The Edge Function returns the new user's Supabase `user.id` so we can store it correctly in the access list.
+
+### Force Password Change
+For temp-password accounts: on login, check `user_metadata.force_password_change === true` → redirect to `/reset-password?force=1` with a UI that says "You must set a new password before continuing".
+
+---
+
+## Files to Change
+
+### New Files
+1. `supabase/functions/manage-workspace-users/index.ts` — Edge Function with invite, create, remove actions using service role key
+2. (No new page files needed — all within BusinessAccessPage)
+
+### Modified Files
+3. `src/components/admin/BusinessAccessPage.tsx` — Full rewrite with two-tab dialog (Invite by email | Create with password), status badges (Pending/Active), improved user list with avatar initials, inline edit, delete with confirmation
+4. `src/pages/ResetPasswordPage.tsx` — Add `force=1` detection: show "Set your new password" heading + block navigation back until done
+5. `src/components/Auth.tsx` — After login, check `user_metadata.force_password_change` → redirect to `/reset-password?force=1`
+
+---
+
+## UI Details for BusinessAccessPage
+
+### "Grant Access" Dialog — Two Tabs
+
+```
+[  Send Invite Email  |  Create Account  ]
+
+--- Send Invite Email tab ---
+Email: [input]
+Role: [select: Viewer / Admin / Owner]
+Businesses: [checkbox list]
+[Cancel] [Send Invitation]
+
+--- Create Account tab ---
+Email: [input]
+Temporary Password: [auto-generated, show/hide, copy button]
+Display Name: [input, optional]
+Role: [select]
+Businesses: [checkbox list]
+[Cancel] [Create Account]
 ```
 
-The `userSettings.username` stays (it's the display name, not the login credential). What changes:
-- Login uses Supabase email/password instead of just a name field
-- `ProtectedRoute` checks Supabase session, not just `username`
-- After auth, check if profile is complete (username + accountName set), if not show profile setup modal
+### User List Enhancements
+- Avatar with initials (from email)
+- Status badge: `Pending` (invited, not yet logged in) | `Active` (has logged in)
+- Business names listed below email
+- Edit icon → opens edit dialog (same fields minus email)
+- Trash icon → confirmation dialog with option to also delete from system
+
+### Status Detection
+Store `inviteStatus: 'pending' | 'active'` in the `UserBusinessAccess` object (already in the type). Set to `pending` on creation, update to `active` when the user logs in (checked against Supabase Auth — the Edge Function can query if the user has `email_confirmed_at`).
 
 ---
 
-## Google Legacy Users Flow
+## Technical Steps
 
-Google Drive connects with `settings.connectedEmail` (already stored in `GoogleDriveSettings`). When a Google user logs in for the first time post-migration:
+1. **Edge Function** `manage-workspace-users/index.ts`:
+   - Uses `SUPABASE_SERVICE_ROLE_KEY` secret (already configured)
+   - `action: 'invite'` → `adminAuthClient.inviteUserByEmail(email, { data: { workspace_invite: true } })` → returns `{ userId, email }`
+   - `action: 'create'` → `adminAuthClient.createUser({ email, password, email_confirm: true, user_metadata: { force_password_change: true } })` → returns `{ userId, email }`
+   - `action: 'remove'` → optionally `adminAuthClient.deleteUser(userId)` based on `deleteFromAuth` flag
+   - `action: 'check_status'` → queries user by ID, returns `email_confirmed_at` to determine `pending/active` status
 
-1. They see the new email/password login
-2. A "Continue with Google" path: user clicks it → Google OAuth connects → app gets the email from the Google connection → checks Supabase if that email exists
-3. If **no Supabase account** → show "Set a password for your account" screen with the pre-filled email
-4. After password set, they're registered in Supabase Auth and logged in
-5. Profile setup modal appears since `username` may be empty
+2. **BusinessAccessPage.tsx** — calls the edge function, then dispatches `UPDATE_USER_BUSINESS_ACCESS` with the real Supabase `userId` returned from the edge function
 
----
+3. **Auth.tsx** — After successful login, add check:
+   ```typescript
+   if (data.user?.user_metadata?.force_password_change) {
+     navigate('/reset-password?force=1');
+   }
+   ```
 
-## Files to Create / Edit
-
-| File | Change |
-|---|---|
-| `src/components/Auth.tsx` | Full rewrite: email + password login form, sign up form, forgot password form. Remove username-only flow. |
-| `src/pages/LoginPage.tsx` | Wrap new Auth with Supabase session check — if session exists, redirect to `/dashboard` |
-| `src/components/ProtectedRoute.tsx` | Check Supabase session (`supabase.auth.getSession()`) instead of just `data.userSettings.username` |
-| `src/components/ProfileSetupModal.tsx` | NEW — Modal triggered post-login if `username` or `accountName` is missing. Required fields: Display Name, Account Name. Cannot be dismissed without completing. |
-| `src/layouts/DashboardLayout.tsx` / `HubLayout.tsx` | Add `ProfileSetupModal` check — if user logged in but profile incomplete, show modal |
-| `src/pages/ResetPasswordPage.tsx` | NEW — `/reset-password` route that handles Supabase recovery token from email link |
-| `src/App.tsx` | Add `/reset-password` public route |
-| `src/contexts/BusinessContext.tsx` | On login, key the localStorage data by Supabase `user.id` rather than just username |
+4. **ResetPasswordPage.tsx** — Detect `?force=1`, change heading to "Set your permanent password", call `supabase.auth.updateUser({ password })` then `supabase.auth.updateUser({ data: { force_password_change: false } })` before proceeding
 
 ---
 
-## Login Screen Design
-
-```text
-[WorkOS Logo]
-
-Sign in to WorkOS
-
-Email _______________
-Password _______________
-
-[Sign In]
-
-[Forgot password?]
-
-─── or ───
-
-[Continue with Google] (connects Google OAuth, sets password if new)
-
-Don't have an account? Sign up
-```
-
----
-
-## Profile Setup Modal (Post-Login)
-
-Triggered whenever user is authenticated (Supabase session exists) but:
-- `data.userSettings.username` is empty, OR
-- `data.userSettings.accountName` is empty
-
-```text
-╔══════════════════════════════════╗
-║  Set Up Your Profile             ║
-║                                  ║
-║  Email: user@email.com (locked)  ║
-║                                  ║
-║  Display Name ___________        ║
-║  (Your name, shown to teammates) ║
-║                                  ║
-║  Account / Workspace Name ______ ║
-║  (Name of this workspace)        ║
-║                                  ║
-║  [Continue]                      ║
-╚══════════════════════════════════╝
-```
-
-Cannot be dismissed. Saved to `userSettings` via dispatch.
-
----
-
-## Google Legacy → Password Setup Flow
-
-1. User clicks "Continue with Google" on login screen
-2. Google OAuth connects → `settings.connectedEmail` is populated
-3. App calls `supabase.auth.getUserByEmail(email)` equivalent — actually: attempt sign-in with no password fails → detect no account
-4. More reliable approach: After Google connect, call `supabase.auth.signUp({ email: googleEmail, password: '' })` — if returns `user already exists` → do normal sign-in; if new user → show "Create your password" screen
-5. On password creation: `supabase.auth.signUp({ email, password })` or `supabase.auth.updateUser({ password })` if already signed in
-
----
-
-## Password Reset Flow
-
-1. User clicks "Forgot password?" on login
-2. Email input + "Send reset link" button
-3. Calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.origin + '/reset-password' })`
-4. Toast: "Check your email for a reset link"
-5. `/reset-password` page: detects `type=recovery` in URL hash → shows new password form → calls `supabase.auth.updateUser({ password })`
-
----
-
-## Change Password (Inside App)
-
-In `SettingsPage.tsx`, Account tab, add a "Security" card:
-- "Change Password" button → small form: Current Password (optional for OAuth users), New Password, Confirm New Password
-- Calls `supabase.auth.updateUser({ password: newPassword })`
-
----
-
-## ProtectedRoute Update
-
-```typescript
-// Check BOTH Supabase session AND local username
-const session = await supabase.auth.getSession();
-if (!session.data.session) → redirect to /login
-```
-
-Using `onAuthStateChange` in a new `AuthContext` or directly in `ProtectedRoute` with a loading state.
-
----
-
-## Summary of Steps
-
-1. Create `src/components/ProfileSetupModal.tsx` — forced profile completion after login
-2. Create `src/pages/ResetPasswordPage.tsx` — handles email recovery links
-3. Rewrite `src/components/Auth.tsx` — email + password + forgot password + Google path with forced password setup
-4. Update `src/components/ProtectedRoute.tsx` — check Supabase session
-5. Update `src/pages/LoginPage.tsx` — redirect if session exists
-6. Update `src/App.tsx` — add `/reset-password` public route
-7. Update `src/components/SettingsPage.tsx` — add Security card with Change Password
-
-The Supabase `user.id` (from auth session) becomes the storage key for the workspace data, replacing the old `userId` in `userSettings`. This is more reliable and works across devices naturally.
+## UserBusinessAccess Type Extension
+Add `inviteStatus?: 'pending' | 'active'` and `displayName?: string` to the `UserBusinessAccess` interface in `types/business.ts`.
