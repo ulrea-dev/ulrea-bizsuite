@@ -189,6 +189,61 @@ export const SettingsPage: React.FC = () => {
           <FontSelector selectedFont={selectedFont} onFontChange={handleFontChange} />
           <ColorPaletteSelector selectedPalette={selectedPalette} onPaletteChange={handlePaletteChange} />
 
+          {/* Security */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security
+              </CardTitle>
+              <CardDescription>Change your account password.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-new-password"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Repeat your new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
+                >
+                  {isChangingPassword ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Updating...</>
+                  ) : (
+                    'Update Password'
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
           {/* Partners — link to Back Office */}
           <Card>
             <CardHeader>
