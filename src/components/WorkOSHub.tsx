@@ -9,10 +9,15 @@ import { formatCurrency } from '@/utils/storage';
 
 export const WorkOSHub: React.FC = () => {
   const navigate = useNavigate();
-  const { data, currentBusiness } = useBusiness();
+  const { data, currentBusiness, isLoadingFromDB } = useBusiness();
   const { overdueCount, dueTodayCount } = useTodoReminders();
 
-  // Recent works (projects, tasks, retainers)
+  // Show legacy onboarding flow if no ventures exist yet
+  if (!isLoadingFromDB && data.businesses.length === 0) {
+    return <LegacyOnboardingFlow onComplete={() => { /* data loaded via importData, hub re-renders */ }} />;
+  }
+
+
   const recentWorks = useMemo(() => {
     if (!currentBusiness) return [];
     const projects = data.projects
