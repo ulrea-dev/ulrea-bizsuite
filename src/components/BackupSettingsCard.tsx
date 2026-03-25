@@ -68,14 +68,27 @@ export const BackupSettingsCard: React.FC = () => {
     try {
       const restoredData = await restoreBackup(fileId);
       if (restoredData) {
-        dispatch({ type: 'LOAD_DATA', payload: restoredData });
-        // Immediately push restored data to Supabase cloud
-        await uploadNow(restoredData);
+        // If the backup has multiple businesses, show the picker
+        if ((restoredData.businesses?.length ?? 0) > 1) {
+          setPendingBackupData(restoredData);
+          setShowBusinessPicker(true);
+          setIsRestoring(false);
+          return;
+        }
+        await _applyRestoredData(restoredData);
       }
       setShowRestoreSection(false);
     } finally {
       setIsRestoring(false);
     }
+  };
+
+  const _applyRestoredData = async (restoredData: AppData) => {
+    dispatch({ type: 'LOAD_DATA', payload: restoredData });
+    await uploadNow(restoredData);
+    setShowRestoreSection(false);
+    setShowBusinessPicker(false);
+    setPendingBackupData(null);
   };
 
   // When Drive connects while restore section is open, auto-load backups
