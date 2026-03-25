@@ -609,7 +609,7 @@ export const GoogleDriveProvider: React.FC<GoogleDriveProviderProps> = ({ childr
     }
   }, [isConnected, settings.partnerSheets, updateSettings, toast, handleTokenExpiry]);
 
-  const syncPartnerSheet = useCallback(async (partnerId: string, data: AppData) => {
+  const syncPartnerSheet = useCallback(async (partnerId: string, data: AppData, silent = false) => {
     if (!isConnected) return;
     const partnerSheet = settings.partnerSheets?.find(ps => ps.partnerId === partnerId);
     if (!partnerSheet) return;
